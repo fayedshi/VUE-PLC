@@ -1,6 +1,5 @@
 <template>
   <div class="app-container">
-    <h1>上位机 - WebSocket 实时通信测试</h1>
     
     <!-- 状态显示栏 -->
     <div class="connection-status" :class="{ 'connected': isConnected }">
@@ -95,7 +94,7 @@ onBeforeUnmount(() => {
   font-family: Arial, sans-serif;
   text-align: center;
 }
-h1 { color: #333; }
+
 .connection-status {
   display: inline-block;
   padding: 8px 15px;

@@ -1,10 +1,27 @@
 <template>
-
   <div class="navigate">
-    <RouterLink to="/" active-class="active">测温系统</RouterLink>
-    <RouterLink to="/news" active-class="active">News</RouterLink>
-    <RouterLink to="/publics" active-class="active">Publics</RouterLink>
-    <RouterLink to="/about" active-class="active">About</RouterLink>
+    <h1>上位机 - WebSocket 实时通信测试</h1>
+    <nav>
+      <RouterLink to="/" active-class="active">系统主页</RouterLink>
+      <RouterLink to="/settings" active-class="active">系统设置</RouterLink>
+      <RouterLink to="/tasks" active-class="active">任务计划</RouterLink>
+      <RouterLink to="/data-center" active-class="active">数据中心</RouterLink>
+      <RouterLink to="/air-tightness" active-class="active">气密性检测</RouterLink>
+      <RouterLink to="/mobile-control" active-class="active">手机控制</RouterLink>
+      <RouterLink to="/alarms" active-class="active">系统报警</RouterLink>
+      <RouterLink to="/permissions" active-class="active">权限管理</RouterLink>
+    </nav>
+
+  </div>
+  <div class="navigate">
+    <nav>
+      <RouterLink to="/temperature" active-class="active">测温系统</RouterLink>
+      <RouterLink to="/gas-control" active-class="active">气调系统</RouterLink>
+      <RouterLink to="/ventilation" active-class="active">通风系统</RouterLink>
+      <RouterLink to="/hvac" active-class="active">空调系统</RouterLink>
+      <RouterLink to="/nitrogen-generation" active-class="active">制氮系统</RouterLink>
+      <RouterLink to="/environment-monitor" active-class="active">环境监测</RouterLink>
+    </nav>
   </div>
 
   <div class="main-content">
@@ -19,6 +36,20 @@ import { RouterView, RouterLink } from 'vue-router';
 </script>
 
 <style>
+h1 {
+  color: #333;
+}
+
+.connection-status {
+  display: inline-block;
+  padding: 8px 15px;
+  background-color: #ff4d4f;
+  color: white;
+  border-radius: 20px;
+  font-weight: bold;
+  margin-bottom: 30px;
+}
+
 .navigate {
   display: flex;
   /* 开启弹性布局 */
@@ -60,7 +91,7 @@ import { RouterView, RouterLink } from 'vue-router';
   /* 背景通常设为白色或浅灰色 */
   margin: 0 auto;
   /* 配合 max-width 实现水平居中 */
-  max-width: 1200px;
+  /* max-width: 1200px; */
   /* 限制最大宽度，防止大屏下文字排得太稀疏 */
 }
 </style>
