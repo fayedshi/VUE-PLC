@@ -39,7 +39,7 @@ import { ref, onMounted, onBeforeUnmount } from 'vue';
 const isConnected = ref(false);
 const temperatures=ref([])
 const temp_humid=ref([])
-const status=ref('running')
+const status=ref('Running')
 // const plcData = ref({ temperature: 0.0, pressure: 0.0, status: 'UNKNOWN' });
 let socket = null;
 
@@ -65,7 +65,7 @@ const initWebSocket = () => {
   // 连接关闭事件
   socket.onclose = () => {
     isConnected.value = false;
-    console.log('【前端提示】连接已断开，3秒后尝试自动重连...');
+    // console.log('【前端提示】连接已断开，3秒后尝试自动重连...');
     setTimeout(initWebSocket, 3000); // 掉线自动重连机制
   };
 
