@@ -1,6 +1,6 @@
 <template>
   <div class="navigate">
-    <h1>上位机 - WebSocket 实时通信测试</h1>
+    <h1>智能粮库上位机</h1>
     <nav>
       <RouterLink to="/" active-class="active">系统主页</RouterLink>
       <RouterLink to="/settings" active-class="active">系统设置</RouterLink>
