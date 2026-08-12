@@ -3,7 +3,7 @@
     <!-- 1. 时间查询工具栏 -->
     <div class="search-bar">
       <div class="search-item">
-        <label>选择历史查询时间：</label>
+        <label>选择时间：</label>
         <!-- 使用 datetime-local 方便用户精确选择到分钟 -->
         <input type="datetime-local" v-model="searchQuery.dateTime" class="input-date" />
       </div>
@@ -44,21 +44,22 @@
             <td class="temp-td" :class="getTempClass(cable.bottom)">{{ formatTemp(cable.bottom) }}</td>
           </tr>
           <tr>
-            统计
+            <td>统计</td>  
+          </tr>
+          
+          <tr>
+            <td class="cable-id-td">最低 </td>
+            <td>{{ formatTemp(surfaceMin / 10) }}</td>
+            <td>{{ formatTemp(midUpperMin / 10) }}</td>
+            <td>{{ formatTemp(midLowerMin / 10) }}</td>
+            <td>{{ formatTemp(bottomMin / 10) }}</td>
           </tr>
           <tr>
-          <td class="cable-id-td">最低 </td>
-          <td>{{ formatTemp(surfaceMin / 10) }}</td>
-          <td>{{ formatTemp(midUpperMin / 10) }}</td>
-          <td>{{ formatTemp(midLowerMin / 10) }}</td>
-          <td>{{ formatTemp(bottomMin / 10) }}</td>
-          </tr>
-          <tr>
-          <td class="cable-id-td">最高 </td>
-          <td>{{ formatTemp(surfaceMax / 10) }}</td>
-          <td>{{ formatTemp(midUpperMax / 10) }}</td>
-          <td>{{ formatTemp(midLowerMax / 10) }}</td>
-          <td>{{ formatTemp(bottomMax / 10) }}</td>
+            <td class="cable-id-td">最高 </td>
+            <td>{{ formatTemp(surfaceMax / 10) }}</td>
+            <td>{{ formatTemp(midUpperMax / 10) }}</td>
+            <td>{{ formatTemp(midLowerMax / 10) }}</td>
+            <td>{{ formatTemp(bottomMax / 10) }}</td>
           </tr>
 
           <!-- 数据为空时的缺省提示 -->
@@ -138,39 +139,36 @@ const processedCables = computed(() => {
 
   if (!cache || Object.keys(cache).length === 0) return []
 
-  for (let i = 0; i < 35; i++) {
-    const base = i * 4 // 电缆对应的数据下标基准点
-    cables.push({
-      id: i + 1, // 电缆 1 到 35
-      surface: (cache[`temp${base}`] / 10).toFixed(1),     // temp0, temp4, temp8...
-      midUpper: (cache[`temp${base + 1}`] / 10).toFixed(1), // temp1, temp5, temp9...
-      midLower: (cache[`temp${base + 2}`] / 10).toFixed(1), // temp2, temp6, temp10...
-      bottom: (cache[`temp${base + 3}`] / 10).toFixed(1)  // temp3, temp7, temp11...
-    })
-    
-    
-    // alert(rem)
-    switch (i % 4 ) {
+  for (let i = 0, j = 0; i < 140; i++) {
+    if (i % 4 == 0) {
+      cables.push({
+        id: ++j,
+        surface: (cache[`temp${i}`] / 10).toFixed(1),     // temp0, temp4, temp8...
+        midUpper: (cache[`temp${i + 1}`] / 10).toFixed(1),
+        midLower: (cache[`temp${i + 2}`] / 10).toFixed(1),
+        bottom: (cache[`temp${i + 3}`] / 10).toFixed(1)
+      })
+    }
+
+    let tempCell = cache[`temp${i}`]
+    switch (i % 4) {
       case 0:
-        surfaceMin.value = Math.min(surfaceMin.value, cache[`temp${i}`])
-        surfaceMax.value = Math.max(surfaceMax.value, cache[`temp${i}`])
+        surfaceMin.value = Math.min(surfaceMin.value, tempCell)
+        surfaceMax.value = Math.max(surfaceMax.value, tempCell)
         break
-        // console.log('surfaceMin', surfaceMin.value)
-        // console.log('surfaceMax', surfaceMax.value)
       case 1:
-        console.log('midUpper ',i)
-        console.log('cache[`temp${i}`]', cache[`temp${i}`],' i is ',i)
-        midUpperMin.value = Math.min(midUpperMin.value, cache[`temp${i}`])
-        midUpperMax.value = Math.max(midUpperMax.value, cache[`temp${i}`])
+        midUpperMin.value = Math.min(midUpperMin.value, tempCell)
+        midUpperMax.value = Math.max(midUpperMax.value, tempCell)
         console.log('midUpperMin', midUpperMin.value)
         break
       case 2:
-        midLowerMin.value = Math.min(midLowerMin.value, cache[`temp${i}`])
-        midLowerMax.value = Math.max(midLowerMax.value, cache[`temp${i}`])
+        midLowerMin.value = Math.min(midLowerMin.value, tempCell)
+        midLowerMax.value = Math.max(midLowerMax.value, tempCell)
         break
       case 3:
-        bottomMin.value = Math.min(bottomMin.value, cache[`temp${i}`])
-        bottomMax.value = Math.max(bottomMax.value, cache[`temp${i}`])
+
+        bottomMin.value = Math.min(bottomMin.value, tempCell)
+        bottomMax.value = Math.max(bottomMax.value, tempCell)
         break
       default:
         break
