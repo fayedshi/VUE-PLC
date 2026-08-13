@@ -1,6 +1,6 @@
 <template>
   <div class="trend-container">
-    <h2>整仓温度趋势分析（每小时抽样）</h2>
+    <h2>整仓温度趋势分析（每10分鐘抽样）</h2>
 
     <!-- 1. 时间范围查询工具栏 -->
     <div class="search-bar">

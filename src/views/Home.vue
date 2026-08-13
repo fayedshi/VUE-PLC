@@ -10,11 +10,11 @@
     <div class="data-board">
       <div class="data-card">
         <span class="label">实时温度1</span>
-        <span class="value">{{ temperatures[0] }} ℃</span>
+        <span class="value">{{ temperatures[79] }} ℃</span>
       </div>
       <div class="data-card">
         <span class="label">实时温度2</span>
-        <span class="value">{{ temperatures[1] }} ℃</span>
+        <span class="value">{{ temperatures[80] }} ℃</span>
       </div>
       <!-- <div class="data-card">
         <span class="label">实时湿度1</span>
