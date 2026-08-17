@@ -73,7 +73,7 @@ const initChart = () => {
 }
 
 const http = axios.create({
-  baseURL: 'http://localhost:8000',
+  baseURL: 'http://192.168.0.16:8000',
   timeout: 5000
 });
 

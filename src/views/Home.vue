@@ -46,7 +46,7 @@ let socket = null;
 // 2. 建立 WebSocket 连接函数
 const initWebSocket = () => {
   // 如果在电脑本机测试，保持 localhost；如果要手机访问，请改为工控机的局域网 IP
-  socket = new WebSocket('ws://localhost:8000/ws/live');
+  socket = new WebSocket('ws://192.168.0.16:8000/ws/live');
 
   // 连接成功事件
   socket.onopen = () => {
