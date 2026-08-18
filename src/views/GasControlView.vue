@@ -1,330 +1,187 @@
+
 <template>
-  <div class="window-control-module">
-    <!-- 1. 顶部：智能批量控制面板 -->
-    <div class="panel batch-panel">
-      <h3>🏢 气调控制面板</h3>
+  <div class="single-control-container">
+    <div class="window-card" :class="'status-' + windowTextStatus">
       
-      <div class="batch-selection-bar">
-        <!-- 全选/全不选 快捷控制 -->
-        <label class="checkbox-label select-all">
-          <input 
-            type="checkbox" 
-            :checked="isAllSelected" 
-            @change="toggleSelectAll" 
-          />
-          <span class="checkbox-text">全选 / 反选</span>
-        </label>
-        <span class="selected-count">已选中 {{ selectedWindowIds.length }} 个电动窗</span>
+      <!-- 头部状态栏 -->
+      <div class="card-header">
+        <h3 class="window-name">🪟 气调仓 - 主电动窗控制</h3>
+        <!-- 根据后端返回的文本状态展示对应的指示灯 -->
+        <span class="status-badge" :class="windowTextStatus">
+          {{ formatStatus(windowTextStatus) }}
+        </span>
       </div>
 
-      <!-- 批量动作按钮，如果没有选中任何窗户，则自动禁用 -->
-      <div class="batch-buttons">
+      <!-- 仿真百叶窗开合视觉效果 -->
+      <div class="window-visual-box">
+        <div class="visual-shutter" :style="{ height: getVisualHeight(windowTextStatus) }"></div>
+        <p class="visual-text">仓内气流状态示意</p>
+      </div>
+
+      <!-- 核心控制按钮：点击时分别传入 1, 2, 3 -->
+      <div class="action-buttons">
         <button 
-          @click="sendBatchAction('open')" 
-          :disabled="selectedWindowIds.length === 0" 
+          @click="sendAction(1)" 
+          :disabled="windowTextStatus === 'opened'"
           class="btn btn-open"
-        >⚡ 批量开启选中窗</button>
+        >⚡ 开启窗户 (1)</button>
         
         <button 
-          @click="sendBatchAction('stop')" 
-          :disabled="selectedWindowIds.length === 0" 
-          class="btn btn-stop"
-        >🛑 批量暂停选中窗</button>
-        
-        <button 
-          @click="sendBatchAction('close')" 
-          :disabled="selectedWindowIds.length === 0" 
+          @click="sendAction(2)" 
+          :disabled="windowTextStatus === 'closed'"
           class="btn btn-close"
-        >🔒 批量关闭选中窗</button>
+        >🔒 关闭窗户 (2)</button>
+        
+        <button 
+          @click="sendAction(3)" 
+          :disabled="windowTextStatus === 'stopped'"
+          class="btn btn-stop"
+        >🛑 紧急暂停 (3)</button>
       </div>
-      <p v-if="globalMessage" class="global-msg">{{ globalMessage }}</p>
-    </div>
 
-    <!-- 2. 底部：8个电动窗独立控制网格 -->
-    <div class="window-grid">
-      <div 
-        v-for="win in windows" 
-        :key="win.id" 
-        class="window-card"
-        :class="[
-          'status-' + win.status, 
-          { 'card-selected': selectedWindowIds.includes(win.id) }
-        ]"
-      >
-        <div class="card-header">
-          <!-- 💡 每个窗户新增勾选框，绑定选中的 ID 数组 -->
-          <label class="checkbox-label">
-            <input 
-              type="checkbox" 
-              :value="win.id" 
-              v-model="selectedWindowIds" 
-            />
-            <span class="window-name">🪟 {{ win.name }}</span>
-          </label>
-          
-          <!-- 状态指示灯 -->
-          <span class="status-badge" :class="win.status">
-            {{ formatStatus(win.status) }}
-          </span>
-        </div>
-
-        <!-- 动画模拟窗户开合状态 -->
-        <div class="window-visual">
-          <div class="visual-bar" :style="{ width: getVisualWidth(win.status) }"></div>
-        </div>
-
-        <!-- 独立控制动作 -->
-        <div class="action-buttons">
-          <button 
-            @click="sendSingleAction(win.id, 'open')" 
-            :disabled="win.status === 'opening' || win.status === 'opened'"
-            class="btn-s btn-s-open"
-          >开启</button>
-          
-          <button 
-            @click="sendSingleAction(win.id, 'stop')" 
-            :disabled="win.status === 'stopped'"
-            class="btn-s btn-s-stop"
-          >暂停</button>
-          
-          <button 
-            @click="sendSingleAction(win.id, 'close')" 
-            :disabled="win.status === 'closing' || win.status === 'closed'"
-            class="btn-s btn-s-close"
-          >关闭</button>
-        </div>
-      </div>
+      <!-- 底栏状态栏 -->
+      <p v-if="feedbackMessage" class="feedback-msg">ℹ️ {{ feedbackMessage }}</p>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import axios from 'axios';
 
-const API_BASE = 'http://localhost:8000/api/气调模块';
-const globalMessage = ref('');
+// 💡 注意：局域网联调时，请将下方 IP 换成你运行 FastAPI 后端的那台电脑的实际局域网 IP
+const BACKEND_IP = '192.168.1.50'; 
+const API_BASE = `http://${BACKEND_IP}:8000/api/气调模块`;
 
-// 💡 核心存储：记录当前被勾选的电动窗 ID 数组
-const selectedWindowIds = ref([]);
-
-// 初始化 8 个电动窗的本地状态
-const windows = ref(
-  Array.from({ length: 8 }, (_, i) => ({
-    id: i + 1,
-    name: `${i + 1}号电动窗`,
-    status: 'stopped'
-  }))
-);
-
-// 💡 计算属性：判断当前是否所有窗户都被勾选了
-const isAllSelected = computed(() => {
-  return windows.value.length > 0 && selectedWindowIds.value.length === windows.value.length;
-});
-
-// 💡 快捷键：全选 / 全不选切换
-const toggleSelectAll = (event) => {
-  if (event.target.checked) {
-    selectedWindowIds.value = windows.value.map(w => w.id);
-  } else {
-    selectedWindowIds.value = [];
-  }
-};
+const windowTextStatus = ref('stopped'); // 存储纯文本状态，如 'opened', 'closed', 'stopped'
+const feedbackMessage = ref('');
 
 const formatStatus = (status) => {
   const map = {
-    opened: '已开启',
-    closed: '已关闭',
-    opening: '正在开启...',
-    closing: '正在关闭...',
-    stopped: '已暂停'
+    opened: '已彻底开启',
+    closed: '已彻底关闭',
+    stopped: '已安全暂停'
   };
-  return map[status] || '未知';
+  return map[status] || '通信同步中...';
 };
 
-const getVisualWidth = (status) => {
-  if (status === 'opened' || status === 'opening') return '100%';
-  if (status === 'stopped') return '50%';
-  return '0%';
+// 窗户视觉高度变化计算
+const getVisualHeight = (status) => {
+  if (status === 'closed') return '100%'; // 关闭时百叶窗全拉下
+  if (status === 'stopped') return '50%';  // 暂停在中间
+  return '0%';                            // 开启时百叶窗收起
 };
 
-// 获取最新状态
-const fetchStatus = async () => {
+// 从后端获取单窗状态
+const fetchWindowStatus = async () => {
   try {
-    const res = await axios.get(`${API_BASE}/windows/status`);
-    res.data.forEach(serverWin => {
-      const target = windows.value.find(w => w.id === serverWin.id);
-      if (target) target.status = serverWin.status;
-    });
+    // const res = await axios.get(`${API_BASE}/window/status`);
+    // res.data 包含 status_code 和 status_text
+    windowTextStatus.value = res.data.status_text;
   } catch (err) {
-    globalMessage.value = '无法获取电动窗实时状态。';
+    feedbackMessage.value = '上位机网络中断，请检查局域网连接及 8000 端口。';
   }
 };
 
-// 动作 1：单窗控制
-const sendSingleAction = async (id, action) => {
-  globalMessage.value = `正在向 ${id}号窗 发送 [${action}] 指令...`;
-  try {
-    const res = await axios.post(`${API_BASE}/window/control`, { id, action });
-    if (res.data.success) {
-      globalMessage.value = `${id}号窗 指令执行成功！`;
-      fetchStatus();
-    }
-  } catch (err) {
-    globalMessage.value = `${id}号窗 控制失败。`;
-  }
-};
-
-// 💡 动作 2：修正后的“勾选批量控制”
-const sendBatchAction = async (action) => {
-  const targetIds = [...selectedWindowIds.value];
-  globalMessage.value = `正在对 ${targetIds.join(', ')} 号窗发送批量 [${action}] 指令...`;
-
-  // 前端乐观更新：让选中的窗户先动起来
-  windows.value.forEach(w => {
-    if (targetIds.includes(w.id)) {
-      if (action === 'open') w.status = 'opening';
-      if (action === 'close') w.status = 'closing';
-      if (action === 'stop') w.status = 'stopped';
-    }
-  });
+// 💡 核心动作：直接下发数字 1, 2, 3 给后端
+const sendAction = async (code) => {
+  const actionName = code === 1 ? '开启' : (code === 2 ? '关闭' : '暂停');
+  feedbackMessage.value = `正在下发指令 [值: ${code}] 至 PLC 寄存器...`;
+  
+  // 前端乐观更新视觉状态，防止物理延迟导致卡顿感
+  if (code === 1) windowTextStatus.value = 'opened';
+  if (code === 2) windowTextStatus.value = 'closed';
+  if (code === 3) windowTextStatus.value = 'stopped';
 
   try {
-    // 💡 配合勾选功能，前端将选中的 ID 数组（targetIds）直接传给后端
-    const res = await axios.post(`${API_BASE}/window/batch-control`, { 
-      action,
-      ids: targetIds // 传给后端的指定 ID 列表
+    const res = await axios.post(`${API_BASE}/window/control`, { 
+      action_value: code  //#  匹配后端 SingleControlSchema 中的字段名
     });
     
-    if (res.data.success) {
-      globalMessage.value = `选中的电动窗批量 [${action}] 指令下发成功！`;
-      fetchStatus();
-    }
+    windowTextStatus.value = res.data.current_status_text;
+    feedbackMessage.value = `PLC 寄存器写入成功，动作【${actionName}】已响应。`;
   } catch (err) {
-    globalMessage.value = '批量控制部分或全部失败，请检查总线。';
-    fetchStatus();
+    feedbackMessage.value = '指令发送失败，PLC 链路可能占线或发生未知错误。';
+    fetchWindowStatus(); // 报错时自动拉取硬件真实状态进行还原
   }
 };
 
 onMounted(() => {
-  fetchStatus();
+  // fetchWindowStatus();
+  // 每 2 秒前端自动拉取一次状态，与后端 Polling 保持同步
+  // setInterval(fetchWindowStatus, 2000);
 });
 </script>
 
 <style scoped>
-.window-control-module {
-  max-width: 1000px;
-  margin: 20px auto;
-  font-family: 'Segoe UI', sans-serif;
+.single-control-container {
+  max-width: 500px;
+  margin: 40px auto;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+}
+.window-card {
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
   color: #fff;
 }
-.panel {
-  background: #1e1e1e;
-  padding: 20px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  border: 1px solid #333;
-}
-/* 批量勾选工具条 */
-.batch-selection-bar {
+.card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
-  background: #2a2a2a;
-  padding: 10px 15px;
-  border-radius: 6px;
+  margin-bottom: 20px;
 }
-.selected-count {
-  color: #41b883;
-  font-size: 14px;
-  font-weight: bold;
-}
-.batch-buttons {
+.window-name { margin: 0; font-size: 18px; color: #e0e0e0; }
+
+/* 状态标签 */
+.status-badge { padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold; }
+.status-badge.opened { background: rgba(40,167,69,0.2); color: #28a745; border: 1px solid #28a745; }
+.status-badge.closed { background: rgba(0,123,255,0.2); color: #007bff; border: 1px solid #007bff; }
+.status-badge.stopped { background: rgba(220,53,69,0.2); color: #dc3545; border: 1px solid #dc3545; }
+
+/* 窗户模拟盒 */
+.window-visual-box {
+  height: 160px;
+  background: #2d2d2d;
+  border: 2px solid #444;
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 25px;
   display: flex;
-  gap: 15px;
+  align-items: center;
+  justify-content: center;
 }
+.visual-shutter {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  background: linear-gradient(180deg, #555 0%, #333 100%);
+  border-bottom: 3px solid #ffc107;
+  transition: height 0.6s ease-in-out;
+}
+.visual-text { position: relative; z-index: 2; font-size: 13px; color: #888; }
+
+/* 工业按钮 */
+.action-buttons { display: flex; flex-direction: column; gap: 10px; }
 .btn {
-  flex: 1;
   padding: 12px;
   font-size: 15px;
   font-weight: bold;
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  transition: all 0.2s;
+  color: white;
+  transition: background 0.2s;
 }
-.btn:disabled {
-  background: #444 !important;
-  color: #888;
-  cursor: not-allowed;
-}
-.btn-open { background: #28a745; color: white; }
+.btn:disabled { background: #333 !important; color: #666; cursor: not-allowed; }
+.btn-open { background: #28a745; }
 .btn-open:hover:not(:disabled) { background: #218838; }
-.btn-stop { background: #dc3545; color: white; }
-.btn-stop:hover:not(:disabled) { background: #c82333; }
-.btn-close { background: #007bff; color: white; }
+.btn-close { background: #007bff; }
 .btn-close:hover:not(:disabled) { background: #0069d9; }
+.btn-stop { background: #dc3545; }
+.btn-stop:hover:not(:disabled) { background: #c82333; }
 
-.global-msg { color: #ffc107; font-size: 14px; margin-top: 10px; font-family: monospace; }
-
-/* 勾选框美化与布局 */
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
-  user-select: none;
-}
-.checkbox-label input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-}
-
-/* 8列网格布局 */
-.window-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 15px;
-}
-@media (max-width: 768px) { .window-grid { grid-template-columns: repeat(2, 1fr); } }
-
-.window-card {
-  background: #252526;
-  border: 1px solid #3c3c3c;
-  border-radius: 6px;
-  padding: 15px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  transition: all 0.3s;
-}
-/* 💡 被选中卡片的高亮视觉边缘线 */
-.card-selected {
-  border-color: #41b883;
-  background: #2d3732;
-}
-
-.card-header { display: flex; justify-content: space-between; align-items: center; }
-.window-name { font-weight: bold; font-size: 14px; }
-
-.status-badge { padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; }
-.status-badge.opened { background: rgba(40,167,69,0.2); color: #28a745; }
-.status-badge.closed { background: rgba(0,123,255,0.2); color: #007bff; }
-.status-badge.opening { background: rgba(40,167,69,0.4); color: #fff; animation: blink 1s infinite; }
-.status-badge.closing { background: rgba(0,123,255,0.4); color: #fff; animation: blink 1s infinite; }
-.status-badge.stopped { background: rgba(220,53,69,0.2); color: #dc3545; }
-
-.window-visual { height: 6px; background: #111; border-radius: 3px; overflow: hidden; }
-.visual-bar { height: 100%; background: #41b883; transition: width 1s ease-in-out; }
-
-.action-buttons { display: flex; gap: 5px; }
-.btn-s { flex: 1; padding: 6px 0; font-size: 12px; border: none; border-radius: 4px; cursor: pointer; color: #fff; background: #444; }
-.btn-s:disabled { opacity: 0.3; cursor: not-allowed; }
-.btn-s-open:not(:disabled):hover { background: #218838; }
-.btn-s-stop:not(:disabled):hover { background: #c82333; }
-.btn-s-close:not(:disabled):hover { background: #0069d9; }
-
-@keyframes blink { 50% { opacity: 0.5; } }
+.feedback-msg { margin-top: 15px; color: #ffc107; font-family: monospace; font-size: 13px; text-align: center; }
 </style>
