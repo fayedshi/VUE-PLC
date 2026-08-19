@@ -1,13 +1,13 @@
 <template>
   <div class="navigate">
       <!-- 二级子菜单导航 -->
-      <RouterLink to="/temperature/" exact-active-class="active">粮情3D及点位分析</RouterLink>
-      <RouterLink to="/temperature/comparison" active-class="active">粮情点位比较</RouterLink>
-      <RouterLink to="/temperature/slice-3d" active-class="active">三维粮温切面图</RouterLink>
-      <RouterLink to="/temperature/report" active-class="active">综合温度报表</RouterLink>
-      <RouterLink to="/temperature/area-analysis" active-class="active">区域粮温分析表</RouterLink>
-      <RouterLink to="/temperature/curve-chart" active-class="active">温湿度变化曲线</RouterLink>
-      <RouterLink to="/temperature/heatmap" active-class="active">温度云图</RouterLink>
+      <RouterLink to="/temperature/" exact-active-class="active">温度变化曲线</RouterLink>
+      <!-- <RouterLink to="/temperature/comparison" active-class="active">粮情点位比较</RouterLink> -->
+      <!-- <RouterLink to="/temperature/slice-3d" active-class="active">三维粮温切面图</RouterLink> -->
+      <RouterLink to="/temperature/report" active-class="active">测温点位全览</RouterLink>
+      <!-- <RouterLink to="/temperature/area-analysis" active-class="active">区域粮温分析表</RouterLink> -->
+      <!-- <RouterLink to="/temperature/curve-chart" active-class="active">温湿度变化曲线</RouterLink> -->
+      <!-- <RouterLink to="/temperature/heatmap" active-class="active">温度云图</RouterLink> -->
   </div>
   
   <div>

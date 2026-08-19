@@ -12,10 +12,11 @@
                 <div v-for="dev in cat.devices" :key="dev.id" class="device-card">
                     <!-- 上半部分：设备名与状态展示 -->
                     <div class="device-header">
-                        <span class="dev-name">{{ dev.name }}</span>
-                        <span :class="['status-badge', getStatusClass(dev.status)]">
-                            {{ statusMap[dev.id] || '未知' }}
-                        </span>
+                        <span class="dev-name">{{ dev.name }} <span :class="['status-badge', getStatusClass(dev.id)]">
+                            {{ statusToText(dev.id,cat.type)|| '未知' }}
+                            <!-- {{ statusMap[dev.id] || '未知' }} -->
+                        </span></span>
+                        
                     </div>
 
                     <!-- 下半部分：单个设备专属的操作按钮组 -->
@@ -47,7 +48,7 @@
             <!-- 右侧：全局控制按钮区 -->
             <div class="action-bar" v-if="cat.globalActions && cat.globalActions.length > 0">
                 <button v-for="btn in cat.globalActions" :key="btn.type" :class="['btn', btn.className]"
-                    @click="executeGlobalAction(cat, btn.type, btn.name)">
+                    @click="executeGlobalAction(cat.type, btn.type)">
                     {{ btn.name }}
                 </button>
             </div>
@@ -57,23 +58,45 @@
     </div>
 </template>
 
-<script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+<script setup lang="ts">
+import { ref, computed, onMounted,onBeforeUnmount } from 'vue';
+import axios from 'axios';
 
+const devStates = ref([])
 // 状态映射表（无需响应式，直接定义为普通变量）
-const statusMap = {
-    0: '停止',
-    1: '开启中',
-    2: '关闭中',
-    3: '已开启',
-    4: '已关闭',
-    5: '正转中',
-    6: '反转中'
-};
 
 
-const devIdToIndex=(devId)=>{
-    
+const winDoorStatusMap = { 0: '初始化', 1: '正在打开', 2: '正在关闭', 3: '停', 4: '开到位', 5: '关到位', 6: '故障' }
+const fanStatusMap = { 0: '初始化', 1: '正转', 2: '反转', 3: '停', 6: '故障' }
+const exhaustStatusMap = { 0: '初始化', 1: '正在开启', 3: '停', 6: '故障' }
+const acStatusMap = { 0: '停止', 1: '运行' }
+
+
+
+const statusToText = (devId, catType) => {
+    let devInfo = devId.split('-');
+    let index = devInfo[1]-1;
+    // console.log('in statusToText',devInfo, 'index ', index, 'sates: ',devStates.value)
+    // console.log('any ',devStates.)
+    switch (catType) {
+        case 'window':
+        case 'door':
+            // console.log('devStates[index] ',devStates.value[index])
+            // console.log(winDoorStatusMap[devStates.value[index]])
+            return winDoorStatusMap[devStates.value[index]]
+        case 'fan':
+            // console.log(fanStatusMap[devStates.value[index]])
+            return fanStatusMap[devStates.value[index]]
+        case 'exhaust':
+            // console.log(exhaustStatusMap[devStates.value[index]])
+            return exhaustStatusMap[devStates.value[index]]
+        case 'ac':
+            // console.log(acStatusMap[devStates.value[index]])
+            // 中间隔了全窗控和全门控
+            return acStatusMap[devStates.value[index-2]]
+        default:
+            return '未知'
+    }
 }
 // 核心数据结构（使用 ref 包裹使其具备响应式能力，方便后续对接 API 动态更新状态）
 const categories = ref([
@@ -85,7 +108,7 @@ const categories = ref([
             { type: 2, name: '全关', className: 'btn-close' },
             { type: 3, name: '全停', className: 'btn-stop' }
         ],
-        devices: Array.from({ length: 10 }, (_, i) => ({ id: `win-${i}`, name: `窗 ${i + 1}`, status: 4 }))
+        devices: Array.from({ length: 10 }, (_, i) => ({ id: `win-${i + 1}`, name: `窗 ${i + 1}`, status: 4 }))
     },
     {
         type: 'door',
@@ -118,82 +141,48 @@ const categories = ref([
 ]);
 
 // 状态样式计算函数
-const getStatusClass = (status) => {
-    if ([1, 3, 5, 6].includes(status)) return 'status-active';
-    if ([2, 4].includes(status)) return 'status-inactive';
-    return 'status-default';
+const getStatusClass = (devId) => {
+    let devInfo = devId.split('-');
+    let index = devInfo[1]-1;
+    
+    // if ([1, 3, 5, 6].includes(status)) return 'status-active';
+    // if ([2, 4].includes(status)) return 'status-inactive';
+    console.log("class ",devStates.value[index])
+    if(devInfo[0]=='ac'){
+        return 'status-'+devStates.value[index-2];
+    }
+    return 'status-'+devStates.value[index];
 };
 
-// 单个设备的操作触发
-// const executeSingleAction = (device, actionType) => {
-//   console.log(`单独控制设备【${device.name}】(ID: ${device.id})，执行操作代码: ${actionType}`);
-//   // 示例：点击后可以前端直接模拟状态改变，或者调用后端 API
-//   // device.status = actionType; 
-// };
+const executeSingleAction = async (device, actionType) => {
+    console.log(`单独控制设备【${device.name}】(ID: ${device.id})，执行操作代码: ${actionType}`);
+    try {
+        let result=await axios.post(`http://${backendAdd}/api/dev/control`, {
+            dev_id: device.id,
+            action_type: actionType
+        });
+        console.log('result ',result)
+    } catch (err) {
+        alert('操作失败，请检查 PLC 连接');
+    } finally{
+        console.log('finiished')
+    }
+};
 
 
-const executeSingleAction = async (device, cateType, actionType) => {
-    console.log('actionId', actionId, 'selectedIds.value', selectedIds.value)
-
-    if (!canOperate.value)
-        return;
-    isLoading.value = true;
-    // 不排序，写plc地址会乱
-    //   let sortedIds = selectedIds.value.sort((a, b) => a - b);
+const executeGlobalAction = async (cateType, actionType) => {
     try {
         await axios.post(`http://${backendAdd}/api/dev/control`, {
-            dev_id: device.id,
             category_type: cateType,
             action_type: actionType
         });
     } catch (err) {
         alert('操作失败，请检查 PLC 连接');
-    } finally {
-        isLoading.value = false;
     }
 };
 
-
-const executeGlobalAction = async (category, actionType, actionName) => {
-    console.log('actionId', actionId, 'selectedIds.value', selectedIds.value)
-
-    // isLoading.value = true;
-    // 不排序，写plc地址会乱
-    //   let sortedIds = selectedIds.value.sort((a, b) => a - b);
-    try {
-        await axios.post(`http://${backendAdd}/api/dev/control`, {
-            category_type: category.type,
-            action_type: actionType
-        });
-    } catch (err) {
-        alert('操作失败，请检查 PLC 连接');
-    }
-};
-
-
-// 整排一键全控操作触发
-const executeGlobalAction1 = (category, actionType, actionName) => {
-    console.log(`一键触发【${category.label}】整排的【${actionName}】功能，操作代码: ${actionType}`);
-    const allIds = category.devices.map(d => d.id);
-    console.log('受影响的所有设备 ID:', allIds);
-};
-
-
-
-const devStates = ref([])
-// --- 方法 ---
-// const fetchStatus = async () => {
-//   try {
-//     const res = await axios.get('http://localhost:8000/api/windows/status');
-//     console.log('window status: ', res.data)
-//     retStatus.value = res.data
-//   } catch (err) {
-//     console.error(err);
-//   }
-// };
-
-let socket = null;
-let backendAdd = '192.168.0.16:8000'
+let socket:any = null;
+let backendAdd = 'localhost:8000'
 
 const initWebSocket = () => {
     // 如果在电脑本机测试，保持 localhost；如果要手机访问，请改为工控机的局域网 IP
@@ -205,16 +194,15 @@ const initWebSocket = () => {
     };
 
     // 接收到后端实时数据事件
-    socket.onmessage = (event) => {
+    socket.onmessage = (event:any) => {
         // 解析后端传过来的 JSON 字符串
         devStates.value = JSON.parse(event.data);
-        // windows.value[0].status = devStates.value[0]
-        // windows.value[1].status = devStates.value[1]
+        console.log('devstate',devStates.value)
+        
     };
 
     // 连接关闭事件
     socket.onclose = () => {
-        // isConnected.value = false;
         // console.log('【前端提示】连接已断开，3秒后尝试自动重连...');
         setTimeout(initWebSocket, 3000); // 掉线自动重连机制
     };
@@ -237,10 +225,8 @@ onBeforeUnmount(() => {
         socket.close();
 });
 
-
 // const getStatusText = (s) => ['初始化', '开启', '关闭', '停', '开到位', '关到位', '窗故障'][s] || '未知';
 // const getStatusClass = (s) => [`status-${s}`];
-
 
 
 </script>
@@ -312,6 +298,43 @@ onBeforeUnmount(() => {
     background: #f4f4f5;
     color: #909399;
 }
+
+
+
+.status-0 {
+  background: #e29e6d;
+}
+
+/*  开启 */
+.status-1 {
+  background: #67c23a;
+}
+
+/* 关闭 */
+.status-2 {
+  background: #c58282;
+}
+
+/*  停止*/
+.status-3 {
+  background: #e6a23c;
+  animation: pulse 1s infinite;
+}
+
+/*  开到位*/
+.status-4 {
+  background: #37b972;
+}
+
+/*  关到位*/
+.status-5 {
+  background: #4e4848;
+}
+/*  窗故障*/
+.status-6 {
+  background: #d4b710;
+}
+
 
 .status-active {
     background: #e1f3d8;

@@ -34,7 +34,7 @@
             <th>底层温度</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody v-if="processedCables.length > 0">
           <!-- 循环渲染 35 行电缆数据 -->
           <tr v-for="cable in processedCables" :key="cable.id">
             <td class="cable-id-td">电缆 {{ cable.id }}</td>
@@ -44,26 +44,26 @@
             <td class="temp-td" :class="getTempClass(cable.bottom)">{{ formatTemp(cable.bottom) }}</td>
           </tr>
           <tr>
-            <td>统计</td>  
-          </tr>
-          
-          <tr>
-            <td class="cable-id-td">最低 </td>
-            <td>{{ formatTemp(surfaceMin / 10) }}</td>
-            <td>{{ formatTemp(midUpperMin / 10) }}</td>
-            <td>{{ formatTemp(midLowerMin / 10) }}</td>
-            <td>{{ formatTemp(bottomMin / 10) }}</td>
-          </tr>
-          <tr>
-            <td class="cable-id-td">最高 </td>
-            <td>{{ formatTemp(surfaceMax / 10) }}</td>
-            <td>{{ formatTemp(midUpperMax / 10) }}</td>
-            <td>{{ formatTemp(midLowerMax / 10) }}</td>
-            <td>{{ formatTemp(bottomMax / 10) }}</td>
+            <td>统计</td>
           </tr>
 
-          <!-- 数据为空时的缺省提示 -->
-          <tr v-if="!isLoading && processedCables.length === 0">
+          <tr>
+            <td class="cable-id-td">最低</td>
+            <td>{{ formatTemp(stats.surface.min / 10) }}</td>
+            <td>{{ formatTemp(stats.midUpper.min / 10) }}</td>
+            <td>{{ formatTemp(stats.midLower.min / 10) }}</td>
+            <td>{{ formatTemp(stats.bottom.min / 10) }}</td>
+          </tr>
+          <tr>
+            <td class="cable-id-td">最高</td>
+            <td>{{ formatTemp(stats.surface.max / 10) }}</td>
+            <td>{{ formatTemp(stats.midUpper.max / 10) }}</td>
+            <td>{{ formatTemp(stats.midLower.max / 10) }}</td>
+            <td>{{ formatTemp(stats.bottom.max / 10) }}</td>
+          </tr>
+        </tbody>
+        <tbody v-else>
+          <tr>
             <td colspan="5" class="no-data">当前选定时间段暂无温度记录，请重新选择时间查询</td>
           </tr>
         </tbody>
@@ -73,7 +73,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import axios from 'axios'
 
 
@@ -118,18 +118,6 @@ const fetchTemperatureData = async (formattedTime = '') => {
   }
 }
 
-
-const surfaceMax = ref(-50)
-const midUpperMax = ref(-50)
-const midLowerMax = ref(-50)
-const bottomMax = ref(-50)
-
-const surfaceMin = ref(1000)
-const midUpperMin = ref(1000)
-const midLowerMin = ref(1000)
-const bottomMin = ref(1000)
-
-
 /**
  * 数据解构计算属性：将平铺的 temp0 ~ temp139 对象解析为 35 行表格结构
  */
@@ -149,48 +137,56 @@ const processedCables = computed(() => {
         bottom: (cache[`temp${i + 3}`] / 10).toFixed(1)
       })
     }
-
-    let tempCell = cache[`temp${i}`]
-    switch (i % 4) {
-      case 0:
-        surfaceMin.value = Math.min(surfaceMin.value, tempCell)
-        surfaceMax.value = Math.max(surfaceMax.value, tempCell)
-        break
-      case 1:
-        midUpperMin.value = Math.min(midUpperMin.value, tempCell)
-        midUpperMax.value = Math.max(midUpperMax.value, tempCell)
-        console.log('midUpperMin', midUpperMin.value)
-        break
-      case 2:
-        midLowerMin.value = Math.min(midLowerMin.value, tempCell)
-        midLowerMax.value = Math.max(midLowerMax.value, tempCell)
-        break
-      case 3:
-
-        bottomMin.value = Math.min(bottomMin.value, tempCell)
-        bottomMax.value = Math.max(bottomMax.value, tempCell)
-        break
-      default:
-        break
-      // return
-    }
   }
-  console.log('after loop', surfaceMin.value)
-  // surfaceMax.value = (surfaceMax.value / 10).toFixed(1)
-  // midUpperMax.value = (midUpperMax.value / 10).toFixed(1)
-  // midLowerMax.value = (midLowerMax.value / 10).toFixed(1)
-  // bottomMax.value = (bottomMax.value / 10).toFixed(1)
-
-  // surfaceMin.value = (surfaceMin.value / 10).toFixed(1)
-  // midUpperMin.value = (midUpperMin.value / 10).toFixed(1)
-  // midLowerMin.value = (midLowerMin.value / 10).toFixed(1)
-  // bottomMin.value = (bottomMin.value / 10).toFixed(1)
+  // console.log('after loop', surfaceMin.value)
   return cables
 })
 
-/**
- * 点击“🔍 查询”按钮触发的逻辑
- */
+
+const createInitialStats = () => ({
+  surface: { min: 1000, max: -50 },
+  midUpper: { min: 1000, max: -50 },
+  midLower: { min: 1000, max: -50 },
+  bottom: { min: 1000, max: -50 }
+})
+
+const stats = ref(createInitialStats())
+
+const watchEffect = watch(() => {
+  const cache = temp_cache.value
+  if (!cache || Object.keys(cache).length === 0) {
+    stats.value = createInitialStats() // 数据清空时重置极值
+    return
+  }
+
+  // 每次数据变化时，先重置极值再重新计算
+  const currentStats = createInitialStats()
+
+  for (let i = 0; i < 140; i++) {
+    const tempCell = cache[`temp${i}`]
+    // 防御性检查：确保温度值存在且是数字
+    if (tempCell === undefined || isNaN(tempCell)) continue
+
+    const mod = i % 4
+    if (mod === 0) {
+      currentStats.surface.min = Math.min(currentStats.surface.min, tempCell)
+      currentStats.surface.max = Math.max(currentStats.surface.max, tempCell)
+    } else if (mod === 1) {
+      currentStats.midUpper.min = Math.min(currentStats.midUpper.min, tempCell)
+      currentStats.midUpper.max = Math.max(currentStats.midUpper.max, tempCell)
+    } else if (mod === 2) {
+      currentStats.midLower.min = Math.min(currentStats.midLower.min, tempCell)
+      currentStats.midLower.max = Math.max(currentStats.midLower.max, tempCell)
+    } else if (mod === 3) {
+      currentStats.bottom.min = Math.min(currentStats.bottom.min, tempCell)
+      currentStats.bottom.max = Math.max(currentStats.bottom.max, tempCell)
+    }
+  }
+
+  // 循环结束后，一次性更新响应式状态
+  stats.value = currentStats
+})
+
 const handleSearch = () => {
   if (!searchQuery.value.dateTime) {
     alert('请先选择要查询的日期和具体时间！')
@@ -202,7 +198,6 @@ const handleSearch = () => {
   const rawTime = searchQuery.value.dateTime
   console.log(rawTime)
   const formattedTime = rawTime
-
   console.log('发起历史时间点查询：', formattedTime)
   fetchTemperatureData(formattedTime)
 }
