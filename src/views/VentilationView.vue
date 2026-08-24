@@ -13,10 +13,10 @@
                     <!-- 上半部分：设备名与状态展示 -->
                     <div class="device-header">
                         <span class="dev-name">{{ dev.name }} <span :class="['status-badge', getStatusClass(dev.id)]">
-                            {{ statusToText(dev.id,cat.type)|| '未知' }}
-                            <!-- {{ statusMap[dev.id] || '未知' }} -->
-                        </span></span>
-                        
+                                {{ statusToText(dev.id, cat.type) || '未知' }}
+                                <!-- {{ statusMap[dev.id] || '未知' }} -->
+                            </span></span>
+
                     </div>
 
                     <!-- 下半部分：单个设备专属的操作按钮组 -->
@@ -59,10 +59,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted,onBeforeUnmount } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import axios from 'axios';
 
+const backendAdd = '192.168.0.16:8000'
+
 const devStates = ref([])
+
 // 状态映射表（无需响应式，直接定义为普通变量）
 
 
@@ -75,7 +78,7 @@ const acStatusMap = { 0: '停止', 1: '运行' }
 
 const statusToText = (devId, catType) => {
     let devInfo = devId.split('-');
-    let index = devInfo[1]-1;
+    let index = devInfo[1] - 1;
     // console.log('in statusToText',devInfo, 'index ', index, 'sates: ',devStates.value)
     // console.log('any ',devStates.)
     switch (catType) {
@@ -93,7 +96,7 @@ const statusToText = (devId, catType) => {
         case 'ac':
             // console.log(acStatusMap[devStates.value[index]])
             // 中间隔了全窗控和全门控
-            return acStatusMap[devStates.value[index-2]]
+            return acStatusMap[devStates.value[index - 2]]
         default:
             return '未知'
     }
@@ -143,36 +146,38 @@ const categories = ref([
 // 状态样式计算函数
 const getStatusClass = (devId) => {
     let devInfo = devId.split('-');
-    let index = devInfo[1]-1;
-    
+    let index = devInfo[1] - 1;
+
     // if ([1, 3, 5, 6].includes(status)) return 'status-active';
     // if ([2, 4].includes(status)) return 'status-inactive';
-    console.log("class ",devStates.value[index])
-    if(devInfo[0]=='ac'){
-        return 'status-'+devStates.value[index-2];
+    console.log("class ", devStates.value[index])
+    if (devInfo[0] == 'ac') {
+        return 'status-' + devStates.value[index - 2];
     }
-    return 'status-'+devStates.value[index];
+    return 'status-' + devStates.value[index];
 };
 
 const executeSingleAction = async (device, actionType) => {
     console.log(`单独控制设备【${device.name}】(ID: ${device.id})，执行操作代码: ${actionType}`);
     try {
-        let result=await axios.post(`http://${backendAdd}/api/dev/control`, {
+        let result = await axios.post("http-api/api/dev/control", {
+        // let result = await axios.post(`http://${backendAdd}/api/dev/control`, {
             dev_id: device.id,
             action_type: actionType
         });
-        console.log('result ',result)
+        console.log('result ', result)
     } catch (err) {
         alert('操作失败，请检查 PLC 连接');
-    } finally{
-        console.log('finiished')
+    } finally {
+        console.log('finished')
     }
 };
 
 
 const executeGlobalAction = async (cateType, actionType) => {
     try {
-        await axios.post(`http://${backendAdd}/api/dev/control`, {
+        await axios.post(`http-api/api/dev/control`, {
+        // await axios.post(`http://${backendAdd}/api/dev/control`, {
             category_type: cateType,
             action_type: actionType
         });
@@ -181,12 +186,12 @@ const executeGlobalAction = async (cateType, actionType) => {
     }
 };
 
-let socket:any = null;
-let backendAdd = 'localhost:8000'
+let socket: any = null;
 
 const initWebSocket = () => {
     // 如果在电脑本机测试，保持 localhost；如果要手机访问，请改为工控机的局域网 IP
-    socket = new WebSocket(`ws://${backendAdd}/ws/dev-state`);
+    socket = new WebSocket(`ws-api/ws/dev-state`);
+    // socket = new WebSocket(`ws://${backendAdd}/ws/dev-state`);
 
     // 连接成功事件
     socket.onopen = () => {
@@ -194,11 +199,11 @@ const initWebSocket = () => {
     };
 
     // 接收到后端实时数据事件
-    socket.onmessage = (event:any) => {
+    socket.onmessage = (event: any) => {
         // 解析后端传过来的 JSON 字符串
         devStates.value = JSON.parse(event.data);
-        console.log('devstate',devStates.value)
-        
+        console.log('devstate', devStates.value)
+
     };
 
     // 连接关闭事件
@@ -302,37 +307,38 @@ onBeforeUnmount(() => {
 
 
 .status-0 {
-  background: #e29e6d;
+    background: #e29e6d;
 }
 
 /*  开启 */
 .status-1 {
-  background: #67c23a;
+    background: #67c23a;
 }
 
 /* 关闭 */
 .status-2 {
-  background: #c58282;
+    background: #c58282;
 }
 
 /*  停止*/
 .status-3 {
-  background: #e6a23c;
-  animation: pulse 1s infinite;
+    background: #e6a23c;
+    animation: pulse 1s infinite;
 }
 
 /*  开到位*/
 .status-4 {
-  background: #37b972;
+    background: #37b972;
 }
 
 /*  关到位*/
 .status-5 {
-  background: #4e4848;
+    background: #4e4848;
 }
+
 /*  窗故障*/
 .status-6 {
-  background: #d4b710;
+    background: #d4b710;
 }
 
 

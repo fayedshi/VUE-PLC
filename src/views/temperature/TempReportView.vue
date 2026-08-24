@@ -87,7 +87,8 @@ const searchQuery = ref({
 })
 
 const http = axios.create({
-  baseURL: 'http://192.168.0.16:8000',
+  baseURL: 'http-api',
+  // baseURL: 'http://192.168.0.16:8000',
   timeout: 5000
 });
 
@@ -98,6 +99,7 @@ const http = axios.create({
 const fetchTemperatureData = async (formattedTime = '') => {
   isLoading.value = true
   try {
+    // const response = await axios.get('http-api/api/tempbytime', {
     const response = await http.get('/api/tempbytime', {
       params: {
         input_time: formattedTime

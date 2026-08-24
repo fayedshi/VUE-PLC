@@ -1,6 +1,6 @@
 <template>
   <div class="navigate">
-    <h1>智能粮库上位机</h1>
+    <h1>智慧粮库管理系统</h1>
     <nav>
       <RouterLink to="/" active-class="active">系统主页</RouterLink>
       <RouterLink to="/settings" active-class="active">系统设置</RouterLink>

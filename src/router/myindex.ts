@@ -16,8 +16,8 @@ let routes = [
       {
         path: '', // 留空代表默认子路由，访问 / 时默认渲染此组件
         name: 'Temp3D',
-        component: () => import('../views/temperature/Temp3DView.vue'),
-        meta: { title: '粮情3D及点位分析' }
+        component: () => import('../views/temperature/TempCurveChart.vue'),
+        meta: { title: '温湿度变化曲线' }
       },
       {
         path: 'comparison', // 实际访问路径：/comparison
@@ -43,12 +43,12 @@ let routes = [
         component: () => import('../views/temperature/TempAreaAnalysisView.vue'),
         meta: { title: '区域粮温分析表' }
       },
-      {
-        path: 'curve-chart', // 实际访问路径：/curve-chart
-        name: 'TempCurveChart',
-        component: () => import('../views/temperature/TempCurveChartView.vue'),
-        meta: { title: '温湿度变化曲线' }
-      },
+      // {
+      //   path: 'curve-chart', // 实际访问路径：/curve-chart
+      //   name: 'TempCurveChart',
+      //   component: () => import('../views/temperature/TempCurveChart.vue'),
+      //   meta: { title: '温湿度变化曲线' }
+      // },
       {
         path: 'heatmap', // 实际访问路径：/heatmap
         name: 'TempHeatmap',

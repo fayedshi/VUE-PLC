@@ -50,7 +50,7 @@ const timeRange = ref({
 const initDefaultTime = () => {
   const now = new Date()
   const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000)
-  
+
   // 转换为 datetime-local 输入框需要的格式: YYYY-MM-DDTHH:mm
   timeRange.value.startTime = formatDateToLocal(threeDaysAgo)
   timeRange.value.endTime = formatDateToLocal(now)
@@ -73,7 +73,8 @@ const initChart = () => {
 }
 
 const http = axios.create({
-  baseURL: 'http://192.168.0.16:8000',
+  // baseURL: 'http://192.168.0.16:8000',
+  baseURL: 'http-api',
   timeout: 5000
 });
 
@@ -116,13 +117,19 @@ const fetchTrendData = async () => {
      *   ]
      * }
      */
-    const result = response.data || []
-    
+    let result = response.data || []
+    // result = [
+    //   { time: '08-11 12:00', avg: 22.4, min: 18.1, max: 26.5, humid: 67 },
+    //   { time: '08-11 13:00', avg: 22.6, min: 18.0, max: 26.8, humid: 79 },
+    //   { time: '08-11 14:00', avg: 28.6, min: 13.0, max: 33.8, humid: 57 }
+    //   // { time: '08-11 14:00', humid: 28.6, min: 13.0, max: 33.8 }
+    // ]
     // 解析出 4 个一维数组对应 ECharts
     const timelines = result.map(item => item.time)
     const avgData = result.map(item => item.avg)
     const minData = result.map(item => item.min)
     const maxData = result.map(item => item.max)
+    // const humidData = result.map(item => item.humid)
 
     // 更新图表
     myChart.setOption(getBaselineOption(timelines, avgData, minData, maxData))
@@ -136,7 +143,7 @@ const fetchTrendData = async () => {
 }
 
 // 4. ECharts 图表配置项生成器
-const getBaselineOption = (timeline, avg, min, max) => {
+const getBaselineOption = (timeline, avg, min, max, humid) => {
   return {
     backgroundColor: '#111827', // 暗色大屏底色
     title: {
@@ -153,7 +160,7 @@ const getBaselineOption = (timeline, avg, min, max) => {
       axisPointer: { type: 'cross' }
     },
     legend: {
-      data: ['最高温度', '平均温度', '最低温度'],
+      data: ['最高温度', '平均温度', '最低温度', '最小湿度'],
       top: 45,
       textStyle: { color: '#9ca3af' }
     },
@@ -168,13 +175,24 @@ const getBaselineOption = (timeline, avg, min, max) => {
       axisLine: { lineStyle: { color: '#374151' } },
       axisLabel: { color: '#9ca3af', rotate: 30 } // 时间长时旋转防重叠
     },
-    yAxis: {
+    yAxis: [{
       type: 'value',
+      name: '温度℃',
       scale: true, // 核心：让Y轴从接近的数据开始，曲线起伏更明显
       axisLine: { lineStyle: { color: '#374151' } },
       axisLabel: { color: '#9ca3af', formatter: '{value} ℃' },
       splitLine: { lineStyle: { color: '#1f2937' } }
     },
+    {
+      type: 'value',
+      name: '湿度(%RH)',
+      scale: true, // 核心：让Y轴从接近的数据开始，曲线起伏更明显
+      axisLine: { lineStyle: { color: '#884151' } },
+      axisLabel: { color: '#9ci3xf', formatter: '{value}%' },
+      splitLine: { lineStyle: { color: '#8f1981' } }
+    },
+
+    ],
     series: [
       {
         name: '最高温度',
@@ -183,7 +201,8 @@ const getBaselineOption = (timeline, avg, min, max) => {
         symbol: 'none', // 抽稀后点多，隐藏小圆点，线条更丝滑
         smooth: true,   // 平滑曲线
         itemStyle: { color: '#ef4444' }, // 红色表示高温
-        lineStyle: { width: 2 }
+        lineStyle: { width: 2 },
+        yAxisIndex: 0
       },
       {
         name: '平均温度',
@@ -191,6 +210,7 @@ const getBaselineOption = (timeline, avg, min, max) => {
         data: avg,
         symbol: 'none',
         smooth: true,
+        yAxisIndex: 0,
         itemStyle: { color: '#10b981' }, // 绿色表示平均温
         lineStyle: { width: 3, type: 'dashed' }, // 虚线区分
         areaStyle: {
@@ -206,10 +226,50 @@ const getBaselineOption = (timeline, avg, min, max) => {
         type: 'line',
         data: min,
         symbol: 'none',
+        yAxisIndex: 0,
         smooth: true,
         itemStyle: { color: '#3b82f6' }, // 蓝色表示低温
         lineStyle: { width: 2 }
-      }
+      },
+
+      // {
+      //   name: '最大湿度',
+      //   type: 'line',
+      //   data: max,
+      //   symbol: 'none', // 抽稀后点多，隐藏小圆点，线条更丝滑
+      //   smooth: true,   // 平滑曲线
+      //   itemStyle: { color: '#ef9944' }, // 红色表示高温
+      //   lineStyle: { width: 2 },
+      //   yAxisIndex: 1
+      // },
+      // {
+      //   name: '平均湿度',
+      //   type: 'line',
+      //   data: avg,
+      //   symbol: 'none',
+      //   smooth: true,
+      //   itemStyle: { color: '#10b281' }, // 绿色表示平均温
+      //   lineStyle: { width: 30, type: 'dashed' }, // 虚线区分
+      //   areaStyle: {
+      //     // 阴影面积渐变，增加美观度
+      //     color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+      //       { offset: 0, color: 'rgba(16, 185, 129, 0.2)' },
+      //       { offset: 1, color: 'rgba(16, 185, 129, 0.0)' }
+      //     ])
+      //   },
+      //   yAxisIndex: 1
+      // },
+      // {
+      //   name: '最小湿度',
+      //   type: 'line',
+      //   data: humid,
+      //   symbol: 'none',
+      //   smooth: true,
+      //   yAxisIndex: 1,
+      //   itemStyle: { color: '#3b82f6' }, // 蓝色表示低温
+      //   lineStyle: { width: 5 }
+      // }
+
     ]
   }
 }
@@ -253,7 +313,12 @@ onUnmounted(() => {
   min-height: 100vh;
   color: #f3f4f6;
 }
-h2 { margin-bottom: 20px; font-weight: 500; color: #38bdf8; }
+
+h2 {
+  margin-bottom: 20px;
+  font-weight: 500;
+  color: #38bdf8;
+}
 
 /* 工具栏 */
 .search-bar {
@@ -267,7 +332,15 @@ h2 { margin-bottom: 20px; font-weight: 500; color: #38bdf8; }
   border-radius: 8px;
   border: 1px solid #334155;
 }
-.search-item { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #9ca3af; }
+
+.search-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #9ca3af;
+}
+
 .input-date {
   border: 1px solid #475569;
   padding: 8px 12px;
@@ -277,16 +350,44 @@ h2 { margin-bottom: 20px; font-weight: 500; color: #38bdf8; }
   background: #0f172a;
   outline: none;
 }
+
 .input-date::-webkit-calendar-picker-indicator {
-  filter: invert(1); /* 将原生时间选择器的图标变成白色以适应暗色系 */
+  filter: invert(1);
+  /* 将原生时间选择器的图标变成白色以适应暗色系 */
 }
 
-.btn-search { background: #0284c7; color: white; border: none; padding: 8px 18px; border-radius: 4px; font-weight: 500; cursor: pointer; }
-.btn-search:hover { background: #0369a1; }
-.btn-search:disabled { background: #64748b; cursor: not-allowed; }
+.btn-search {
+  background: #0284c7;
+  color: white;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+}
 
-.btn-reset { background: transparent; color: #9ca3af; border: 1px solid #475569; padding: 8px 16px; border-radius: 4px; cursor: pointer; }
-.btn-reset:hover { background: #334155; color: #fff; }
+.btn-search:hover {
+  background: #0369a1;
+}
+
+.btn-search:disabled {
+  background: #64748b;
+  cursor: not-allowed;
+}
+
+.btn-reset {
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid #475569;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-reset:hover {
+  background: #334155;
+  color: #fff;
+}
 
 /* 图表画布区域 */
 .chart-wrapper {
@@ -296,15 +397,20 @@ h2 { margin-bottom: 20px; font-weight: 500; color: #38bdf8; }
   background: #111827;
   overflow: hidden;
 }
+
 .trend-chart {
   width: 100%;
-  height: 500px; /* 固定高度确保图表饱满 */
+  height: 500px;
+  /* 固定高度确保图表饱满 */
 }
 
 /* 遮罩动画 */
 .loading-overlay {
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: rgba(17, 24, 39, 0.85);
   display: flex;
   flex-direction: column;
@@ -312,16 +418,24 @@ h2 { margin-bottom: 20px; font-weight: 500; color: #38bdf8; }
   align-items: center;
   z-index: 5;
 }
+
 .spinner {
-  width: 36px; height: 36px;
+  width: 36px;
+  height: 36px;
   border: 4px solid #374151;
   border-top: 4px solid #38bdf8;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 12px;
 }
+
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 </style>

@@ -43,10 +43,17 @@ const status=ref('Running')
 // const plcData = ref({ temperature: 0.0, pressure: 0.0, status: 'UNKNOWN' });
 let socket = null;
 
+// const baseURL: import.meta.env.VITE_APP_BASE_API
+
+// const apiClient = axios.create({
+//   baseURL: import.meta.env.VITE_API_BASE_URL, 
+//   timeout: 5000,
+// });
 // 2. 建立 WebSocket 连接函数
 const initWebSocket = () => {
   // 如果在电脑本机测试，保持 localhost；如果要手机访问，请改为工控机的局域网 IP
-  socket = new WebSocket('ws://192.168.0.16:8000/ws/live');
+  socket = new WebSocket('ws-api/ws/live');
+  // socket = new WebSocket('ws:192.168.0.100:8000/ws/live');
 
   // 连接成功事件
   socket.onopen = () => {
@@ -59,6 +66,7 @@ const initWebSocket = () => {
     // 解析后端传过来的 JSON 字符串
     const res = JSON.parse(event.data);
     // 直接赋值，Vue 3 会自动、高效地刷新界面上对应的数字
+    console.log('取得后端数据',res)
     temperatures.value= res;
   };
 
