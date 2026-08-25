@@ -99,13 +99,14 @@ const http = axios.create({
 const fetchTemperatureData = async (formattedTime = '') => {
   isLoading.value = true
   try {
-    // const response = await axios.get('http-api/api/tempbytime', {
-    const response = await http.get('/api/tempbytime', {
+    console.log('formattedTime',formattedTime)
+    const response = await axios.get('http-api/api/tempbytime', {
+    // const response = await http.get('/api/tempbytime', {
       params: {
         input_time: formattedTime
       }
     });
-    // console.log('ui response',response.data)
+    console.log('ui response',response.data)
     temp_cache.value = response.data
     console.log('time', temp_cache.value['time'])
     localTime.value = new Date(temp_cache.value['time'].replace(/\.\d+/, '') + 'Z').toLocaleString('zh-CN', {

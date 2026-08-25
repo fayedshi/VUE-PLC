@@ -15,10 +15,17 @@ let routes = [
     children: [
       {
         path: '', // 留空代表默认子路由，访问 / 时默认渲染此组件
-        name: 'Temp3D',
+        name: 'CurveChart',
         component: () => import('../views/temperature/TempCurveChart.vue'),
         meta: { title: '温湿度变化曲线' }
+        // redirect: 'curveChart'
       },
+      // {
+      //   path: 'curveChart', // 留空代表默认子路由，访问 / 时默认渲染此组件
+      //   name: 'CurveChart',
+      //   component: () => import('../views/temperature/TempCurveChart.vue'),
+      //   meta: { title: '温湿度变化曲线' },
+      // },
       {
         path: 'comparison', // 实际访问路径：/comparison
         name: 'TempComparison',
@@ -72,7 +79,7 @@ let routes = [
   {
     path: '/hvac',
     name: 'Hvac', // HVAC 是加热通风与空调系统的国际标准通用缩写
-    component: () => import('../views/HvacView.vue'),
+    component: () => import('../views/3DModelDemo.vue'),
     meta: { title: '空调系统' }
   },
   {
