@@ -1,6 +1,33 @@
 <template>
     <div class="control-panel">
-        <!-- 遍历 4 个设备大类 -->
+
+        <!-- 🌟 新增：左上角的两组控制模式切换按钮 -->
+        <div class="panel-header">
+            <div class="category-title">
+                <h3>模式切换</h3>
+            </div>
+            <!-- 第一组：远程 / 本地 -->
+            <div class="btn-group">
+                <button :class="{ active: controlMode === 2 }" @click="switchControlMode(1, 2, '远程')">
+                    远程
+                </button>
+                <button :class="{ active: controlMode === 1 }" @click="switchControlMode(1, 1, '本地')">
+                    本地
+                </button>
+            </div>
+
+            <!-- 第二组：手动 / 自动 -->
+            <div class="btn-group">
+                <button :class="{ active: runMode === 2 }" @click="switchControlMode(2, 2, '手动')">
+                    手动
+                </button>
+                <button :class="{ active: runMode === 1 }" @click="switchControlMode(2, 1, '自动')">
+                    自动
+                </button>
+            </div>
+        </div>
+
+        <!-- 以下为您原有的 4 个设备大类循环，保持不变 -->
         <div v-for="cat in categories" :key="cat.type" class="category-row">
             <!-- 左侧：分类标题 -->
             <div class="category-title">
@@ -12,11 +39,12 @@
                 <div v-for="dev in cat.devices" :key="dev.id" class="device-card">
                     <!-- 上半部分：设备名与状态展示 -->
                     <div class="device-header">
-                        <span class="dev-name">{{ dev.name }} <span :class="['status-badge', getStatusClass(dev.id)]">
+                        <span class="dev-name">
+                            {{ dev.name }}
+                            <span :class="['status-badge', getStatusClass(dev.id)]">
                                 {{ statusToText(dev.id, cat.type) || '未知' }}
-                                <!-- {{ statusMap[dev.id] || '未知' }} -->
-                            </span></span>
-
+                            </span>
+                        </span>
                     </div>
 
                     <!-- 下半部分：单个设备专属的操作按钮组 -->
@@ -58,11 +86,11 @@
     </div>
 </template>
 
+
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import axios from 'axios';
 
-const backendAdd = '192.168.0.16:8000'
 
 const devStates = ref([])
 
@@ -150,7 +178,7 @@ const getStatusClass = (devId) => {
 
     // if ([1, 3, 5, 6].includes(status)) return 'status-active';
     // if ([2, 4].includes(status)) return 'status-inactive';
-    console.log("class ", devStates.value[index])
+    // console.log("class ", devStates.value[index])
     if (devInfo[0] == 'ac') {
         return 'status-' + devStates.value[index - 2];
     }
@@ -161,7 +189,7 @@ const executeSingleAction = async (device, actionType) => {
     console.log(`单独控制设备【${device.name}】(ID: ${device.id})，执行操作代码: ${actionType}`);
     try {
         let result = await axios.post("http-api/api/dev/control", {
-        // let result = await axios.post(`http://${backendAdd}/api/dev/control`, {
+            // let result = await axios.post(`http://${backendAdd}/api/dev/control`, {
             dev_id: device.id,
             action_type: actionType
         });
@@ -177,7 +205,7 @@ const executeSingleAction = async (device, actionType) => {
 const executeGlobalAction = async (cateType, actionType) => {
     try {
         await axios.post(`http-api/api/dev/control`, {
-        // await axios.post(`http://${backendAdd}/api/dev/control`, {
+            // await axios.post(`http://${backendAdd}/api/dev/control`, {
             category_type: cateType,
             action_type: actionType
         });
@@ -202,8 +230,7 @@ const initWebSocket = () => {
     socket.onmessage = (event: any) => {
         // 解析后端传过来的 JSON 字符串
         devStates.value = JSON.parse(event.data);
-        console.log('devstate', devStates.value)
-
+        // console.log('devstate', devStates.value)
     };
 
     // 连接关闭事件
@@ -233,6 +260,38 @@ onBeforeUnmount(() => {
 // const getStatusText = (s) => ['初始化', '开启', '关闭', '停', '开到位', '关到位', '窗故障'][s] || '未知';
 // const getStatusClass = (s) => [`status-${s}`];
 
+
+// 1. 定义两组模式的响应式状态变量（设置默认选中值）
+const controlMode = ref(1) // '2' 远程, '1' 本地
+const runMode = ref(1)     // 2 手动, 1 自动
+
+// 2. 远程 / 本地 切换点击事件
+const switchControlMode = async (groupIndex, mode, modeText) => {
+    let curModeVal = groupIndex == 1 ? controlMode.value : runMode.value
+    if (curModeVal === mode) {
+        console.log('已经是当前模式则不重复触发')
+        return // 已经是当前模式则不重复触发
+    }
+    try {
+        //todo: device address hardcoded, will modify later
+        let devId = groupIndex == 1 ? 'switch-399' : 'switch-0'
+        let result = await axios.post("http-api/api/dev/control", {
+            dev_id: devId,
+            action_type: mode
+        });
+        console.log('result ', result)
+        console.log(`控制模式已成功切换为：${modeText}模式`)
+        if (groupIndex == 1) {
+            controlMode.value = mode
+        } else {
+            runMode.value = mode
+        }
+    } catch (err) {
+        alert('操作失败，请检查 PLC 连接');
+    } finally {
+        console.log('finished mode switch')
+    }
+}
 
 </script>
 
@@ -442,5 +501,63 @@ onBeforeUnmount(() => {
 
 .btn-stop:hover {
     background: #ebb563;
+}
+
+
+/* 顶层控制面板容器，确保相对定位 */
+.control-panel {
+    position: relative;
+    padding-top: 60px;
+    /* 留出顶部空间给新增的按钮栏，防止遮挡设备列表 */
+}
+
+/* 顶部按钮栏容器 */
+.panel-header {
+    position: absolute;
+    top: 15px;
+    left: 20px;
+    display: flex;
+    gap: 20px;
+    /* 两组按钮之间的间距 */
+    z-index: 10;
+}
+
+/* 按钮组包裹盒 */
+.btn-group {
+    display: flex;
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* 切换按钮默认基本样式 */
+.btn-group button {
+    border: 1px solid #dcdfe6;
+    background-color: #ffffff;
+    color: #606266;
+    padding: 6px 16px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    outline: none;
+}
+
+/* 消除双按钮并排时中间边框变粗的问题 */
+.btn-group button:not(:first-child) {
+    border-left: none;
+}
+
+/* 鼠标悬停时的微互动 */
+.btn-group button:hover {
+    color: #409eff;
+    background-color: #ecf5ff;
+}
+
+/* 🌟 核心：当按钮处于激活（选中）状态时的醒目样式 */
+.btn-group button.active {
+    background-color: #409eff;
+    /* 经典科技蓝，可根据您项目的主题色调整 */
+    color: #ffffff;
+    border-color: #409eff;
 }
 </style>

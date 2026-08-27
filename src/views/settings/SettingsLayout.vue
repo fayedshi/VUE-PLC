@@ -1,17 +1,15 @@
 <template>
   <div class="navigate">
-    <!-- 二级子菜单导航 -->
-    <!-- <RouterLink to  -->
-    <RouterLink to="/temperature/" exact-active-class="active">实时监控</RouterLink>
-    <RouterLink to="/temperature/curveChart" exact-active-class="active">温湿度变化曲线</RouterLink>
-    <!-- <RouterLink to="/temperature/comparison" active-class="active">粮情点位比较</RouterLink> -->
-    <!-- <RouterLink to="/temperature/slice-3d" active-class="active">三维粮温切面图</RouterLink> -->
-    <RouterLink to="/temperature/report" active-class="active">测温点位全览</RouterLink>
-    <!-- <RouterLink to="/temperature/area-analysis" active-class="active">区域粮温分析表</RouterLink> -->
-    <!-- <RouterLink to="/temperature/curve-chart" active-class="active">温湿度变化曲线</RouterLink> -->
-    <!-- <RouterLink to="/temperature/heatmap" active-class="active">温度云图</RouterLink> -->
+      <!-- 二级子菜单导航 -->
+      <RouterLink to="/settings/" exact-active-class="active">熬间设置</RouterLink>
+      <!-- <RouterLink to="/temperature/comparison" active-class="active">粮情点位比较</RouterLink> -->
+      <!-- <RouterLink to="/temperature/slice-3d" active-class="active">三维粮温切面图</RouterLink> -->
+      <!-- <RouterLink to="/settings/report" active-class="active">测温点位全览</RouterLink> -->
+      <!-- <RouterLink to="/temperature/area-analysis" active-class="active">区域粮温分析表</RouterLink> -->
+      <!-- <RouterLink to="/temperature/curve-chart" active-class="active">温湿度变化曲线</RouterLink> -->
+      <!-- <RouterLink to="/temperature/heatmap" active-class="active">温度云图</RouterLink> -->
   </div>
-
+  
   <div>
     <main class="main-content">
       <router-view></router-view>

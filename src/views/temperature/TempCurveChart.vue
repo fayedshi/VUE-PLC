@@ -1,6 +1,6 @@
 <template>
   <div class="trend-container">
-    <h2>整仓温度趋势分析（每10分钟抽样）</h2>
+    <h2>整仓温湿度趋势分析（每10分钟抽样）</h2>
 
     <!-- 1. 时间范围查询工具栏 -->
     <div class="search-bar">
@@ -118,21 +118,18 @@ const fetchTrendData = async () => {
      * }
      */
     let result = response.data || []
-    // result = [
-    //   { time: '08-11 12:00', avg: 22.4, min: 18.1, max: 26.5, humid: 67 },
-    //   { time: '08-11 13:00', avg: 22.6, min: 18.0, max: 26.8, humid: 79 },
-    //   { time: '08-11 14:00', avg: 28.6, min: 13.0, max: 33.8, humid: 57 }
-    //   // { time: '08-11 14:00', humid: 28.6, min: 13.0, max: 33.8 }
-    // ]
+
     // 解析出 4 个一维数组对应 ECharts
     const timelines = result.map(item => item.time)
-    const avgData = result.map(item => item.avg)
-    const minData = result.map(item => item.min)
-    const maxData = result.map(item => item.max)
+    const avgTemp = result.map(item => item.avg_temp)
+    // const minData = result.map(item => item.min)
+    // const maxData = result.map(item => item.max)
+    const avgHumid = result.map(item => item.avg_humid)
     // const humidData = result.map(item => item.humid)
 
     // 更新图表
-    myChart.setOption(getBaselineOption(timelines, avgData, minData, maxData))
+    // myChart.setOption(getBaselineOption(timelines, avgTemp, minData, maxData))
+    myChart.setOption(getBaselineOption(timelines, avgTemp, avgHumid))
 
   } catch (error) {
     console.error('获取趋势图数据失败:', error)
@@ -143,11 +140,11 @@ const fetchTrendData = async () => {
 }
 
 // 4. ECharts 图表配置项生成器
-const getBaselineOption = (timeline, avg, min, max, humid) => {
+const getBaselineOption = (timeline, avgTemp, avgHumid) => {
   return {
     backgroundColor: '#111827', // 暗色大屏底色
     title: {
-      text: '全仓温度起伏走势 (℃)',
+      text: '全仓温湿度起伏走势 (℃)',
       left: 'center',
       top: 15,
       textStyle: { color: '#9ca3af', fontSize: 14 }
@@ -160,7 +157,7 @@ const getBaselineOption = (timeline, avg, min, max, humid) => {
       axisPointer: { type: 'cross' }
     },
     legend: {
-      data: ['最高温度', '平均温度', '最低温度', '最小湿度'],
+      data: ['最高温度', '平均温度', '平均湿度'],
       top: 45,
       textStyle: { color: '#9ca3af' }
     },
@@ -194,25 +191,25 @@ const getBaselineOption = (timeline, avg, min, max, humid) => {
 
     ],
     series: [
-      {
-        name: '最高温度',
-        type: 'line',
-        data: max,
-        symbol: 'none', // 抽稀后点多，隐藏小圆点，线条更丝滑
-        smooth: true,   // 平滑曲线
-        itemStyle: { color: '#ef4444' }, // 红色表示高温
-        lineStyle: { width: 2 },
-        yAxisIndex: 0
-      },
+      // {
+      //   name: '最高温度',
+      //   type: 'line',
+      //   data: max,
+      //   symbol: 'none', // 抽稀后点多，隐藏小圆点，线条更丝滑
+      //   smooth: true,   // 平滑曲线
+      //   itemStyle: { color: '#ef4444' }, // 红色表示高温
+      //   lineStyle: { width: 2 },
+      //   yAxisIndex: 0
+      // },
       {
         name: '平均温度',
         type: 'line',
-        data: avg,
+        data: avgTemp,
         symbol: 'none',
         smooth: true,
         yAxisIndex: 0,
         itemStyle: { color: '#10b981' }, // 绿色表示平均温
-        lineStyle: { width: 3, type: 'dashed' }, // 虚线区分
+        lineStyle: { width: 2, type: 'dashed' }, // 虚线区分
         areaStyle: {
           // 阴影面积渐变，增加美观度
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
@@ -221,16 +218,16 @@ const getBaselineOption = (timeline, avg, min, max, humid) => {
           ])
         }
       },
-      {
-        name: '最低温度',
-        type: 'line',
-        data: min,
-        symbol: 'none',
-        yAxisIndex: 0,
-        smooth: true,
-        itemStyle: { color: '#3b82f6' }, // 蓝色表示低温
-        lineStyle: { width: 2 }
-      },
+      // {
+      //   name: '最低温度',
+      //   type: 'line',
+      //   data: min,
+      //   symbol: 'none',
+      //   yAxisIndex: 0,
+      //   smooth: true,
+      //   itemStyle: { color: '#3b82f6' }, // 蓝色表示低温
+      //   lineStyle: { width: 2 }
+      // },
 
       // {
       //   name: '最大湿度',
@@ -242,23 +239,23 @@ const getBaselineOption = (timeline, avg, min, max, humid) => {
       //   lineStyle: { width: 2 },
       //   yAxisIndex: 1
       // },
-      // {
-      //   name: '平均湿度',
-      //   type: 'line',
-      //   data: avg,
-      //   symbol: 'none',
-      //   smooth: true,
-      //   itemStyle: { color: '#10b281' }, // 绿色表示平均温
-      //   lineStyle: { width: 30, type: 'dashed' }, // 虚线区分
-      //   areaStyle: {
-      //     // 阴影面积渐变，增加美观度
-      //     color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-      //       { offset: 0, color: 'rgba(16, 185, 129, 0.2)' },
-      //       { offset: 1, color: 'rgba(16, 185, 129, 0.0)' }
-      //     ])
-      //   },
-      //   yAxisIndex: 1
-      // },
+      {
+        name: '平均湿度',
+        type: 'line',
+        data: avgHumid,
+        symbol: 'none',
+        smooth: true,
+        itemStyle: { color: '#80b801' }, // 绿色表示平均温
+        lineStyle: { width: 2, type: 'dashed' }, // 虚线区分
+        areaStyle: {
+          // 阴影面积渐变，增加美观度
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: 'rgba(16, 185, 129, 0.2)' },
+            { offset: 1, color: 'rgba(16, 185, 129, 0.0)' }
+          ])
+        },
+        yAxisIndex: 1
+      }
       // {
       //   name: '最小湿度',
       //   type: 'line',

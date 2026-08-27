@@ -9,12 +9,12 @@
     <!-- 数据实时看板 -->
     <div class="data-board">
       <div class="data-card">
-        <span class="label">实时温度1</span>
-        <span class="value">{{ temperatures[79] }} ℃</span>
+        <span class="label">实时平均温度</span>
+        <span class="value">{{ homeData[0] }} ℃</span>
       </div>
       <div class="data-card">
-        <span class="label">实时温度2</span>
-        <span class="value">{{ temperatures[80] }} ℃</span>
+        <span class="label">实时平均湿度</span>
+        <span class="value">{{ homeData[1] }} %</span>
       </div>
       <!-- <div class="data-card">
         <span class="label">实时湿度1</span>
@@ -24,10 +24,10 @@
         <span class="label">实时湿度2</span>
         <span class="value">{{ temp_humid[1] }}</span>
       </div>-->
-      <div class="data-card">
+      <!-- <div class="data-card">
         <span class="label">系统状态</span>
         <span class="value status-text">{{ status }}</span>
-      </div> 
+      </div>  -->
     </div>
   </div>
 </template>
@@ -37,7 +37,7 @@ import { ref, onMounted, onBeforeUnmount } from 'vue';
 
 // 1. 定义响应式变量
 const isConnected = ref(false);
-const temperatures=ref([])
+const homeData=ref([])
 const temp_humid=ref([])
 const status=ref('Running')
 // const plcData = ref({ temperature: 0.0, pressure: 0.0, status: 'UNKNOWN' });
@@ -49,6 +49,8 @@ let socket = null;
 //   baseURL: import.meta.env.VITE_API_BASE_URL, 
 //   timeout: 5000,
 // });
+
+
 // 2. 建立 WebSocket 连接函数
 const initWebSocket = () => {
   // 如果在电脑本机测试，保持 localhost；如果要手机访问，请改为工控机的局域网 IP
@@ -67,7 +69,7 @@ const initWebSocket = () => {
     const res = JSON.parse(event.data);
     // 直接赋值，Vue 3 会自动、高效地刷新界面上对应的数字
     console.log('取得后端数据',res)
-    temperatures.value= res;
+    homeData.value= res;
   };
 
   // 连接关闭事件
