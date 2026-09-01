@@ -16,8 +16,9 @@
       <div class="search-item">
         <label>显示粒度：</label>
         <select v-model="timeRange.timeUnit" class="select-unit" @change="handleSearch"> 
-          <option value="1 day">按天显示</option>
-          <option value="1 month">按月显示</option>
+          <option value="1 month">按月</option>
+          <option value="1 day">按天</option>
+          <option value="1 hour">按小时</option>
         </select>
       </div>
       <button class="btn-search" :disabled="isLoading" @click="handleSearch">
@@ -141,14 +142,14 @@ const fetchTrendData = async () => {
 
   } catch (error) {
     console.error('获取趋势图数据失败:', error)
-    alert('网络异常，获取功耗趋势失败')
+    alert('网络异常，获取能耗趋势失败')
   } finally {
     isLoading.value = false
   }
 }
 
 // 4. ECharts 图表配置项生成器
-const getBaselineOption = (timeline, avgPower, avgEngComsmp) => {
+const getBaselineOption = (timeline, avgPower, engComsmp) => {
   return {
     backgroundColor: '#111827', // 暗色大屏底色
     title: {
@@ -165,7 +166,7 @@ const getBaselineOption = (timeline, avgPower, avgEngComsmp) => {
       axisPointer: { type: 'cross' }
     },
     legend: {
-      data: ['平均功率', '平均功耗'],
+      data: ['平均功率', '能耗'],
       top: 45,
       textStyle: { color: '#9ca3af' }
     },
@@ -190,7 +191,7 @@ const getBaselineOption = (timeline, avgPower, avgEngComsmp) => {
     },
     {
       type: 'value',
-      name: '功耗Wh',
+      name: '能耗KWh',
       scale: true, // 核心：让Y轴从接近的数据开始，曲线起伏更明显
       axisLine: { lineStyle: { color: '#884151' } },
       axisLabel: { color: '#9ci3xf', formatter: '{value}' },
@@ -199,42 +200,46 @@ const getBaselineOption = (timeline, avgPower, avgEngComsmp) => {
 
     ],
     series: [
-      {
-        name: '平均功率',
-        type: 'line',
-        data: avgPower,
-        symbol: 'none',
-        smooth: true,
-        yAxisIndex: 0,
-        itemStyle: { color: '#10b981' }, 
-        lineStyle: { width: 2, type: 'dashed' }, // 虚线区分
-        areaStyle: {
-          // 阴影面积渐变，增加美观度
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: 'rgba(16, 185, 129, 0.2)' },
-            { offset: 1, color: 'rgba(16, 185, 129, 0.0)' }
-          ])
-        }
-      },
-      {
-        name: '平均功耗',
-        type: 'line',
-        data: avgEngComsmp,
-        symbol: 'none',
-        smooth: true,
-        itemStyle: { color: '#80b801' }, 
-        lineStyle: { width: 2, type: 'dashed' }, // 虚线区分
-        areaStyle: {
-          // 阴影面积渐变，增加美观度
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: 'rgba(16, 185, 129, 0.2)' },
-            { offset: 1, color: 'rgba(16, 185, 129, 0.0)' }
-          ])
-        },
-        yAxisIndex: 1
-      }
-      
-    ]
+  {
+    name: '平均功率',
+    type: 'line',
+    data: avgPower,
+    symbol: 'circle', // 改为小圆点，但默认隐藏，鼠标悬浮时显示
+    showSymbol: false, 
+    symbolSize: 6,
+    smooth: true,
+    yAxisIndex: 0,
+    itemStyle: { color: '#10b981' }, // 经典电力绿
+    lineStyle: { width: 3, type: 'solid' }, // 实线作为主视觉
+    areaStyle: {
+      // 功率绿色的轻量渐变
+      color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+        { offset: 0, color: 'rgba(16, 185, 129, 0.25)' },
+        { offset: 1, color: 'rgba(16, 185, 129, 0.00)' }
+      ])
+    }
+  },
+  {
+    name: '能耗',
+    type: 'line',
+    data: engComsmp,
+    symbol: 'circle',
+    showSymbol: false,
+    symbolSize: 6,
+    smooth: true,
+    yAxisIndex: 1,
+    itemStyle: { color: '#0284c7' }, // 替换为代表电能/科技感的深天蓝
+    lineStyle: { width: 3, type: 'solid' }, // 同样使用实线，靠颜色和双 Y 轴区分
+    areaStyle: {
+      // 能耗蓝色的轻量渐变（修复了你原本代码里能耗用绿色阴影的 Bug）
+      color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+        { offset: 0, color: 'rgba(2, 132, 199, 0.20)' },
+        { offset: 1, color: 'rgba(2, 132, 199, 0.00)' }
+      ])
+    }
+  }
+]
+
   }
 }
 

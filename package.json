@@ -9,10 +9,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tresjs/core": "^5.8.3",
+    "@tweenjs/tween.js": "^25.0.0",
     "axios": "^1.15.0",
     "echarts": "^6.1.0",
     "mitt": "^3.0.1",
     "pinia": "^3.0.4",
+    "three": "^0.185.1",
     "vue": "^3.5.13",
     "vue-router": "^5.0.4"
   },
