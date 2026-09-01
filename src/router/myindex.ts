@@ -78,6 +78,12 @@ let routes = [
         meta: { title: '空调系统' }
       },
       {
+        path: '/power',
+        name: 'Power', // HVAC 是加热通风与空调系统的国际标准通用缩写
+        component: () => import('../views/power/PowerCurveChart.vue'),
+        meta: { title: '能耗监测' }
+      },
+      {
         path: '/nitrogen-generation',
         name: 'NitrogenGeneration',
         component: () => import('../views/NitrogenGenerationView.vue'),

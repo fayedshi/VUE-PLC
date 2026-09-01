@@ -1,6 +1,6 @@
 <template>
   <div class="trend-container">
-    <h2>整仓温湿度趋势分析（每10分钟抽样）</h2>
+    <h2>整仓能耗趋势分析</h2>
 
     <!-- 1. 时间范围查询工具栏 -->
     <div class="search-bar">
@@ -11,6 +11,14 @@
       <div class="search-item">
         <label>结束时间：</label>
         <input type="datetime-local" v-model="timeRange.endTime" class="input-date" />
+      </div>
+      <!-- 新增：聚合粒度下拉框 -->
+      <div class="search-item">
+        <label>显示粒度：</label>
+        <select v-model="timeRange.timeUnit" class="select-unit" @change="handleSearch"> 
+          <option value="1 day">按天显示</option>
+          <option value="1 month">按月显示</option>
+        </select>
       </div>
       <button class="btn-search" :disabled="isLoading" @click="handleSearch">
         {{ isLoading ? '分析中...' : '📊 生成趋势图' }}
@@ -23,7 +31,7 @@
       <!-- Loading 遮罩 -->
       <div v-if="isLoading" class="loading-overlay">
         <div class="spinner"></div>
-        <p>正在计算整仓 140 个测温点数据，请稍候...</p>
+        <p>正在计算整仓能耗数据，请稍候...</p>
       </div>
       <!-- ECharts 容器 -->
       <div ref="chartRef" class="trend-chart"></div>
@@ -44,7 +52,8 @@ const isLoading = ref(false)
 // 1. 初始化时间范围：默认展示最近3天的数据
 const timeRange = ref({
   startTime: '',
-  endTime: ''
+  endTime: '',
+  timeUnit:'1 day'
 })
 
 const initDefaultTime = () => {
@@ -80,6 +89,8 @@ const http = axios.create({
 
 // 3. 核心请求逻辑：从后端获取聚合后的三条曲线数据
 const fetchTrendData = async () => {
+
+  console.log('time unit', timeRange.value.timeUnit)
   if (!timeRange.value.startTime || !timeRange.value.endTime) {
     alert('请选择完整的开始和结束时间')
     return
@@ -98,11 +109,12 @@ const fetchTrendData = async () => {
   isLoading.value = true
   try {
     // 💡 替换为您后端的趋势接口地址
-    const url = '/api/temp-trend'
+    const url = '/api/power-trend'
     const response = await http.get(url, {
       params: {
         start_time: timeRange.value.startTime,
-        end_time: timeRange.value.endTime
+        end_time: timeRange.value.endTime,
+        interval: timeRange.value.timeUnit
       }
     })
 
@@ -121,30 +133,26 @@ const fetchTrendData = async () => {
 
     // 解析出 4 个一维数组对应 ECharts
     const timelines = result.map(item => item.time)
-    const avgTemp = result.map(item => item.avg_temp)
-    // const minData = result.map(item => item.min)
-    // const maxData = result.map(item => item.max)
-    const avgHumid = result.map(item => item.avg_humid)
-    // const humidData = result.map(item => item.humid)
-
+    const avgPower = result.map(item => item.avg_power)
+    const engeryConsumption = result.map(item => item.engery_consumption)
+    
     // 更新图表
-    // myChart.setOption(getBaselineOption(timelines, avgTemp, minData, maxData))
-    myChart.setOption(getBaselineOption(timelines, avgTemp, avgHumid))
+    myChart.setOption(getBaselineOption(timelines, avgPower, engeryConsumption))
 
   } catch (error) {
     console.error('获取趋势图数据失败:', error)
-    alert('网络异常，获取温度趋势失败')
+    alert('网络异常，获取功耗趋势失败')
   } finally {
     isLoading.value = false
   }
 }
 
 // 4. ECharts 图表配置项生成器
-const getBaselineOption = (timeline, avgTemp, avgHumid) => {
+const getBaselineOption = (timeline, avgPower, avgEngComsmp) => {
   return {
     backgroundColor: '#111827', // 暗色大屏底色
     title: {
-      text: '全仓温湿度起伏走势 (℃)',
+      text: '全仓能耗起伏走势',
       left: 'center',
       top: 15,
       textStyle: { color: '#9ca3af', fontSize: 14 }
@@ -157,7 +165,7 @@ const getBaselineOption = (timeline, avgTemp, avgHumid) => {
       axisPointer: { type: 'cross' }
     },
     legend: {
-      data: ['平均温度', '平均湿度'],
+      data: ['平均功率', '平均功耗'],
       top: 45,
       textStyle: { color: '#9ca3af' }
     },
@@ -174,41 +182,31 @@ const getBaselineOption = (timeline, avgTemp, avgHumid) => {
     },
     yAxis: [{
       type: 'value',
-      name: '温度℃',
+      name: '功率KW',
       scale: true, // 核心：让Y轴从接近的数据开始，曲线起伏更明显
       axisLine: { lineStyle: { color: '#374151' } },
-      axisLabel: { color: '#9ca3af', formatter: '{value} ℃' },
+      axisLabel: { color: '#9ca3af', formatter: '{value}' },
       splitLine: { lineStyle: { color: '#1f2937' } }
     },
     {
       type: 'value',
-      name: '湿度(%RH)',
+      name: '功耗Wh',
       scale: true, // 核心：让Y轴从接近的数据开始，曲线起伏更明显
       axisLine: { lineStyle: { color: '#884151' } },
-      axisLabel: { color: '#9ci3xf', formatter: '{value}%' },
+      axisLabel: { color: '#9ci3xf', formatter: '{value}' },
       splitLine: { lineStyle: { color: '#8f1981' } }
     },
 
     ],
     series: [
-      // {
-      //   name: '最高温度',
-      //   type: 'line',
-      //   data: max,
-      //   symbol: 'none', // 抽稀后点多，隐藏小圆点，线条更丝滑
-      //   smooth: true,   // 平滑曲线
-      //   itemStyle: { color: '#ef4444' }, // 红色表示高温
-      //   lineStyle: { width: 2 },
-      //   yAxisIndex: 0
-      // },
       {
-        name: '平均温度',
+        name: '平均功率',
         type: 'line',
-        data: avgTemp,
+        data: avgPower,
         symbol: 'none',
         smooth: true,
         yAxisIndex: 0,
-        itemStyle: { color: '#10b981' }, // 绿色表示平均温
+        itemStyle: { color: '#10b981' }, 
         lineStyle: { width: 2, type: 'dashed' }, // 虚线区分
         areaStyle: {
           // 阴影面积渐变，增加美观度
@@ -218,34 +216,13 @@ const getBaselineOption = (timeline, avgTemp, avgHumid) => {
           ])
         }
       },
-      // {
-      //   name: '最低温度',
-      //   type: 'line',
-      //   data: min,
-      //   symbol: 'none',
-      //   yAxisIndex: 0,
-      //   smooth: true,
-      //   itemStyle: { color: '#3b82f6' }, // 蓝色表示低温
-      //   lineStyle: { width: 2 }
-      // },
-
-      // {
-      //   name: '最大湿度',
-      //   type: 'line',
-      //   data: max,
-      //   symbol: 'none', // 抽稀后点多，隐藏小圆点，线条更丝滑
-      //   smooth: true,   // 平滑曲线
-      //   itemStyle: { color: '#ef9944' }, // 红色表示高温
-      //   lineStyle: { width: 2 },
-      //   yAxisIndex: 1
-      // },
       {
-        name: '平均湿度',
+        name: '平均功耗',
         type: 'line',
-        data: avgHumid,
+        data: avgEngComsmp,
         symbol: 'none',
         smooth: true,
-        itemStyle: { color: '#80b801' }, // 绿色表示平均温
+        itemStyle: { color: '#80b801' }, 
         lineStyle: { width: 2, type: 'dashed' }, // 虚线区分
         areaStyle: {
           // 阴影面积渐变，增加美观度
@@ -256,17 +233,7 @@ const getBaselineOption = (timeline, avgTemp, avgHumid) => {
         },
         yAxisIndex: 1
       }
-      // {
-      //   name: '最小湿度',
-      //   type: 'line',
-      //   data: humid,
-      //   symbol: 'none',
-      //   smooth: true,
-      //   yAxisIndex: 1,
-      //   itemStyle: { color: '#3b82f6' }, // 蓝色表示低温
-      //   lineStyle: { width: 5 }
-      // }
-
+      
     ]
   }
 }
@@ -424,6 +391,20 @@ h2 {
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 12px;
+}
+
+.select-unit {
+  padding: 4px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #fff;
+  outline: none;
+  cursor: pointer;
+  height: 32px; /* 根据你原本输入框的高度微调 */
+}
+
+.select-unit:focus {
+  border-color: #40a9ff; /* 聚焦时的蓝色边框 */
 }
 
 @keyframes spin {

@@ -100,7 +100,7 @@ const fetchTemperatureData = async (formattedTime = '') => {
   isLoading.value = true
   try {
     console.log('formattedTime',formattedTime)
-    const response = await axios.get('http-api/api/tempbytime', {
+    const response = await axios.get('http-api/api/tempreport', {
     // const response = await http.get('/api/tempbytime', {
       params: {
         input_time: formattedTime
