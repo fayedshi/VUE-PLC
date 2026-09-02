@@ -2,7 +2,7 @@
   <div class="navigate">
     <!-- 二级子菜单导航 -->
     <!-- <RouterLink to  -->
-    <RouterLink to="/temperature/" exact-active-class="active">实时监控</RouterLink>
+    <!-- <RouterLink to="/temperature/" exact-active-class="active">实时监控</RouterLink> -->
     <RouterLink to="/temperature/curveChart" exact-active-class="active">温湿度变化曲线</RouterLink>
     <!-- <RouterLink to="/temperature/comparison" active-class="active">粮情点位比较</RouterLink> -->
     <!-- <RouterLink to="/temperature/slice-3d" active-class="active">三维粮温切面图</RouterLink> -->

@@ -1,9 +1,23 @@
 import { createWebHistory, createRouter } from 'vue-router';
 
 let routes = [
+
   {
     path: '/',
     name: 'Home',
+    // component: () => import('../views/TasksView.vue'),
+    // meta: { title: '任务计划' }
+    // {
+    // path: '', // 留空代表默认子路由，访问 / 时默认渲染此组件
+    // name: 'GranLive',
+    component: () => import('../views/temperature/GranLive.vue'),
+    meta: { title: '首页' }
+    // redirect: 'curveChart'
+    // },
+  },
+  {
+    path: '/main',
+    name: 'Main',
     component: () => import('../views/SystemLayout.vue'),
     meta: { title: '系统主页' },
     children: [
@@ -13,13 +27,13 @@ let routes = [
         component: () => import('../views/temperature/TemperatureLayout.vue'),
         meta: { title: '测温系统' },
         children: [
-          {
-            path: '', // 留空代表默认子路由，访问 / 时默认渲染此组件
-            name: 'GranLive',
-            component: () => import('../views/temperature/GranLive.vue'),
-            meta: { title: '实时监控' }
-            // redirect: 'curveChart'
-          },
+          // {
+          //   path: '', // 留空代表默认子路由，访问 / 时默认渲染此组件
+          //   name: 'GranLive',
+          //   component: () => import('../views/temperature/GranLive.vue'),
+          //   meta: { title: '实时监控' }
+          //   // redirect: 'curveChart'
+          // },
           {
             path: 'curveChart', // 留空代表默认子路由，访问 / 时默认渲染此组件
             name: 'CurveChart',

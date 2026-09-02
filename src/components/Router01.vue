@@ -2,7 +2,8 @@
   <div class="navigate">
     <h1>智慧粮库管理系统</h1>
     <nav>
-      <RouterLink to="/" active-class="active">系统主页</RouterLink>
+      <RouterLink to="/" active-class="active">首页</RouterLink>
+      <RouterLink to="/main" active-class="active">系统主页</RouterLink>
       <RouterLink to="/settings" active-class="active">系统设置</RouterLink>
       <RouterLink to="/tasks" active-class="active">任务计划</RouterLink>
       <RouterLink to="/data-center" active-class="active">数据中心</RouterLink>

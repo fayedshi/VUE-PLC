@@ -59,6 +59,7 @@
             <th>保管员</th>
             <th>储粮品种</th>
             <th>温度上限 (°C)</th>
+            <th>PLC编号</th>
             <th>操作栏</th>
           </tr>
         </thead>
@@ -70,6 +71,7 @@
             <td><span class="user-badge">👤 {{ item.keeper }}</span></td>
             <td><span class="grain-tag">{{ item.grain_type }}</span></td>
             <td class="warning-text">{{ item.max_temp }} °C</td>
+            <td>{{ item.plc_code }}</td>
             <td>
               <div class="action-btns">
                 <button class="btn-edit" @click="openModal('edit', item)">编辑</button>
@@ -136,6 +138,11 @@
               <div class="form-item">
                 <label>报警温度上限 (°C)：</label>
                 <input type="number" v-model.number="form.max_temp" placeholder="例如：25" step="0.1" required />
+              </div>
+              <!-- 字段 7：PLC 编号 -->
+              <div class="form-item">
+                <label>PLC编号：</label>
+                <input type="text" v-model="form.plc_code" placeholder="例如：001" required />
               </div>
 
               <div class="modal-footer">
@@ -207,7 +214,8 @@ const form = reactive({
   capacity: '',
   keeper: '',
   grain_type: '',
-  max_temp: ''
+  max_temp: '',
+  plc_code: ''
 })
 
 // # 清空表单数据
@@ -218,6 +226,7 @@ const resetForm = () => {
   form.keeper = ''
   form.grain_type = ''
   form.max_temp = ''
+  form.plc_code= ''
   currentEditId = null
 }
 
@@ -235,6 +244,7 @@ const openModal = (type, item = null) => {
     form.keeper = item.keeper
     form.grain_type = item.grain_type
     form.max_temp = item.max_temp
+    form.plc_code= item.plc_code
   } else {
     resetForm()
   }

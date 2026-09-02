@@ -26,11 +26,20 @@ export default defineConfig({
         // rewrite: (path) => path.replace(/http-api/, '') // 把路径中的 /api 去掉再发给后端
       },
 
-      '^.*/ws-api': {
+      // '^.*/ws-api': {
+      //   // 1号PLC
+      //   target: 'ws://192.168.0.16:8000', // 你的后端真实 IP
+      //   changeOrigin: true,                // 允许跨域
+      //   ws: true,
+      //   rewrite: (path) => path.replace(/^.*\/ws-api/, ''), // 把路径中的 /ws-api 去掉再发给后端
+      // },
+
+      // 1号PLC
+      '^.*/ws-api-001': {
         target: 'ws://192.168.0.16:8000', // 你的后端真实 IP
         changeOrigin: true,                // 允许跨域
         ws: true,
-        rewrite: (path) => path.replace(/^.*\/ws-api/, ''), // 把路径中的 /ws-api 去掉再发给后端
+        rewrite: (path) => path.replace(/^.*\/ws-api-001/, ''), // 把路径中的 /ws-api 去掉再发给后端
 
         configure: (proxy, options) => {
           proxy.on('proxyReqWs', (proxyReq, req, socket, options, head) => {
@@ -41,6 +50,15 @@ export default defineConfig({
             console.error('【代理报错】', err);
           });
         }
+      },
+
+      // 2号PLC
+      '^.*/ws-api-002': {
+        target: 'ws://192.168.0.100:8000', // 你的后端真实 IP，目前连test环境做测试
+        // target: 'ws://192.168.0.16:8001', // 8001表示第二个进程
+        changeOrigin: true,                // 允许跨域
+        ws: true,
+        rewrite: (path) => path.replace(/^.*\/ws-api-002/, ''), // 把路径中的 /ws-api 去掉再发给后端
       }
     }
 

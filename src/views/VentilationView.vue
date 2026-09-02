@@ -217,8 +217,8 @@ const executeGlobalAction = async (cateType, actionType) => {
 let socket: any = null;
 
 const initWebSocket = () => {
-    // 如果在电脑本机测试，保持 localhost；如果要手机访问，请改为工控机的局域网 IP
-    socket = new WebSocket(`ws-api/ws/dev-state`);
+    // todo: need granary switch control in ui
+    socket = new WebSocket(`ws-api-001/ws/dev-state`);
     // socket = new WebSocket(`ws://${backendAdd}/ws/dev-state`);
 
     // 连接成功事件
