@@ -128,7 +128,7 @@ const handleGranaryChange = async () => {
     socket.close();
   }
   isExplicitlyClosed = true;
-  console.log('plc_code', activeGranary.value.plc_code)
+  // console.log('plc_code', activeGranary.value.plc_code)
   initWebSocket()
 };
 
@@ -148,7 +148,7 @@ const initWebSocket = async () => {
   // 连接成功事件
   socket.onopen = () => {
     isConnected.value = true;
-    console.log('成功连接到 Python 后端 WebSocket！');
+    console.log('成功连接到 Python 后端 WebSocket！,plc_code', activeGranary.value.plc_code);
     isExplicitlyClosed = false; // 每次全新建立连接时，重置手动关闭状态
   };
 
@@ -164,9 +164,10 @@ const initWebSocket = async () => {
   // 连接关闭事件
   socket.onclose = () => {
     isConnected.value = false;
+    console.log('【前端提示】连接已断开');
     // no reconnect if manually closed
     if (!isExplicitlyClosed) {
-      console.log('【前端提示】连接已断开，3秒后尝试自动重连...');
+      console.log('3秒后尝试自动重连...');
       setTimeout(initWebSocket, 3000); // 掉线自动重连机制
     }
   };
@@ -182,7 +183,7 @@ onMounted(async () => {
   try {
     // 步骤1：先拉取所有的仓房列表
     const list = await fetchGranaryList();
-    // console.log('list ',list)
+    console.log('list ',list)
     granaryList.value = list;
     if (list.length > 0) {
       // 步骤2：默认选中第一个仓房
@@ -198,7 +199,13 @@ onMounted(async () => {
 
 // 4. 生命周期：组件销毁时关闭连接，释放工控机内存
 onBeforeUnmount(() => {
-  if (socket) socket.close();
+  if (socket) {
+    socket.close();
+    // 切换tab时，没必要保持连接，当成手动关闭
+    console.log('manually closed websocket')
+    isExplicitlyClosed=true
+  }
+  
 });
 </script>
 
