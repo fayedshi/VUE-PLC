@@ -217,8 +217,8 @@ const executeGlobalAction = async (cateType, actionType) => {
 let socket: any = null;
 
 const initWebSocket = () => {
-    // todo: need granary switch control in ui
-    socket = new WebSocket(`ws-api-001/ws/dev-state`);
+    // todo: need granary switch control in ui, hardcode 001 for now
+    socket = new WebSocket(`ws-001-api/ws/dev-state`);
     // socket = new WebSocket(`ws://${backendAdd}/ws/dev-state`);
 
     // 连接成功事件

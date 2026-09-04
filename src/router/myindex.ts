@@ -10,7 +10,7 @@ let routes = [
     // {
     // path: '', // 留空代表默认子路由，访问 / 时默认渲染此组件
     // name: 'GranLive',
-    component: () => import('../views/temperature/GranLive.vue'),
+    component: () => import('../views/Home.vue'),
     meta: { title: '首页' }
     // redirect: 'curveChart'
     // },
@@ -35,7 +35,7 @@ let routes = [
           //   // redirect: 'curveChart'
           // },
           {
-            path: 'curveChart', // 留空代表默认子路由，访问 / 时默认渲染此组件
+            path: '', // 留空代表默认子路由，访问 / 时默认渲染此组件
             name: 'CurveChart',
             component: () => import('../views/temperature/TempCurveChart.vue'),
             meta: { title: '温湿度变化曲线' }

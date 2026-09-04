@@ -1,6 +1,5 @@
 <template>
   <div class="trend-container">
-    <h2>整仓温湿度趋势分析（每10分钟抽样）</h2>
 
     <!-- 1. 时间范围查询工具栏 -->
     <div class="search-bar">
@@ -19,24 +18,27 @@
     </div>
     <!-- 🎯 2. 新增：层级切换选项卡（极致简洁扁平设计） -->
     <div class="layer-selector">
-
+      <h2>粮仓温湿度趋势分析（每10分钟抽样）</h2>
       <!-- 💡 新增：数据指标复选框群组 -->
-      <div class="metric-checkboxes">
-        <span class="selector-label">温湿度：</span>
-        <label v-for="metric in metricOptions" :key="metric.value" class="checkbox-label">
-          <input type="checkbox" :value="metric.value" v-model="selectedMetrics" :disabled="isLoading"   @change="handleMetricChange"/>
-          <span class="checkbox-text">{{ metric.label }}</span>
-        </label>
-      </div>
-      <span class="selector-label">监测层级：</span>
-      <div class="layer-buttons">
-        <button v-for="item in layerOptions" :key="item.value" class="btn-layer"
-          :class="{ 'active': currentLayer === item.value }" :disabled="isLoading"
-          @click="handleLayerChange(item.value)">
-          {{ item.label }}
-        </button>
-      </div>
+      <div class="options">
+        <div class="metric-checkboxes options">
+          <span class="selector-label">监测选项：</span>
+          <label v-for="metric in metricOptions" :key="metric.value" class="checkbox-label">
+            <input type="checkbox" :value="metric.value" v-model="selectedMetrics" :disabled="isLoading"
+              @change="handleMetricChange" />
+            <span class="checkbox-text">{{ metric.label }}</span>
+          </label>
+        </div>
 
+        <div class="layer-buttons">
+          <span class="selector-label">监测层级：</span>
+          <button v-for="item in layerOptions" :key="item.value" class="btn-layer"
+            :class="{ 'active': currentLayer === item.value }" :disabled="isLoading"
+            @click="handleLayerChange(item.value)">
+            {{ item.label }}
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- 2. 图表渲染区域 -->
@@ -417,15 +419,22 @@ onUnmounted(() => {
 <style scoped>
 .trend-container {
   padding: 20px;
+  padding-top: 5px;
   background: #0f172a;
   min-height: 100vh;
   color: #f3f4f6;
 }
 
 h2 {
-  margin-bottom: 20px;
+  margin-bottom: 5px;
+  margin-top: 0px;
   font-weight: 500;
-  color: #38bdf8;
+  color: #0d88bd;
+}
+.options{
+    display: flex; 
+    justify-content: flex-end;
+    align-items: center;
 }
 
 /* 工具栏 */
@@ -501,7 +510,7 @@ h2 {
 .layer-selector {
   display: flex;
   align-items: center;
-  justify-content: right;
+  justify-content: space-between;
   margin-bottom: 20px;
   padding: 10px 14px;
   background-color: #f8fafc;
@@ -514,14 +523,11 @@ h2 {
   font-size: 13px;
   font-weight: bold;
   color: #475569;
-  /* padding-right: 0px; */
-  /* margin-right: 12px; */
 }
 
 .layer-buttons {
   display: flex;
-  /* align-items: flex-end; */
-
+  align-items: center;
   gap: 6px;
 }
 
@@ -602,7 +608,7 @@ h2 {
 .metric-checkboxes {
   display: flex;
   align-items: center;
-  gap: 10px;
+  /* gap: 10px; */
   border-right: 1px solid #dcdfe6;
   /* 与左边层级加一条淡淡的分割线 */
   padding-right: 16px;

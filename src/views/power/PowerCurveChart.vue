@@ -14,17 +14,18 @@
       </div>
       <!-- 新增：聚合粒度下拉框 -->
       <div class="search-item">
+        <button class="btn-reset" @click="resetTimeRange">重置7天</button>
         <label>显示粒度：</label>
         <select v-model="timeRange.timeUnit" class="select-unit" @change="handleSearch"> 
-          <option value="1 month">按月</option>
-          <option value="1 day">按天</option>
           <option value="1 hour">按小时</option>
+          <option value="1 day">按天</option>
+          <option value="1 month">按月</option>
         </select>
       </div>
       <button class="btn-search" :disabled="isLoading" @click="handleSearch">
         {{ isLoading ? '分析中...' : '📊 生成趋势图' }}
       </button>
-      <button class="btn-reset" @click="resetTimeRange">🔄 重置三天</button>
+      
     </div>
 
     <!-- 2. 图表渲染区域 -->
@@ -59,7 +60,7 @@ const timeRange = ref({
 
 const initDefaultTime = () => {
   const now = new Date()
-  const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000)
+  const threeDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
 
   // 转换为 datetime-local 输入框需要的格式: YYYY-MM-DDTHH:mm
   timeRange.value.startTime = formatDateToLocal(threeDaysAgo)
@@ -250,7 +251,7 @@ const handleSearch = () => {
 
 const resetTimeRange = () => {
   initDefaultTime()
-  fetchTrendData()
+  // fetchTrendData()
 }
 
 // 6. 响应式视口缩放适配
@@ -345,9 +346,9 @@ h2 {
 }
 
 .btn-reset {
-  background: transparent;
-  color: #9ca3af;
-  border: 1px solid #475569;
+  background-color: #4f6d3b;
+  /* color: #11a3af; */
+  border: 1px solid #695a47;
   padding: 8px 16px;
   border-radius: 4px;
   cursor: pointer;
