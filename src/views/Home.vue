@@ -32,7 +32,7 @@
           <div class="info-item"><span>保管人员：</span>{{ activeGranary.keeper || '--' }}</div>
           <div class="info-item"><span>报警上限：</span><span class="alert-text">{{ activeGranary.max_temp ?
             activeGranary.max_temp + ' ℃' : '--' }}</span></div>
-          <div class="info-item"><span>PLC编号：</span>{{ activeGranary.plc_code || '--' }}</div>
+          <!-- <div class="info-item"><span>PLC编号：</span>{{ activeGranary.plc_code || '--' }}</div> -->
         </div>
       </div>
 
@@ -136,19 +136,19 @@ const handleGranaryChange = async () => {
 const initWebSocket = async () => {
 
 
-  const plcCode = activeGranary.value.plc_code
-  if (!plcCode) {
-    console.warn('【前端提示】当前无可用的 plc_code，取消初始化 WebSocket');
+  const granCode = activeGranary.value.code
+  if (!granCode) {
+    console.warn('【前端提示】当前无可用的 仓房编号，取消初始化 WebSocket');
     return;
   }
   // 如果在电脑本机测试，保持 localhost；如果要手机访问，请改为工控机的局域网 IP
-  socket = new WebSocket(`ws-${plcCode}-api/ws/live`);
+  socket = new WebSocket(`ws-${granCode}-api/ws/live`);
   // socket = new WebSocket('ws:192.168.0.100:8000/ws/live');
 
   // 连接成功事件
   socket.onopen = () => {
     isConnected.value = true;
-    console.log('成功连接到 Python 后端 WebSocket！,plc_code', activeGranary.value.plc_code);
+    console.log('成功连接到 Python 后端 WebSocket！,gran code', granCode);
     isExplicitlyClosed = false; // 每次全新建立连接时，重置手动关闭状态
   };
 

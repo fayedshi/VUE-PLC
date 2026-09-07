@@ -302,7 +302,7 @@ const fetchTrendData = async () => {
 
     const metricStrs = ['max_temp', 'avg_temp', 'min_temp', 'max_humid', 'avg_humid', 'min_humid']
     metricStrs.forEach((col, i) => {
-      if (result[0][col]) {
+      if (col in result[0]) {
         // console.log('col ', col, 'i ', i)
         let data = result.map(item => item[col])
         SERIES_TEMPLATES[i].data = data
@@ -431,10 +431,11 @@ h2 {
   font-weight: 500;
   color: #0d88bd;
 }
-.options{
-    display: flex; 
-    justify-content: flex-end;
-    align-items: center;
+
+.options {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
 }
 
 /* 工具栏 */

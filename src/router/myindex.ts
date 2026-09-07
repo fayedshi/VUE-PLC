@@ -153,7 +153,7 @@ let routes = [
   {
     path: '/alarms',
     name: 'Alarms',
-    component: () => import('../views/AlarmsView.vue'),
+    component: () => import('../views/alarms/Alarms.vue'),
     meta: { title: '系统报警' }
   },
   {

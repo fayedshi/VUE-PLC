@@ -59,7 +59,7 @@
             <th>保管员</th>
             <th>储粮品种</th>
             <th>温度上限 (°C)</th>
-            <th>PLC编号</th>
+            <!-- <th>PLC编号</th> -->
             <th>操作栏</th>
           </tr>
         </thead>
@@ -71,7 +71,7 @@
             <td><span class="user-badge">👤 {{ item.keeper }}</span></td>
             <td><span class="grain-tag">{{ item.grain_type }}</span></td>
             <td class="warning-text">{{ item.max_temp }} °C</td>
-            <td>{{ item.plc_code }}</td>
+            <!-- <td>{{ item.plc_code }}</td> -->
             <td>
               <div class="action-btns">
                 <button class="btn-edit" @click="openModal('edit', item)">编辑</button>
@@ -100,7 +100,7 @@
               <!-- 字段 1：廒间编号 -->
               <div class="form-item">
                 <label>廒间编号：</label>
-                <input type="text" v-model="form.code" placeholder="例如：AJ-001" :disabled="modalType === 'edit'"
+                <input type="text" v-model="form.code" placeholder="输入范围 001-999" :disabled="modalType === 'edit'"
                   required />
               </div>
 
@@ -140,10 +140,10 @@
                 <input type="number" v-model.number="form.max_temp" placeholder="例如：25" step="0.1" required />
               </div>
               <!-- 字段 7：PLC 编号 -->
-              <div class="form-item">
+              <!-- <div class="form-item">
                 <label>PLC编号：</label>
                 <input type="text" v-model="form.plc_code" placeholder="例如：001" required />
-              </div>
+              </div> -->
 
               <div class="modal-footer">
                 <button type="button" class="btn-cancel" @click="closeModal">取消</button>
