@@ -12,12 +12,7 @@
       <div class="search-item">
         <label>廒间搜索：</label>
         <!-- 🎯 @input="fetchGranaryList" 只要打字，就会实时连上 Python 查 MySQL -->
-        <input 
-          type="text" 
-          v-model="searchQuery.name" 
-          @input="fetchGranaryList" 
-          placeholder="输入名称或编号检索..." 
-        />
+        <input type="text" v-model="searchQuery.name" @input="fetchGranaryList" placeholder="输入名称或编号检索..." />
       </div>
 
       <!-- 条件 2：品种下拉 -->
@@ -36,12 +31,7 @@
       <!-- 条件 3：保管员搜索 -->
       <div class="search-item">
         <label>保管员：</label>
-        <input 
-          type="text" 
-          v-model="searchQuery.keeper" 
-          @input="fetchGranaryList" 
-          placeholder="输入保管员姓名..." 
-        />
+        <input type="text" v-model="searchQuery.keeper" @input="fetchGranaryList" placeholder="输入保管员姓名..." />
       </div>
 
       <!-- 重置条件 -->
@@ -157,7 +147,7 @@
   </div>
 </template>
 <script setup>
-import { reactive, computed, ref, onMounted } from 'vue'
+import { reactive, computed, ref, onMounted, watch } from 'vue'
 import axios from 'axios'
 // --- 1. 模拟的廒间静态底账数据集 ---
 const granaryList = ref([
@@ -218,6 +208,16 @@ const form = reactive({
   plc_code: ''
 })
 
+// todo: 无法监听每一个仓房的属性
+// watch(granaryList.value, (newVal) => {
+//   // 每次点击或修改任意一个仓的上限值，都会触发这里
+//   console.log('粮仓列表数据发生变化：', newVal);
+
+//   // 如果你想知道具体是哪个仓变了，可以跟旧数据对比，或者配合接口直接提交全量/单条数据
+// },
+//   { deep: true } // 必须开启深度监听
+// )
+
 // # 清空表单数据
 const resetForm = () => {
   form.code = ''
@@ -226,7 +226,7 @@ const resetForm = () => {
   form.keeper = ''
   form.grain_type = ''
   form.max_temp = ''
-  form.plc_code= ''
+  form.plc_code = ''
   currentEditId = null
 }
 
@@ -244,7 +244,7 @@ const openModal = (type, item = null) => {
     form.keeper = item.keeper
     form.grain_type = item.grain_type
     form.max_temp = item.max_temp
-    form.plc_code= item.plc_code
+    form.plc_code = item.plc_code
   } else {
     resetForm()
   }
@@ -567,7 +567,8 @@ h2 {
   font-weight: bold;
 }
 
-.page-header, .table-toolbar {
+.page-header,
+.table-toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -589,17 +590,21 @@ h2 {
   gap: 24px;
   align-items: flex-end;
 }
+
 .search-item {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
+
 .search-item label {
   font-size: 13px;
   color: #86c232;
   font-weight: bold;
 }
-.search-bar input, .search-bar select {
+
+.search-bar input,
+.search-bar select {
   background: #1a1a1d;
   border: 1px solid #474b4f;
   color: #ffffff;
@@ -610,8 +615,11 @@ h2 {
   min-width: 200px;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
-.search-bar input:focus, .search-bar select:focus {
-  border-color: #86c232; /* 选中时输入框边框变绿 */
+
+.search-bar input:focus,
+.search-bar select:focus {
+  border-color: #86c232;
+  /* 选中时输入框边框变绿 */
   box-shadow: 0 0 5px rgba(134, 194, 50, 0.3);
 }
 </style>
