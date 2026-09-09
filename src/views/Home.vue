@@ -148,7 +148,7 @@ const initWebSocket = async () => {
   // 连接成功事件
   socket.onopen = () => {
     isConnected.value = true;
-    console.log('成功连接到 Python 后端 WebSocket！,gran code', granCode);
+    console.log('成功连接到 Python 后端 live WebSocket！,gran code', granCode);
     isExplicitlyClosed = false; // 每次全新建立连接时，重置手动关闭状态
   };
 
@@ -164,7 +164,7 @@ const initWebSocket = async () => {
   // 连接关闭事件
   socket.onclose = () => {
     isConnected.value = false;
-    console.log('【前端提示】连接已断开');
+    console.log('【前端提示】home连接已断开');
     // no reconnect if manually closed
     if (!isExplicitlyClosed) {
       console.log('3秒后尝试自动重连...');

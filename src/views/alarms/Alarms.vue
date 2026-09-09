@@ -121,7 +121,7 @@ const historyQuery = reactive({
 // --- 原生轻量弹窗队列 ---
 const toastList = ref([])
 let toastIdCounter = 0
-let houseCount = 5
+let houseCount = 3
 const showToast = (title, body, type = 'warning') => {
     const id = toastIdCounter++
     toastList.value.push({ id, title, body, type })
@@ -134,58 +134,89 @@ const removeToast = (id) => {
 }
 
 // 🔌 初始化 WebSocket：实时收集报警
-const initWebSocket = (houseCnt) => {
-    for (let i = 1; i <= houseCnt; i++) {
-        // console.log(`当前次数: ${i}`);
-        wsClients[i] = new WebSocket(`ws-00${i}-api/ws/alarms`)
-        wsClients[i].onmessage = (event) => {
-            const data = JSON.parse(event.data)
-
-            // if (data.event === 'INIT_ACTIVE_ALARMS') {
-            // if(data)
-                // console.log('data ', data)
-            //todo: remove alarms of current house first
-            for (const [key, value] of Object.entries(data)) {
-                // console.log(`键是: ${key}, 值是: ${value}`, 'embed value: ', data[key]);
-                // console.log('value :',value)
-                activeAlarmsMap.value[key] = value
-            }
-            // console.log('activeAlarmsMap ',activeAlarmsMap.value)
-            activeAlarms.value = Object.values(activeAlarmsMap.value);
-            // for key, value in data.items():
-            //     print(f"键: {key} -> 值: {value}")
-            
-            // console.log('receivd alarms', activeAlarms.value)
-            // return
-            // }
-
-            // if (data.event === 'ALARM_TRIGGER') {
-            //     const exists = activeAlarms.value.some(item => item.house_id === data.house_id && item.type === data.type)
-            //     if (!exists) {
-            //         activeAlarms.value.push(data)
-            //         // 触发原生模拟弹窗
-            //         showToast(
-            //             data.type === 'PLC_DISCONNECT' ? '⚡ 通信中断故障' : '🔥 仓储温度告警',
-            //             data.message,
-            //             data.type === 'PLC_DISCONNECT' ? 'danger' : 'warning'
-            //         )
-            //     }
-            // }
-
-            // if (data.event === 'ALARM_RECOVER') {
-            //     activeAlarms.value = activeAlarms.value.filter(
-            //         item => !(item.house_id === data.house_id && item.type === data.type)
-            //     )
-            // }
+const initWebSocket = (houseCode, timeoutMillis = 3000) => {
+    const timer = setTimeout(() => {
+        // 如果时间到了，连接状态依然是 0 (CONNECTING)，说明超时了！
+        if (ws.readyState === WebSocket.CONNECTING) {
+            // wsStatusMap.value[id] = '❌ 连接超时 (后端未响应)';
+            console.error(`[🚨 超时拦截] 粮仓 ${houseCode} 在 ${timeoutMillis / 1000} 秒内未能成功连接，执行close()自动销毁`);
+            // 1. 现场清理，解绑所有事件并 close()，不留垃圾内存
+            cleanupDeadWs(ws);
+            // ws.close()
+            // 2. 拒绝 Promise，让外层的 forEach 无法将它收集进 pool
+            // reject(new Error(`粮仓 ${id} 连接超时`));
         }
+    }, timeoutMillis);
 
-        wsClients[i].onclose = () => {
-
-            // setTimeout(initWebSocket, 3000) // 自动重连
-        }
+    const ws = new WebSocket(`ws-00${houseCode}-api/ws/alarms`)
+    ws.onopen = () => {
+        clearTimeout(timer);
+        console.log('成功连接到 Python 后端 alarm WebSocket！,house code', houseCode);
+        wsClients.push(ws)
+        // isExplicitlyClosed = false; // 每次全新建立连接时，重置手动关闭状态
     }
 
+    ws.onmessage = (event) => {
+        const data = JSON.parse(event.data)
+        // console.log('data', data)
+        //用最新的json替换原有的json，相同的key
+        for (const [key, value] of Object.entries(data)) {
+            // console.log(`键是: ${key}, 值是: ${value}`, 'embed value: ', data[key]);
+            // console.log('value :', value)
+            activeAlarmsMap.value[key] = value
+        }
+        // console.log('activeAlarmsMap ', activeAlarmsMap.value)
+        // Object.values(activeAlarmsMap.value) 这样取出来就是json数组，也就是alarm数组
+        activeAlarms.value = Object.values(activeAlarmsMap.value);
+        // }
+        // 过滤掉空的json
+        activeAlarms.value = activeAlarms.value.filter((alarm) => Object.keys(alarm).length > 0)
+    }
+
+    ws.onclose = () => {
+        console.log('onclose() house-' + houseCode, ' 连接断开')
+        setTimeout(initWebSocket(houseCode, 3000), 3000) // 自动重连
+    }
+
+    // 发生错误事件
+    ws.onerror = (error) => {
+        console.error('【alarms 前端提示】WebSocket 发生错误:', error, 'house code', houseCode);
+    }
 }
+
+const cleanupDeadWs = (ws) => {
+    if (ws)
+        ws.close();
+    ws.onopen = null;
+    ws.onmessage = null;
+    ws.onerror = null;
+    ws.onclose = null;
+};
+
+
+onMounted(() => {
+    // fetch house count
+    for (let i = 0; i < houseCount; i++) {
+        try {
+            initWebSocket(i + 1)
+        } catch (err) {
+            console.error('initWebSocket发生错误:', err)
+        }
+    }
+    fetchHistoryAlarms()
+})
+
+onBeforeUnmount(() => {
+    console.log('in onBeforeUnmount alarms, lenth', wsClients.length)
+    wsClients.forEach((ws) => {
+        if (ws && typeof ws.close === 'function') {
+            console.log(' to close socket')
+            ws.close(); // 循环关闭
+        }
+    });
+    wsClients = []
+})
+
 
 // 🌐 纯原生 Fetch 请求：获取历史报警数据
 const fetchHistoryAlarms = async () => {
@@ -211,20 +242,6 @@ const changePage = (step) => {
     fetchHistoryAlarms()
 }
 
-onMounted(() => {
-    // fetch house count
-
-    initWebSocket(houseCount)
-    fetchHistoryAlarms()
-})
-
-onBeforeUnmount(() => {
-    for (let i = 1; i <= houseCount; i++) {
-        if (wsClients[i])
-            wsClients[i].close()
-    }
-
-})
 </script>
 
 <style scoped>

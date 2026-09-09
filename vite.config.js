@@ -54,7 +54,7 @@ export default defineConfig({
 
       // 2号PLC
       '^.*/ws-002-api': {
-        target: 'ws://192.168.0.100:8000', // 你的后端真实 IP，目前连test环境做测试
+        target: 'ws://192.168.0.16:8000', // 你的后端真实 IP，目前连test环境做测试
         // target: 'ws://192.168.0.16:8001', // 8001表示第二个进程
         changeOrigin: true,                // 允许跨域
         ws: true,
