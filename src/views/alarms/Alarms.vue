@@ -16,6 +16,7 @@
                             <th>仓房名称</th>
                             <th>报警类型</th>
                             <th>异常详情</th>
+                            <th>操作栏</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -24,7 +25,7 @@
                         </tr>
                         <tr v-for="item in activeAlarms" :key="item.house_code + item.type"
                             :class="['alarm-row', item.type]">
-                            <td class="time-cell">{{ item.time }}</td>
+                            <td class="time-cell">{{ item.trigger_time }}</td>
                             <td><strong>{{ item.house_code }}</strong></td>
                             <td>
                                 <span
@@ -33,6 +34,11 @@
                                 </span>
                             </td>
                             <td class="msg-cell">{{ item.message }}</td>
+                            <td class="action-cell">
+                                <button class="btn-ack" @click="handleAck(item)" :disabled="item.ack">
+                                    {{ item.ack ? '已确认' : '确认告警' }}
+                                </button>
+                            </td>
                         </tr>
                     </tbody>
                 </table>
@@ -118,6 +124,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, onBeforeUnmount } from 'vue'
+import axios from 'axios'
 
 // --- 实时报警状态 ---
 const activeAlarmsMap = ref({})
@@ -150,20 +157,34 @@ const removeToast = (id) => {
     toastList.value = toastList.value.filter(t => t.id !== id)
 }
 
+// 处理确认告警的点击事件
+const handleAck = (item) => {
+    try {
+        // 1. 调用后端接口告诉服务器该告警已确认（伪代码）
+        axios.post('http-api/api/alarm/ack', { alarm_key: item.house_code + '_' + item.type })
+        item.ack = true
+        console.log(`确认了仓房 ${item.house_code} 的 ${item.type} 告警`)
+    } catch (err) {
+        console.error(err)
+    }
+}
+
+
 // 🔌 初始化 WebSocket：实时收集报警
+// 1. 瞬间断开（几毫秒 ~ 3秒）—— 最常见如果后端的服务器根本没有开机、IP 地址在局域网内无法ping通，或者对应的端口（如8080）没有服务在监听：
 const initWebSocket = (houseCode, timeoutMillis = 3000) => {
-    const timer = setTimeout(() => {
-        // 如果时间到了，连接状态依然是 0 (CONNECTING)，说明超时了！
-        if (ws.readyState === WebSocket.CONNECTING) {
-            // wsStatusMap.value[id] = '❌ 连接超时 (后端未响应)';
-            console.error(`[🚨 超时拦截] 粮仓 ${houseCode} 在 ${timeoutMillis / 1000} 秒内未能成功连接，执行close()自动销毁`);
-            // 1. 现场清理，解绑所有事件并 close()，不留垃圾内存
-            cleanupDeadWs(ws);
-            // ws.close()
-            // 2. 拒绝 Promise，让外层的 forEach 无法将它收集进 pool
-            // reject(new Error(`粮仓 ${id} 连接超时`));
-        }
-    }, timeoutMillis);
+    // const timer = setTimeout(() => {
+    //     // 如果时间到了，连接状态依然是 0 (CONNECTING)，说明超时了！
+    //     if (ws.readyState === WebSocket.CONNECTING) {
+    //         // wsStatusMap.value[id] = '❌ 连接超时 (后端未响应)';
+    //         console.error(`[🚨 超时拦截] 粮仓 ${houseCode} 在 ${timeoutMillis / 1000} 秒内未能成功连接，执行close()自动销毁`);
+    //         // 1. 现场清理，解绑所有事件并 close()，不留垃圾内存
+    //         cleanupDeadWs(ws);
+    //         // ws.close()
+    //         // 2. 拒绝 Promise，让外层的 forEach 无法将它收集进 pool
+    //         // reject(new Error(`粮仓 ${id} 连接超时`));
+    //     }
+    // }, timeoutMillis);
 
     const ws = new WebSocket(`ws-00${houseCode}-api/ws/alarms`)
     ws.onopen = () => {
@@ -191,7 +212,7 @@ const initWebSocket = (houseCode, timeoutMillis = 3000) => {
     }
 
     ws.onclose = () => {
-        console.log('onclose() house-' + houseCode, ' 连接断开')
+        console.log('onclose() house-' + houseCode, ' 连接断开，自动重连')
         setTimeout(initWebSocket(houseCode, 5000), 3000) // 自动重连
     }
 
@@ -212,7 +233,7 @@ const cleanupDeadWs = (ws) => {
 
 
 onMounted(() => {
-    // fetch house count
+    //todo: fetch house count from backend
     for (let i = 0; i < houseCount; i++) {
         try {
             initWebSocket(i + 1)
@@ -545,6 +566,29 @@ const changePage = (step) => {
     /* 聚焦时高亮蓝色 */
 }
 
+/* 按钮基础样式 */
+.btn-ack {
+    padding: 4px 8px;
+    background-color: #2f54eb;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.3s;
+}
+
+.btn-ack:hover {
+    background-color: #1d39c4;
+}
+
+/* 禁用状态（已确认）的样式 */
+.btn-ack:disabled {
+    background-color: #f5f5f5;
+    color: rgba(0, 0, 0, 0.25);
+    border: 1px solid #d9d9d9;
+    cursor: not-allowed;
+}
 
 @keyframes slideIn {
     from {
