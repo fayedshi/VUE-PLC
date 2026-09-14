@@ -54,11 +54,38 @@ export default defineConfig({
 
       // 2号PLC
       '^.*/ws-002-api': {
-        target: 'ws://192.168.0.16:8000', // 你的后端真实 IP，目前连test环境做测试
+        target: 'ws://192.168.0.16:8001', // 你的后端真实 IP，目前连test环境做测试
         // target: 'ws://192.168.0.16:8001', // 8001表示第二个进程
         changeOrigin: true,                // 允许跨域
         ws: true,
         rewrite: (path) => path.replace(/^.*\/ws-002-api/, ''), // 把路径中的 /ws-api 去掉再发给后端
+      },
+
+      // 3号PLC
+      '^.*/ws-003-api': {
+        target: 'ws://192.168.0.16:8002', // 你的后端真实 IP，目前连test环境做测试
+        // target: 'ws://192.168.0.16:8001', // 8001表示第二个进程
+        changeOrigin: true,                // 允许跨域
+        ws: true,
+        rewrite: (path) => path.replace(/^.*\/ws-003-api/, ''), // 把路径中的 /ws-api 去掉再发给后端
+      },
+
+      // 4号PLC
+      '^.*/ws-004-api': {
+        target: 'ws://192.168.0.16:8003', // 你的后端真实 IP，目前连test环境做测试
+        // target: 'ws://192.168.0.16:8001', // 8001表示第二个进程
+        changeOrigin: true,                // 允许跨域
+        ws: true,
+        rewrite: (path) => path.replace(/^.*\/ws-004-api/, ''), // 把路径中的 /ws-api 去掉再发给后端
+      },
+
+      // 5号PLC
+      '^.*/ws-005-api': {
+        target: 'ws://192.168.0.16:8004', // 你的后端真实 IP，目前连test环境做测试
+        // target: 'ws://192.168.0.16:8001', // 8001表示第二个进程
+        changeOrigin: true,                // 允许跨域
+        ws: true,
+        rewrite: (path) => path.replace(/^.*\/ws-005-api/, ''), // 把路径中的 /ws-api 去掉再发给后端
       }
     }
 

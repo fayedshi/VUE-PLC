@@ -23,7 +23,7 @@
                         <tr v-if="activeAlarms.length === 0">
                             <td colspan="4" class="empty-cell">👍 当前所有仓房运行状态正常，仓储环境安全</td>
                         </tr>
-                        <tr v-for="item in activeAlarms" :key="item.house_code + item.type"
+                        <tr v-for="(item,index) in activeAlarms" :key="item.house_code + item.type"
                             :class="['alarm-row', item.type]">
                             <td class="time-cell">{{ item.trigger_time }}</td>
                             <td><strong>{{ item.house_code }}</strong></td>
@@ -84,17 +84,23 @@
                             <th>仓房名称</th>
                             <th>类型</th>
                             <th>报警内容</th>
+                            <th>是否确认</th>
+                            <th>确认时间</th>
                             <th>状态</th>
+                            <th>恢复时间</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr v-for="(log, index) in historyLog" :key="index">
                             <td>{{ index + 1 }}</td>
-                            <td>{{ log.time }}</td>
+                            <td>{{ log.trigger_time }}</td>
                             <td>{{ log.house_code }}</td>
                             <td>{{ log.type === 'PLC_DISCONNECT' ? 'PLC断线' : '温度超限' }}</td>
                             <td>{{ log.message }}</td>
-                            <td><span class="badge badge-success">已恢复</span></td>
+                            <td>{{ log.ack? '是':'否' }}</td>
+                            <td>{{ log.ack_time }}</td>
+                            <td><span class="badge badge-success">{{ log.cleared? '已恢复': '未清除' }}</span></td>
+                            <td>{{ log.clear_time }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -173,22 +179,22 @@ const handleAck = (item) => {
 // 🔌 初始化 WebSocket：实时收集报警
 // 1. 瞬间断开（几毫秒 ~ 3秒）—— 最常见如果后端的服务器根本没有开机、IP 地址在局域网内无法ping通，或者对应的端口（如8080）没有服务在监听：
 const initWebSocket = (houseCode, timeoutMillis = 3000) => {
-    // const timer = setTimeout(() => {
-    //     // 如果时间到了，连接状态依然是 0 (CONNECTING)，说明超时了！
-    //     if (ws.readyState === WebSocket.CONNECTING) {
-    //         // wsStatusMap.value[id] = '❌ 连接超时 (后端未响应)';
-    //         console.error(`[🚨 超时拦截] 粮仓 ${houseCode} 在 ${timeoutMillis / 1000} 秒内未能成功连接，执行close()自动销毁`);
-    //         // 1. 现场清理，解绑所有事件并 close()，不留垃圾内存
-    //         cleanupDeadWs(ws);
-    //         // ws.close()
-    //         // 2. 拒绝 Promise，让外层的 forEach 无法将它收集进 pool
-    //         // reject(new Error(`粮仓 ${id} 连接超时`));
-    //     }
-    // }, timeoutMillis);
+    const timer = setTimeout(() => {
+        // 如果时间到了，连接状态依然是 0 (CONNECTING)，说明超时了！
+        if (ws.readyState === WebSocket.CONNECTING) {
+            // wsStatusMap.value[id] = '❌ 连接超时 (后端未响应)';
+            console.error(`[🚨 超时拦截] 粮仓 ${houseCode} 在 ${timeoutMillis / 1000} 秒内未能成功连接，执行close()自动销毁`);
+            // 1. 现场清理，解绑所有事件并 close()，不留垃圾内存
+            cleanupDeadWs(ws);
+            // ws.close()
+            // 2. 拒绝 Promise，让外层的 forEach 无法将它收集进 pool
+            // reject(new Error(`粮仓 ${id} 连接超时`));
+        }
+    }, timeoutMillis);
 
     const ws = new WebSocket(`ws-00${houseCode}-api/ws/alarms`)
     ws.onopen = () => {
-        clearTimeout(timer);
+        // clearTimeout(timer);
         console.log('成功连接到 Python 后端 alarm WebSocket！,house code', houseCode);
         wsClients.push(ws)
         // isExplicitlyClosed = false; // 每次全新建立连接时，重置手动关闭状态
@@ -209,11 +215,12 @@ const initWebSocket = (houseCode, timeoutMillis = 3000) => {
         // }
         // 过滤掉空的json
         activeAlarms.value = activeAlarms.value.filter((alarm) => Object.keys(alarm).length > 0)
+        // console.log('#########activeAlarms: ',activeAlarms.value)
     }
 
     ws.onclose = () => {
         console.log('onclose() house-' + houseCode, ' 连接断开，自动重连')
-        setTimeout(initWebSocket(houseCode, 5000), 3000) // 自动重连
+        setTimeout(initWebSocket(houseCode, 5000), 5000) // 自动重连
     }
 
     // 发生错误事件
@@ -247,7 +254,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
     console.log('in onBeforeUnmount alarms, lenth', wsClients.length)
     wsClients.forEach((ws) => {
-        if (ws && typeof ws.close === 'function') {
+        if (ws) {
             console.log(' to close socket')
             ws.close(); // 循环关闭
         }
