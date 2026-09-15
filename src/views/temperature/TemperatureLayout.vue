@@ -29,7 +29,8 @@
   /* 垂直居中 */
   gap: 20px;
   /* 导航项之间的间距 */
-  padding: 10px 0;
+  padding: 0px 0;
+  height: auto;
   /* 上下内边距 */
   background-color: #f8f9fa;
   /* 浅灰色背景 */

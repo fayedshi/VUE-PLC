@@ -54,6 +54,7 @@ h1 {
   /* 浅灰色背景 */
   border-bottom: 1px solid #ddd;
   /* 底部分割线 */
+  height: 45px;
 }
 
 .navigate a {
@@ -72,7 +73,7 @@ h1 {
 }
 
 .main-content {
-  padding: 20px;
+  /* padding: 20px; */
   /* 四周留白，不让文字贴边 */
   min-height: 80vh;
   /* 保证内容少时也不会显得太短 */

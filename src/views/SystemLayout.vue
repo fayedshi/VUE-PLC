@@ -13,7 +13,7 @@
     </nav> -->
 
   <!-- </div> -->
-  <div class="navigate">
+  <div class="system-navigate">
     <nav>
       <RouterLink to="/temperature" active-class="active">测温系统</RouterLink>
       <!-- <RouterLink to="/gas-control" active-class="active">气调系统</RouterLink> -->
@@ -51,7 +51,7 @@ h1 {
   margin-bottom: 30px;
 }
 
-.navigate {
+.system-navigate {
   display: flex;
   /* 开启弹性布局 */
   justify-content: center;
@@ -60,7 +60,7 @@ h1 {
   /* 垂直居中 */
   gap: 20px;
   /* 导航项之间的间距 */
-  padding: 10px 0;
+  padding: 0 0;
   /* 上下内边距 */
   background-color: #f8f9fa;
   /* 浅灰色背景 */
@@ -68,13 +68,13 @@ h1 {
   /* 底部分割线 */
 }
 
-.navigate a {
+.system-navigate a {
   color: rgb(94, 88, 104);
   text-decoration: none;
   margin: 0 15px;
 }
 
-.navigate a.active {
+.system-navigate a.active {
   color: #42b883;
   /* 激活时变绿色 */
   font-weight: bold;
@@ -84,7 +84,7 @@ h1 {
 }
 
 .main-content {
-  padding: 20px;
+  /* padding: 20px; */
   /* 四周留白，不让文字贴边 */
   min-height: 80vh;
   /* 保证内容少时也不会显得太短 */
