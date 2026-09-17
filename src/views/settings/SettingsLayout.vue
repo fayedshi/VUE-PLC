@@ -2,6 +2,7 @@
   <div class="navigate">
       <!-- 二级子菜单导航 -->
       <RouterLink to="/settings/" exact-active-class="active">熬间设置</RouterLink>
+      <RouterLink to="/settings/venti">通风模式设置</RouterLink>
       <!-- <RouterLink to="/temperature/comparison" active-class="active">粮情点位比较</RouterLink> -->
       <!-- <RouterLink to="/temperature/slice-3d" active-class="active">三维粮温切面图</RouterLink> -->
       <!-- <RouterLink to="/settings/report" active-class="active">测温点位全览</RouterLink> -->

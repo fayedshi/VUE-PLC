@@ -123,6 +123,12 @@ let routes = [
         name: 'GranaryData',
         component: () => import('../views/settings/GranaryDataEntry.vue'),
         meta: { title: '熬间信息录入' }
+      },
+      {
+        path: 'venti', // 留空代表默认子路由，访问 / 时默认渲染此组件
+        name: 'VentiMode',
+        component: () => import('../views/settings/VentilationMode.vue'),
+        meta: { title: '通风模式设置' }
       }
     ]
   },
