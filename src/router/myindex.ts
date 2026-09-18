@@ -82,8 +82,22 @@ let routes = [
       {
         path: '/ventilation',
         name: 'Ventilation',
-        component: () => import('../views/VentilationView.vue'),
-        meta: { title: '通风系统' }
+        component: () => import('../views/ventilation/VentilationLayout.vue'),
+        meta: { title: '通风系统' },
+        children: [
+          {
+            path: '', // 留空代表默认子路由，访问 / 时默认渲染此组件
+            name: 'VentiMnaual',
+            component: () => import('../views/ventilation/VentiManualPanel.vue'),
+            meta: { title: '手动控制面板' }
+          },
+          {
+            path: 'ventiTask', // 留空代表默认子路由，访问 / 时默认渲染此组件
+            name: 'VentiTaskPanel',
+            component: () => import('../views/ventilation/VentiTaskPanel.vue'),
+            meta: { title: '作业控制面板' }
+          }
+        ]
       },
       {
         path: '/hvac',
