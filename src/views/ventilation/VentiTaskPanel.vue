@@ -135,7 +135,24 @@
             </label>
           </div>
         </div>
-
+        <!-- 风机 (8个，正/反单选，支持取消选中) -->
+        <div class="device-row">
+          <span class="device-label">风机控制：</span>
+          <div class="device-list inline-grid">
+            <div v-for="i in 8" :key="'blower-' + i" class="blower-group">
+              
+              <label class="radio-label">
+                <span class="blower-name">风机#{{ i }}:</span>
+                <input type="radio" :name="'blower-dir-' + i" value="正" :checked="devices.blowers[i] === 1"
+                  @click="toggleBlower(i, 1)" /> 正
+                <!-- </label> -->
+                <!-- <label class="radio-label"> -->
+                <input type="radio" :name="'blower-dir-' + i" value="反" :checked="devices.blowers[i] === 0"
+                  @click="toggleBlower(i, 0)" /> 反
+              </label>
+            </div>
+          </div>
+        </div>
         <!-- 排风扇 (4个) -->
         <div class="device-row">
           <span class="device-label">排风扇：</span>
@@ -156,23 +173,7 @@
           </div>
         </div>
 
-        <!-- 风机 (8个，正/反单选，支持取消选中) -->
-        <div class="device-row">
-          <span class="device-label">风机控制：</span>
-          <div class="device-list inline-grid">
-            <div v-for="i in 8" :key="'blower-' + i" class="blower-group">
-              <span class="blower-name">风机 #{{ i }}:</span>
-              <label class="radio-label">
-                <input type="radio" :name="'blower-dir-' + i" value="正" :checked="devices.blowers[i] === 1"
-                  @click="toggleBlower(i, 1)" /> 正
-              </label>
-              <label class="radio-label">
-                <input type="radio" :name="'blower-dir-' + i" value="反" :checked="devices.blowers[i] === 0"
-                  @click="toggleBlower(i, 0)" /> 反
-              </label>
-            </div>
-          </div>
-        </div>
+
       </div>
 
       <!-- 4. 运行时长设置区域 -->
@@ -586,7 +587,7 @@ const handleSaveMode = () => {
   display: flex;
   padding: 10px 0;
   border-bottom: 1px dashed #f1f5f9;
-  align-items: flex-start;
+  align-items: baseline;
 }
 
 .device-row:last-child {
@@ -595,7 +596,7 @@ const handleSaveMode = () => {
 
 .device-label {
   width: 90px;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 600;
   color: #475569;
   padding-top: 2px;
@@ -608,34 +609,52 @@ const handleSaveMode = () => {
   flex: 1;
 }
 
-.checkbox-label,
-.radio-label {
-  font-size: 15px;
+.checkbox-label {
+  font-size: 18px;
   display: flex;
+  height: 50px;
+  /* width: 100px; */
+  align-items: center;
+  padding: 0px 10px;
+  margin-right: 10px;
+  /* gap: 40px; */
+  cursor: pointer;
+  border-radius: 6px;
+  border: 1px solid #e4e7ed;
+  /* background: #f8fafc; */
+}
+
+.radio-label {
+  font-size: 18px;
+  display: flex;
+  height: 50px;
+  padding: 0px 2px;
+  /* width: 130px; */
   align-items: center;
   gap: 4px;
   cursor: pointer;
-  user-select: none;
+  border-radius: 6px;
+  border: 1px solid #e4e7ed;
 }
 
 /* 风机网格排版 */
 .inline-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px 20px;
+  grid-template-columns: repeat(8, 1fr);
+  /* gap: 14px 20px; */
 }
 
 .blower-group {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: #f8fafc;
-  padding: 4px 8px;
-  border-radius: 4px;
-  border: 1px solid #f1f5f9;
+  /* width: 200px; */
+  /* background: #f8fafc; */
+  /* border-radius: 4px; */
+  /* border: 1px solid #f1f5f9; */
 }
 
 .blower-name {
+  /* width: 160px; */
   font-size: 13px;
   font-weight: 500;
   color: #334155;
