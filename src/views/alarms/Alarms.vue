@@ -23,7 +23,7 @@
                         <tr v-if="activeAlarms.length === 0">
                             <td colspan="4" class="empty-cell">👍 当前所有仓房运行状态正常，仓储环境安全</td>
                         </tr>
-                        <tr v-for="(item,index) in activeAlarms" :key="item.house_code + item.type"
+                        <tr v-for="(item, index) in activeAlarms" :key="item.house_code + item.type"
                             :class="['alarm-row', item.type]">
                             <td class="time-cell">{{ item.trigger_time }}</td>
                             <td><strong>{{ item.house_code }}</strong></td>
@@ -97,9 +97,9 @@
                             <td>{{ log.house_code }}</td>
                             <td>{{ log.type === 'PLC_DISCONNECT' ? 'PLC断线' : '温度超限' }}</td>
                             <td>{{ log.message }}</td>
-                            <td>{{ log.ack? '是':'否' }}</td>
+                            <td>{{ log.ack ? '是' : '否' }}</td>
                             <td>{{ log.ack_time }}</td>
-                            <td><span class="badge badge-success">{{ log.cleared? '已恢复': '未清除' }}</span></td>
+                            <td><span class="badge badge-success">{{ log.cleared ? '已恢复' : '未清除' }}</span></td>
                             <td>{{ log.clear_time }}</td>
                         </tr>
                     </tbody>
@@ -191,8 +191,8 @@ const initWebSocket = (houseCode, timeoutMillis = 3000) => {
             // reject(new Error(`粮仓 ${id} 连接超时`));
         }
     }, timeoutMillis);
-
-    const ws = new WebSocket(`ws-00${houseCode}-api/ws/alarms`)
+    // todo: loop may not be required
+    const ws = new WebSocket(`ws-api/ws/alarms`)
     ws.onopen = () => {
         // clearTimeout(timer);
         console.log('成功连接到 Python 后端 alarm WebSocket！,house code', houseCode);

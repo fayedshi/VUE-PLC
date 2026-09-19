@@ -142,7 +142,7 @@ const initWebSocket = async () => {
     return;
   }
   // 如果在电脑本机测试，保持 localhost；如果要手机访问，请改为工控机的局域网 IP
-  socket = new WebSocket(`ws-${granCode}-api/ws/live`);
+  socket = new WebSocket(`ws-api/ws/live/${granCode}`);
   // socket = new WebSocket('ws:192.168.0.100:8000/ws/live');
 
   // 连接成功事件
