@@ -20,7 +20,7 @@
 </template>
 
 <script setup>
-import { reactive, watch } from 'vue'
+import { onMounted, reactive, watch } from 'vue'
 
 const props = defineProps({
   modelValue: Object
@@ -31,12 +31,17 @@ const formData = reactive({
   minTotalTempDiff: 6.0,
   maxMoistureLoss: 0.3,
   economyMode: 'economy',
-  ...props.modelValue
+  // ...props.modelValue
 })
 
 watch(formData, (newVal) => {
   emit('update:modelValue', { ...newVal })
 }, { deep: true })
+
+onMounted(()=>{
+   emit('update:modelValue', formData)
+})
+
 </script>
 
 <style scoped>

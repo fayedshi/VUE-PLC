@@ -5,7 +5,7 @@
     <!-- 1. 模式选择区域 -->
     <div class="section mode-section">
       <label class="section-label"> 选择仓房：</label>
-      <select v-model="selectedModeId" class="native-select mode-select" @change="handleHouseChange">
+      <select v-model="selectedHouseCode" class="native-select mode-select" @change="handleHouseChange">
         <option :value="null">-- 请选择 --</option>
         <!-- <option v-for="mode in modeList" :key="mode.id" :value="mode.id">
           {{ mode.name }}
@@ -14,9 +14,14 @@
 
       <label class="section-label">选择通风模式：</label>
       <select v-model="selectedMode" @change="handleModeChange">
+        <!-- <option value=0>❄️ 降低表层粮温通风</option>
         <option value="HEAT_ACCUMULATION">🔥 仓顶排积热通风</option>
         <option value="WHOLE_SILO_COOLING">❄️ 降低整仓粮温通风</option>
-        <option value="MOISTURE_KEEPING">🌾 保墒平凉通风 (演示未注册)</option>
+        <option value="MOISTURE_KEEPING">🌾 保墒平凉通风 (演示未注册)</option> -->
+        <!-- <option :value="null">-- 请选择 --</option> -->
+        <option v-for="mode in modeList" :key="mode.id" :value="mode.id">
+          {{ mode.name }}
+        </option>
       </select>
 
 
@@ -75,15 +80,18 @@
       <!-- 2. 动态嵌入对应的触发条件组件 -->
       <div class="condition-container">
         <!-- 如果未注册该组件，展示友好提示 -->
-        <component v-if="currentConditionComponent" :is="currentConditionComponent"
-          v-model="strategyConfig[selectedMode]" />
-        <div v-else class="empty-tip">
+        <component v-if="currentConditionComponent" :is="currentConditionComponent" v-model:start="parentStart"
+          v-model:end="parentEnd" />
+        <!-- <component v-if="currentConditionComponent" :is="currentConditionComponent"  @init-model="handleInitValue"/> -->
+        <!-- <div  v-else class="empty-tip">
           ⚠️ 该通风模式的触发条件组件尚未开发或注册。
-        </div>
+        </div> -->
       </div>
 
+
       <!-- 结束条件（动态同步与取反，同样横排） -->
-      <div class="condition-box disabled-box flex-column">
+      <!-- <div class="condition-box disabled-box flex-column">
+
         <div class="box-title end-title">作业结束条件</div>
         <div class="form-inline-row">
           <div class="form-group-inline">
@@ -94,16 +102,13 @@
             <label>指标列表</label>
             <div class="sync-value">{{ metricText }}</div>
           </div>
-          <!-- <div class="form-group-inline">
-            <label>监测对象</label>
-            <div class="sync-value">{{ startCondition.target }}</div>
-          </div> -->
+
           <div class="form-group-inline">
             <label>操作符</label>
             <div class="sync-value font-mono font-bold text-red">
               {{ startCondition.operator == 0 ? '<' : '>' }} </div>
             </div>
-            <!-- 同步显示开始条件输入的数字 -->
+
             <div class="form-group-inline">
               <label>联动阈值</label>
               <div class="sync-value">
@@ -111,117 +116,118 @@
               </div>
             </div>
           </div>
-        </div>
-      </div>
-      <!-- 3. 保存与下发测试 -->
-      <div class="action-bar">
+        </div> -->
+
+    </div>
+    <!-- 3. 保存与下发测试 -->
+    <!-- <div class="action-bar">
         <button @click="saveConfig" class="btn-save">保存当前策略并下发PLC</button>
-      </div>
+      </div> -->
 
-      <!-- 4. 调试数据看板 -->
-      <pre class="debug-view">当前模式 {{ selectedMode }} 的实时配置数据：{{ strategyConfig[selectedMode] }}</pre>
+    <!-- 4. 调试数据看板 -->
+    <!-- <pre class="debug-view">当前模式 {{ selectedMode }} 的实时配置数据：{{ strategyConfig[selectedMode] }}</pre> -->
+  </div>
+
+
+  <!-- 3. 设备选择区域 -->
+  <div class="section device-section">
+    <!-- <div class="section-title">设备选择控制</div> -->
+
+    <!-- 通风窗 (10个) -->
+    <div class="device-row">
+      <span class="device-label">通风窗：</span>
+      <div class="device-list">
+        <label v-for="i in 10" :key="'window-' + i" class="checkbox-label">
+          <input type="checkbox" :value="i" v-model="devices.windows" /> 窗#{{ i }}
+        </label>
+      </div>
+    </div>
+
+    <!-- 风门 (8个) -->
+    <div class="device-row">
+      <span class="device-label">风门：</span>
+      <div class="device-list">
+        <label v-for="i in 8" :key="'damper-' + i" class="checkbox-label">
+          <input type="checkbox" :value="i" v-model="devices.dampers" /> 门#{{ i }}
+        </label>
+      </div>
+    </div>
+    <!-- 风机 (8个，正/反单选，支持取消选中) -->
+    <div class="device-row">
+      <span class="device-label">风机：</span>
+      <div class="device-list inline-grid">
+        <div v-for="i in 8" :key="'blower-' + i" class="blower-group">
+
+          <label class="radio-label">
+            <span class="blower-name">风机#{{ i }}:</span>
+            <input type="radio" :name="'blower-dir-' + i" value="正" :checked="devices.blowers[i] === 1"
+              @click="toggleBlower(i, 1)" />正
+            <!-- </label> -->
+            <!-- <label class="radio-label"> -->
+            <input type="radio" :name="'blower-dir-' + i" value="反" :checked="devices.blowers[i] === 0"
+              @click="toggleBlower(i, 0)" />反
+          </label>
+        </div>
+      </div>
+    </div>
+    <!-- 排风扇 (4个) -->
+    <div class="device-row">
+      <span class="device-label">排风扇：</span>
+      <div class="device-list">
+        <label v-for="i in 4" :key="'fan-' + i" class="checkbox-label">
+          <input type="checkbox" :value="i" v-model="devices.exhaustFans" /> 扇#{{ i }}
+        </label>
+      </div>
+    </div>
+
+    <!-- 空调 (2个) -->
+    <div class="device-row">
+      <span class="device-label">空调：</span>
+      <div class="device-list">
+        <label v-for="i in 2" :key="'ac-' + i" class="checkbox-label">
+          <input type="checkbox" :value="i" v-model="devices.airConditioners" /> 空调#{{ i }}
+        </label>
+      </div>
     </div>
 
 
-    <!-- 3. 设备选择区域 -->
-    <div class="section device-section">
-      <div class="section-title">设备选择控制</div>
 
-      <!-- 通风窗 (10个) -->
-      <div class="device-row">
-        <span class="device-label">通风窗：</span>
-        <div class="device-list">
-          <label v-for="i in 10" :key="'window-' + i" class="checkbox-label">
-            <input type="checkbox" :value="i" v-model="devices.windows" /> 窗#{{ i }}
-          </label>
+
+    <!-- 4. 运行时长设置区域 -->
+    <div class="section duration-section">
+      <div class="duration-wrapper">
+        <input type="checkbox" v-model="durationControl.enabled" id="duration-toggle" />
+        <label for="duration-toggle" class="duration-label font-bold">运行时间：</label>
+
+        <div class="input-group" :class="{ 'disabled-element': !durationControl.enabled }">
+          <!-- <span class="ml-4 text-sm">运行时间：</span> -->
+          <input type="number" v-model.number="durationControl.value" :disabled="!durationControl.enabled" min="1"
+            placeholder="30" class="native-input duration-input" @input="validateDuration" />
+          <span class="unit">分钟</span>
         </div>
-      </div>
-
-      <!-- 风门 (8个) -->
-      <div class="device-row">
-        <span class="device-label">风门：</span>
-        <div class="device-list">
-          <label v-for="i in 8" :key="'damper-' + i" class="checkbox-label">
-            <input type="checkbox" :value="i" v-model="devices.dampers" /> 门#{{ i }}
-          </label>
-        </div>
-      </div>
-      <!-- 风机 (8个，正/反单选，支持取消选中) -->
-      <div class="device-row">
-        <span class="device-label">风机：</span>
-        <div class="device-list inline-grid">
-          <div v-for="i in 8" :key="'blower-' + i" class="blower-group">
-
-            <label class="radio-label">
-              <span class="blower-name">风机#{{ i }}:</span>
-              <input type="radio" :name="'blower-dir-' + i" value="正" :checked="devices.blowers[i] === 1"
-                @click="toggleBlower(i, 1)" />正
-              <!-- </label> -->
-              <!-- <label class="radio-label"> -->
-              <input type="radio" :name="'blower-dir-' + i" value="反" :checked="devices.blowers[i] === 0"
-                @click="toggleBlower(i, 0)" />反
-            </label>
-          </div>
-        </div>
-      </div>
-      <!-- 排风扇 (4个) -->
-      <div class="device-row">
-        <span class="device-label">排风扇：</span>
-        <div class="device-list">
-          <label v-for="i in 4" :key="'fan-' + i" class="checkbox-label">
-            <input type="checkbox" :value="i" v-model="devices.exhaustFans" /> 扇#{{ i }}
-          </label>
-        </div>
-      </div>
-
-      <!-- 空调 (2个) -->
-      <div class="device-row">
-        <span class="device-label">空调：</span>
-        <div class="device-list">
-          <label v-for="i in 2" :key="'ac-' + i" class="checkbox-label">
-            <input type="checkbox" :value="i" v-model="devices.airConditioners" /> 空调#{{ i }}
-          </label>
-        </div>
-      </div>
-
-
-
-
-      <!-- 4. 运行时长设置区域 -->
-      <div class="section duration-section">
-        <div class="duration-wrapper">
-          <input type="checkbox" v-model="durationControl.enabled" id="duration-toggle" />
-          <label for="duration-toggle" class="duration-label font-bold">运行时间：</label>
-
-          <div class="input-group" :class="{ 'disabled-element': !durationControl.enabled }">
-            <!-- <span class="ml-4 text-sm">运行时间：</span> -->
-            <input type="number" v-model.number="durationControl.value" :disabled="!durationControl.enabled" min="1"
-              placeholder="30" class="native-input duration-input" @input="validateDuration" />
-            <span class="unit">分钟</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- 5. 底部控制按钮 -->
-      <div class="action-bar">
-        <button class="btn btn-success" @click="handleStartJob">开始作业</button>
-        <button class="btn btn-danger" @click="handleStopJob">停止作业</button>
-        <button class="btn btn-primary" @click="handleSaveMode">保存模式</button>
       </div>
     </div>
+
+    <!-- 5. 底部控制按钮 -->
+    <div class="action-bar">
+      <button class="btn btn-adhoc" @click="handleAdhocJob">开始即时作业</button>
+      <button class="btn btn-success" @click="handleStartJob">开始智能作业</button>
+      <button class="btn btn-danger" @click="handleStopJob">停止作业</button>
+      <!-- <button class="btn btn-primary" @click="handleSaveMode">保存模式</button> -->
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, onMounted } from 'vue';
+import { ref, watch, computed, reactive, onMounted, shallowRef } from 'vue';
 import axios from 'axios';
 
 // 模拟从后端获取到的通风模式列表
-interface ModeItem {
-  id: number;
-  name: string;
-  start_temp_diff: number;
-  start_humidity_diff: number;
-}
+// interface ModeItem {
+//   id: number;
+//   name: string;
+
+// }
 const layerText = ref('')
 const metricText = ref('')
 const layerSelRef = ref(null)
@@ -247,23 +253,38 @@ const handleHouseChange = () => {
 
 import ConditionAccumulatedHeat from '../../components/ConditionAccumulatedHeat.vue'
 import ConditionWholeSilo from '../../components/ConditionWholeSilo.vue'
+import ConditionUpperSilo from '../../components/ConditionUpperSilo.vue';
 
 // 当前选中的模式
-const selectedMode = ref('HEAT_ACCUMULATION')
+const selectedMode = ref(-1)
+
+
 
 // 核心：模式与组件的映射表 (使用 shallowRef 优化组件对象性能)
 const componentMap = {
-  'HEAT_ACCUMULATION': ConditionAccumulatedHeat,
-  'WHOLE_SILO_COOLING': ConditionWholeSilo,
+  0: ConditionUpperSilo,
+  1: ConditionAccumulatedHeat,
+  2: ConditionWholeSilo,
   // 'MOISTURE_KEEPING': 可以后续扩展
 }
 
 // 统一的大对象：分别存储每种模式下的触发条件，切换模式时数据不会丢失
+// const strategyConfig = ref({
+//   HEAT_ACCUMULATION: { tempDiff: 3.5, dewPointMargin: 2.0, maxOutsideRh: 80 },
+//   WHOLE_SILO_COOLING: { minTotalTempDiff: 6.0, maxMoistureLoss: 0.3, economyMode: 'economy' },
+//   MOISTURE_KEEPING: {}
+// })
+
 const strategyConfig = ref({
-  HEAT_ACCUMULATION: { tempDiff: 3.5, dewPointMargin: 2.0, maxOutsideRh: 80 },
-  WHOLE_SILO_COOLING: { minTotalTempDiff: 6.0, maxMoistureLoss: 0.3, economyMode: 'economy' },
+  0: {},
+  HEAT_ACCUMULATION: {},
+  WHOLE_SILO_COOLING: {},
   MOISTURE_KEEPING: {}
 })
+
+
+const parentStart = ref({});
+const parentEnd = ref({});
 
 // 计算属性：动态获取当前应该挂载的组件
 const currentConditionComponent = computed(() => {
@@ -277,10 +298,11 @@ const handleModeChange = () => {
 
 // 保存逻辑：将当前配置提交给 Python 后端接口
 const saveConfig = async () => {
-  const currentParams = strategyConfig.value[selectedMode.value]
+  // const currentParams = parentStart.value
   const payload = {
     mode: selectedMode.value,
-    conditions: currentParams
+    start_condition: parentStart.value,
+    end_condition: parentEnd.value
   }
 
   console.log('正在向 Python 后端发送策略数据...', payload)
@@ -300,21 +322,15 @@ onMounted(() => {
   // }
 })
 
-const modeList = ref<ModeItem[]>([
-  // { id: 1, name: '智能冬降温模式', start_temp_diff: 6.0, start_humidity_diff: 10.0 },
-  { id: 1, name: '冬天外循环控温', start_temp_diff: 3.5, start_humidity_diff: 5.0 },
-  { id: 2, name: '夏天内循环降温', start_temp_diff: 5.0, start_humidity_diff: 12.0 }
+const modeList = ref([
+  { id: -1, name: '--' },
+  { id: 0, name: '❄️ 降低表层粮温通风' },
+  { id: 1, name: '🔥 仓顶排积热通风' },
+  { id: 2, name: '❄️ 降低整仓粮温通风' }
 ]);
 
-const selectedModeId = ref<number | null>(null);
+const selectedHouseCode = ref(null);
 
-// 开始条件响应式数据
-const startCondition = reactive({
-  level: 0,
-  metric: 'maxTemp',
-  operator: 0,
-  threshold: 0
-});
 
 // 设备选择响应式数据
 const devices = reactive({
@@ -367,6 +383,32 @@ const validateDuration = () => {
 
 const houseCode = 1
 
+const handleAdhocJob = async () => {
+  if (selectedMode.value > -1) {
+    alert('请取消选择通风模式')
+    return
+  }
+  const isConfirmed = confirm("⚠️确定开始即时任务吗？");
+
+  if (isConfirmed) {
+    alert("系统指令已下发：通风作业启动中...");
+    // TODO: 调用后端异步开始接口
+    try {
+      //todo: device address hardcoded, will modify later
+      await axios.post("http-api/api/venti/adhoc", {
+        house_code: houseCode,
+        devices: devices,
+        trigger_condition: parentStart
+      });
+      // console.log('result ', result)
+    } catch (err) {
+      alert('操作失败，请检查 PLC 连接');
+    } finally {
+      console.log('finished mode switch')
+    }
+  }
+}
+
 // 1. 开始作业
 const handleStartJob = async () => {
   const isConfirmed = confirm("⚠️ 警告：确定要立即下发控制指令，【开始通风作业】吗？");
@@ -378,8 +420,8 @@ const handleStartJob = async () => {
       //todo: device address hardcoded, will modify later
       await axios.post("http-api/api/schedule/venti", {
         house_code: houseCode,
-        devices: devices,
-        trigger_condition: startCondition
+        devices: devices
+        // trigger_condition: parentStart
       });
       // console.log('result ', result)
     } catch (err) {
@@ -400,27 +442,28 @@ const handleStopJob = () => {
 };
 
 // 3. 保存模式
-const handleSaveMode = () => {
-  if (selectedModeId.value !== null) {
-    // 当前选中了某个现有模式
-    const currentMode = modeList.value.find(m => m.id === selectedModeId.value);
-    const isConfirmed = confirm(`检测到您当前选中了模式【${currentMode?.name}】。\n是否要【覆盖】该模式的现有配置？`);
-    if (isConfirmed) {
-      alert(`已成功更新并覆盖模式：${currentMode?.name}`);
-      // TODO: 调用后端覆盖保存的 PATCH 接口
-    }
-  } else {
-    // 未选择模式，属于直接保存为新配置
-    alert("当前未选择任何基础模式，已将当前配置保存为全局通用通风策略。");
-    // TODO: 调用后端普通保存 POST 接口
-  }
-};
+// const handleSaveMode = () => {
+//   if (selectedMode.value !== null) {
+//     // 当前选中了某个现有模式
+//     const currentMode = modeList.value.find(m => m.id === selectedModeId.value);
+//     const isConfirmed = confirm(`检测到您当前选中了模式【${currentMode?.name}】。\n是否要【覆盖】该模式的现有配置？`);
+//     if (isConfirmed) {
+//       alert(`已成功更新并覆盖模式：${currentMode?.name}`);
+//       // TODO: 调用后端覆盖保存的 PATCH 接口
+//     }
+//   } else {
+//     // 未选择模式，属于直接保存为新配置
+//     alert("当前未选择任何基础模式，已将当前配置保存为全局通用通风策略。");
+//     // TODO: 调用后端普通保存 POST 接口
+//   }
+// };
+
 </script>
 
 
 <style scoped>
 .control-panel {
-  padding: 20px;
+  /* padding: 10px; */
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   color: #333;
   /* width: 1000px; */
@@ -596,49 +639,6 @@ const handleSaveMode = () => {
   font-weight: normal;
 }
 
-.condition-box {
-  /* justify-content: left; */
-  /* flex: 1; */
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  padding: 16px;
-  width: 1000px;
-}
-
-.box-title {
-  font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 16px;
-  padding-bottom: 6px;
-  border-bottom: 1px solid #f1f5f9;
-}
-
-.start-title {
-  color: #2563eb;
-}
-
-.end-title {
-  color: #475569;
-}
-
-
-/* 联动禁用区域效果 */
-.disabled-box {
-  background-color: #f8fafc;
-}
-
-.sync-value {
-  padding: 8px 12px;
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  border-radius: 4px;
-  font-size: 14px;
-  min-height: 20px;
-  color: #334155;
-  display: flex;
-  align-items: center;
-}
 
 /* 3. 设备列表排版 */
 .device-row {
@@ -670,7 +670,7 @@ const handleSaveMode = () => {
 .checkbox-label {
   font-size: 15px;
   display: flex;
-  height: 50px;
+  height: 35px;
   /* width: 100px; */
   align-items: center;
   padding: 0px 10px;
@@ -781,10 +781,16 @@ const handleSaveMode = () => {
   transition: background-color 0.15s;
 }
 
+.btn-adhoc {
+  background-color: #1f1ce7;
+  color: #fff;
+}
+
 .btn-success {
   background-color: #22c55e;
   color: #fff;
 }
+
 
 .btn-success:hover {
   background-color: #16a34a;
@@ -848,7 +854,7 @@ const handleSaveMode = () => {
 
 .condition-container {
   margin-bottom: 20px;
-  min-height: 150px;
+  /* min-height: 100px; */
 }
 
 .empty-tip {
