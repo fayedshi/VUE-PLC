@@ -164,8 +164,8 @@
               @click="toggleBlower(i, 1)" />正
             <!-- </label> -->
             <!-- <label class="radio-label"> -->
-            <input type="radio" :name="'blower-dir-' + i" value="反" :checked="devices.blowers[i] === 0"
-              @click="toggleBlower(i, 0)" />反
+            <input type="radio" :name="'blower-dir-' + i" value="反" :checked="devices.blowers[i] === 2"
+              @click="toggleBlower(i, 2)" />反
           </label>
         </div>
       </div>
@@ -339,7 +339,7 @@ const devices = reactive({
   exhaustFans: [] as number[],
   airConditioners: [] as number[],
   // 8个风机，用 Record<键, 值> 存储。值可以是 '正' | '反' | null
-  blowers: reactive<Record<number, 1 | 0 | null>>({
+  blowers: reactive<Record<number, 1 | 2 | null>>({
     1: null, 2: null, 3: null, 4: null, 5: null, 6: null, 7: null, 8: null
   })
 });
@@ -362,7 +362,7 @@ const durationControl = reactive({
 // };
 
 // 风机正反单选框逻辑：点击已选中的则“取消选中”
-const toggleBlower = (index: number, direction: 1 | 0) => {
+const toggleBlower = (index: number, direction: 1 | 2) => {
   if (devices.blowers[index] === direction) {
     devices.blowers[index] = null; // 取消选中
   } else {
