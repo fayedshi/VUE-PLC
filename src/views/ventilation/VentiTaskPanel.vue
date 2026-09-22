@@ -201,7 +201,7 @@
 
         <div class="input-group" :class="{ 'disabled-element': !durationControl.enabled }">
           <!-- <span class="ml-4 text-sm">运行时间：</span> -->
-          <input type="number" v-model.number="durationControl.value" :disabled="!durationControl.enabled" min="1"
+          <input type="number" v-model.number="durationControl.mins" :disabled="!durationControl.enabled" min="1"
             placeholder="30" class="native-input duration-input" @input="validateDuration" />
           <span class="unit">分钟</span>
         </div>
@@ -347,7 +347,7 @@ const devices = reactive({
 // 运行时长控制
 const durationControl = reactive({
   enabled: false,
-  value: 30
+  mins: 30
 });
 
 // 模式切换联动处理
@@ -372,10 +372,10 @@ const toggleBlower = (index: number, direction: 1 | 2) => {
 
 // 限制运行时间只能输入正整数
 const validateDuration = () => {
-  if (typeof durationControl.value === 'number') {
-    durationControl.value = Math.max(1, Math.floor(durationControl.value));
+  if (typeof durationControl.mins === 'number') {
+    durationControl.mins = Math.max(1, Math.floor(durationControl.mins));
   } else {
-    durationControl.value = 30;
+    durationControl.mins = 30;
   }
 };
 
@@ -395,10 +395,11 @@ const handleAdhocJob = async () => {
     // TODO: 调用后端异步开始接口
     try {
       //todo: device address hardcoded, will modify later
-      await axios.post("http-api/api/venti/adhoc", {
+      await axios.post("http-api/api/venti/adhoc/start", {
         house_code: houseCode,
         devices: devices,
-        trigger_condition: parentStart
+        trigger_condition: parentStart,
+        duration: durationControl.enabled ? durationControl.mins : 30
       });
       // console.log('result ', result)
     } catch (err) {
@@ -433,12 +434,31 @@ const handleStartJob = async () => {
 }
 
 // 2. 停止作业
-const handleStopJob = () => {
+const handleStopJob = async () => {
   const isConfirmed = confirm("🚨 紧急提示：确定要立刻强行【停止当前通风作业】吗？所有关联设备将关闭！");
   if (isConfirmed) {
     alert("系统指令已下发：设备正在全面紧急关闭...");
     // TODO: 调用后端异步停止接口
   }
+
+
+  if (isConfirmed) {
+    alert("系统指令已下发：通风作业启动中...");
+    // TODO: 调用后端异步开始接口
+    try {
+      //todo: device address hardcoded, will modify later
+      await axios.post("http-api/api/venti/adhoc/stop", {
+        house_code: houseCode,
+        devices: devices,
+      });
+      // console.log('result ', result)
+    } catch (err) {
+      alert('操作失败，请检查 PLC 连接');
+    } finally {
+      console.log('finished mode switch')
+    }
+  }
+
 };
 
 // 3. 保存模式

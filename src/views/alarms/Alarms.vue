@@ -175,15 +175,16 @@ const handleAck = (item) => {
     }
 }
 
-
+let ws = null
 // 🔌 初始化 WebSocket：实时收集报警
 // 1. 瞬间断开（几毫秒 ~ 3秒）—— 最常见如果后端的服务器根本没有开机、IP 地址在局域网内无法ping通，或者对应的端口（如8080）没有服务在监听：
-const initWebSocket = (houseCode, timeoutMillis = 3000) => {
+const initWebSocket = (timeoutMillis = 3000) => {
+    ws = new WebSocket(`ws-api/ws/alarms`)
     const timer = setTimeout(() => {
         // 如果时间到了，连接状态依然是 0 (CONNECTING)，说明超时了！
         if (ws.readyState === WebSocket.CONNECTING) {
             // wsStatusMap.value[id] = '❌ 连接超时 (后端未响应)';
-            console.error(`[🚨 超时拦截] 粮仓 ${houseCode} 在 ${timeoutMillis / 1000} 秒内未能成功连接，执行close()自动销毁`);
+            console.error(`[🚨 超时拦截]  在 ${timeoutMillis / 1000} 秒内未能成功连接，执行close()自动销毁`);
             // 1. 现场清理，解绑所有事件并 close()，不留垃圾内存
             cleanupDeadWs(ws);
             // ws.close()
@@ -192,11 +193,11 @@ const initWebSocket = (houseCode, timeoutMillis = 3000) => {
         }
     }, timeoutMillis);
     // todo: loop may not be required
-    const ws = new WebSocket(`ws-api/ws/alarms`)
+
     ws.onopen = () => {
         // clearTimeout(timer);
-        console.log('成功连接到 Python 后端 alarm WebSocket！,house code', houseCode);
-        wsClients.push(ws)
+        console.log('成功连接到 Python 后端 alarm WebSocket！,house code');
+        // wsClients.push(ws)
         // isExplicitlyClosed = false; // 每次全新建立连接时，重置手动关闭状态
     }
 
@@ -219,8 +220,8 @@ const initWebSocket = (houseCode, timeoutMillis = 3000) => {
     }
 
     ws.onclose = () => {
-        console.log('onclose() house-' + houseCode, ' 连接断开，自动重连')
-        setTimeout(initWebSocket(houseCode, 5000), 5000) // 自动重连
+        console.log('onclose() house-', ' 连接断开，自动重连')
+        setTimeout(initWebSocket(5000), 5000) // 自动重连
     }
 
     // 发生错误事件
@@ -241,25 +242,30 @@ const cleanupDeadWs = (ws) => {
 
 onMounted(() => {
     //todo: fetch house count from backend
-    for (let i = 0; i < houseCount; i++) {
-        try {
-            initWebSocket(i + 1)
-        } catch (err) {
-            console.error('initWebSocket发生错误:', err)
-        }
-    }
+    // for (let i = 0; i < houseCount; i++) {
+    //     try {
+    //         initWebSocket(i + 1)
+    //     } catch (err) {
+    //         console.error('initWebSocket发生错误:', err)
+    //     }
+    // }
+    initWebSocket()
     fetchHistoryAlarms()
 })
 
 onBeforeUnmount(() => {
-    console.log('in onBeforeUnmount alarms, lenth', wsClients.length)
-    wsClients.forEach((ws) => {
-        if (ws) {
-            console.log(' to close socket')
-            ws.close(); // 循环关闭
-        }
-    });
-    wsClients = []
+    if (ws) {
+        console.log(' to close socket')
+        ws.close(); // 循环关闭
+    }
+    console.log('in onBeforeUnmount alarms, lenth')
+    // wsClients.forEach((ws) => {
+    //     if (ws) {
+    //         console.log(' to close socket')
+    //         ws.close(); // 循环关闭
+    //     }
+    // });
+    // wsClients = []
 })
 
 
