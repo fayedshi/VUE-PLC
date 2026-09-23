@@ -211,7 +211,7 @@
     <!-- 5. 底部控制按钮 -->
     <div class="action-bar">
       <button class="btn btn-adhoc" @click="handleAdhocJob">开始即时作业</button>
-      <button class="btn btn-success" @click="handleStartJob">开始智能作业</button>
+      <button class="btn btn-success" @click="handleSchedJob">开始智能作业</button>
       <button class="btn btn-danger" @click="handleStopJob">停止作业</button>
       <!-- <button class="btn btn-primary" @click="handleSaveMode">保存模式</button> -->
     </div>
@@ -283,7 +283,7 @@ const strategyConfig = ref({
 })
 
 
-const parentStart = ref({});
+const parentStart = ref({ 'minTotalTempDiff': 1, 'maxMoisture': 70 });
 const parentEnd = ref({});
 
 // 计算属性：动态获取当前应该挂载的组件
@@ -411,26 +411,37 @@ const handleAdhocJob = async () => {
 }
 
 // 1. 开始作业
-const handleStartJob = async () => {
-  const isConfirmed = confirm("⚠️ 警告：确定要立即下发控制指令，【开始通风作业】吗？");
-
-  if (isConfirmed) {
-    alert("系统指令已下发：通风作业启动中...");
-    // TODO: 调用后端异步开始接口
-    try {
-      //todo: device address hardcoded, will modify later
-      await axios.post("http-api/api/schedule/venti", {
-        house_code: houseCode,
-        devices: devices
-        // trigger_condition: parentStart
-      });
-      // console.log('result ', result)
-    } catch (err) {
-      alert('操作失败，请检查 PLC 连接');
-    } finally {
-      console.log('finished mode switch')
-    }
+const handleSchedJob = async () => {
+  if(selectedMode.value ==-1){
+    alert('请选择通风模式')
+    return
   }
+  const isConfirmed = confirm("⚠️ 警告：确定要立即下发控制指令，【开始通风作业】吗？");
+  if (!isConfirmed) {
+    return
+  }
+
+  console.log("系统指令已下发：通风作业启动中...");
+  console.log('parent_start', parentStart)
+
+  // TODO: 调用后端异步开始接口
+  try {
+    //todo: device address hardcoded, will modify later
+    await axios.post("http-api/api/venti/sched/start", {
+      house_code: houseCode,
+      devices: devices,
+      mode: selectedMode.value,
+      start_condition: parentStart.value,
+      end_condition: parentEnd.value,
+      duration: durationControl.enabled ? durationControl.mins : 30
+    });
+    // console.log('result ', result)
+  } catch (err) {
+    alert('操作失败，请检查 PLC 连接');
+  } finally {
+    console.log('finished mode switch')
+  }
+
 }
 
 // 2. 停止作业
@@ -447,7 +458,7 @@ const handleStopJob = async () => {
     // TODO: 调用后端异步开始接口
     try {
       //todo: device address hardcoded, will modify later
-      await axios.post("http-api/api/venti/adhoc/stop", {
+      await axios.post("http-api/api/venti/job/stop", {
         house_code: houseCode,
         devices: devices,
       });

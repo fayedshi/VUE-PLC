@@ -4,12 +4,12 @@ import { ref } from 'vue'
 export const useVentiUpperSiloStore = defineStore('ventiUpperSilo', () => {
     const startCondition = ref({
         minTotalTempDiff: 2.0,
-        maxMoistureLoss: 70
+        maxMoisture: 71
     })
 
     const endCondition = ref({
         minTotalTempDiff: 1.0,
-        maxMoistureLoss: 55
+        maxMoisture: 55
     })
 
     const updateConditions = (startData, endData) => {

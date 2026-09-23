@@ -9,7 +9,7 @@
     <span class="join">同时</span>
     <div class="form-item">
       <label>仓内湿度 >= </label>
-      <input type="number" v-model="localStart.maxMoistureLoss" step="0.1" /> %
+      <input type="number" v-model="localStart.maxMoisture" step="0.1" /> %
     </div>
     <!-- <div class="form-item">
       <label>策略运行模式:</label>
@@ -31,7 +31,7 @@
     <span class="join">同时</span>
     <div class="form-item">
       <label>仓内湿度 < </label>
-          <input type="number" v-model="localEnd.maxMoistureLoss" step="0.1" /> %
+          <input type="number" v-model="localEnd.maxMoisture" step="0.1" /> %
     </div>
     <!-- <div class="form-item">
       <label>策略运行模式:</label>
