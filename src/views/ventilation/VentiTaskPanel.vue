@@ -197,13 +197,14 @@
     <div class="section duration-section">
       <div class="duration-wrapper">
         <input type="checkbox" v-model="durationControl.enabled" id="duration-toggle" />
-        <label for="duration-toggle" class="duration-label font-bold">运行时间：</label>
+        <label for="duration-toggle" class="duration-label font-bold">运行时长限制：</label>
 
         <div class="input-group" :class="{ 'disabled-element': !durationControl.enabled }">
           <!-- <span class="ml-4 text-sm">运行时间：</span> -->
           <input type="number" v-model.number="durationControl.mins" :disabled="!durationControl.enabled" min="1"
             placeholder="30" class="native-input duration-input" @input="validateDuration" />
           <span class="unit">分钟</span>
+          <span>默认执行30分钟，勾选后可修改时长</span>
         </div>
       </div>
     </div>
@@ -249,6 +250,7 @@ const handleSelChange = (event) => {
 
 const handleHouseChange = () => {
   console.log(`切换至模式: ${selectedMode.value}`)
+  // query running job
 }
 
 import ConditionAccumulatedHeat from '../../components/ConditionAccumulatedHeat.vue'
@@ -316,14 +318,14 @@ onMounted(() => {
   // metricText.value = metricSelRef.value.selectedOptions[0].text
   devices.windows[0] = 1
 
-
+  // todo: check running job
   // if (defaultItem) {
   //   selectedText.value = defaultItem.name
   // }
 })
 
 const modeList = ref([
-  { id: -1, name: '--' },
+  { id: -1, name: '-' },
   { id: 0, name: '❄️ 降低表层粮温通风' },
   { id: 1, name: '🔥 仓顶排积热通风' },
   { id: 2, name: '❄️ 降低整仓粮温通风' }
@@ -347,7 +349,7 @@ const devices = reactive({
 // 运行时长控制
 const durationControl = reactive({
   enabled: false,
-  mins: 30
+  mins: 45
 });
 
 // 模式切换联动处理
@@ -389,30 +391,32 @@ const handleAdhocJob = async () => {
     return
   }
   const isConfirmed = confirm("⚠️确定开始即时任务吗？");
-
-  if (isConfirmed) {
-    alert("系统指令已下发：通风作业启动中...");
-    // TODO: 调用后端异步开始接口
-    try {
-      //todo: device address hardcoded, will modify later
-      await axios.post("http-api/api/venti/adhoc/start", {
-        house_code: houseCode,
-        devices: devices,
-        trigger_condition: parentStart,
-        duration: durationControl.enabled ? durationControl.mins : 30
-      });
-      // console.log('result ', result)
-    } catch (err) {
-      alert('操作失败，请检查 PLC 连接');
-    } finally {
-      console.log('finished mode switch')
-    }
+  if (!isConfirmed) {
+    return
   }
+  // alert("系统指令已下发：通风作业启动中...");
+  // TODO: 调用后端异步开始接口
+  try {
+    //todo: device address hardcoded, will modify later
+    await axios.post("http-api/api/venti/adhoc/start", {
+      house_code: '001',
+      mode_id: selectedMode.value,
+      // mode_name: modeList.value[selectedMode.value].name,
+      devices: devices,
+      duration: durationControl.enabled ? durationControl.mins : 30
+    });
+    // console.log('result ', result)
+  } catch (err) {
+    alert('操作失败，请检查 PLC 连接');
+  } finally {
+    console.log('finished mode switch')
+  }
+
 }
 
 // 1. 开始作业
 const handleSchedJob = async () => {
-  if(selectedMode.value ==-1){
+  if (selectedMode.value == -1) {
     alert('请选择通风模式')
     return
   }
@@ -430,7 +434,8 @@ const handleSchedJob = async () => {
     await axios.post("http-api/api/venti/sched/start", {
       house_code: houseCode,
       devices: devices,
-      mode: selectedMode.value,
+      mode_id: selectedMode.value,
+      mode_name: modeList.value[selectedMode.value].name,
       start_condition: parentStart.value,
       end_condition: parentEnd.value,
       duration: durationControl.enabled ? durationControl.mins : 30
@@ -447,14 +452,13 @@ const handleSchedJob = async () => {
 // 2. 停止作业
 const handleStopJob = async () => {
   const isConfirmed = confirm("🚨 紧急提示：确定要立刻强行【停止当前通风作业】吗？所有关联设备将关闭！");
-  if (isConfirmed) {
-    alert("系统指令已下发：设备正在全面紧急关闭...");
-    // TODO: 调用后端异步停止接口
-  }
+  // if (isConfirmed) {
+  //   // alert("系统指令已下发：设备正在全面紧急关闭...");
+  //   // TODO: 调用后端异步停止接口
+  // }
 
-
   if (isConfirmed) {
-    alert("系统指令已下发：通风作业启动中...");
+    // alert("系统指令已下发：通风作业启动中...");
     // TODO: 调用后端异步开始接口
     try {
       //todo: device address hardcoded, will modify later
@@ -464,7 +468,7 @@ const handleStopJob = async () => {
       });
       // console.log('result ', result)
     } catch (err) {
-      alert('操作失败，请检查 PLC 连接');
+      alert('操作失败，err: ' + err);
     } finally {
       console.log('finished mode switch')
     }
@@ -790,6 +794,7 @@ const handleStopJob = async () => {
 .unit {
   font-size: 13px;
   color: #64748b;
+  margin-right: 20px;
 }
 
 /* 5. 底部按钮控制栏 */

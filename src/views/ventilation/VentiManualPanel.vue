@@ -91,7 +91,7 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import axios from 'axios';
 
-
+const house_code ='001'
 const devStates = ref([])
 
 // 状态映射表（无需响应式，直接定义为普通变量）
@@ -188,8 +188,9 @@ const getStatusClass = (devId) => {
 const executeSingleAction = async (device, actionType) => {
     console.log(`单独控制设备【${device.name}】(ID: ${device.id})，执行操作代码: ${actionType}`);
     try {
-        let result = await axios.post("http-api/api/dev/control", {
+        let result = await axios.post(`http-api/api/dev/control`, {
             // let result = await axios.post(`http://${backendAdd}/api/dev/control`, {
+            house_code: house_code,
             dev_id: device.id,
             action_type: actionType
         });
@@ -206,6 +207,7 @@ const executeGlobalAction = async (cateType, actionType) => {
     try {
         await axios.post(`http-api/api/dev/control`, {
             // await axios.post(`http://${backendAdd}/api/dev/control`, {
+            house_code: house_code,
             category_type: cateType,
             action_type: actionType
         });
@@ -218,7 +220,7 @@ let socket: any = null;
 
 const initWebSocket = () => {
     // todo: need granary switch control in ui, hardcode 001 for now
-    socket = new WebSocket(`ws-001-api/ws/dev-state`);
+    socket = new WebSocket(`ws-api/ws/dev-state/${house_code}`);
     // socket = new WebSocket(`ws://${backendAdd}/ws/dev-state`);
 
     // 连接成功事件
@@ -230,7 +232,7 @@ const initWebSocket = () => {
     socket.onmessage = (event: any) => {
         // 解析后端传过来的 JSON 字符串
         devStates.value = JSON.parse(event.data);
-        // console.log('devstate', devStates.value)
+        console.log('devstate', devStates.value)
     };
 
     // 连接关闭事件
@@ -275,7 +277,8 @@ const switchControlMode = async (groupIndex, mode, modeText) => {
     try {
         //todo: device address hardcoded, will modify later
         let devId = groupIndex == 1 ? 'switch-399' : 'switch-0'
-        let result = await axios.post("http-api/api/dev/control", {
+        let result = await axios.post(`http-api/api/dev/control`, {
+            house_code: house_code,
             dev_id: devId,
             action_type: mode
         });
