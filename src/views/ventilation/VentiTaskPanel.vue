@@ -203,17 +203,44 @@
           <!-- <span class="ml-4 text-sm">运行时间：</span> -->
           <input type="number" v-model.number="durationControl.mins" :disabled="!durationControl.enabled" min="1"
             placeholder="30" class="native-input duration-input" @input="validateDuration" />
-          <span class="unit">分钟</span>
-          <span>默认执行30分钟，勾选后可修改时长</span>
+          <span class="unit">分钟 </span>
+          <span class="unit">默认执行{{ durationControl.mins }}分钟，勾选后可修改时长</span>
         </div>
       </div>
+    </div>
+    <!--当前运行中的作业  -->
+    <span>当前运行中的作业：</span>
+    <div class="table-wrapper">
+      <table class="native-table">
+        <thead>
+          <tr>
+            <th>作业ID</th>
+            <th>模式名称</th>
+            <th>仓房名称</th>
+            <th>作业状态</th>
+            <!-- <th>异常详情</th> -->
+            <th>开启时间</th>
+            <th>更新时间</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>{{ activeJob.id }}</td>
+            <td>{{ activeJob.mode_name }}</td>
+            <td>{{ activeJob.house_code }}</td>
+            <td>{{ activeJob.status_text }}</td>
+            <td>{{ activeJob.create_time }}</td>
+            <td>{{ activeJob.update_time }}</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
     <!-- 5. 底部控制按钮 -->
     <div class="action-bar">
-      <button class="btn btn-adhoc" @click="handleAdhocJob">开始即时作业</button>
-      <button class="btn btn-success" @click="handleSchedJob">开始智能作业</button>
-      <button class="btn btn-danger" @click="handleStopJob">停止作业</button>
+      <button class="btn btn-adhoc" :disabled="activeJob!==null" @click="handleAdhocJob">开始即时作业</button>
+      <button class="btn btn-success" :disabled="activeJob!==null" @click="handleSchedJob">开始智能作业</button>
+      <button class="btn btn-danger" :disabled="activeJob===null" @click="handleStopJob">停止当前作业</button>
       <!-- <button class="btn btn-primary" @click="handleSaveMode">保存模式</button> -->
     </div>
   </div>
@@ -234,6 +261,7 @@ const metricText = ref('')
 const layerSelRef = ref(null)
 const metricSelRef = ref(null)
 
+const activeJob = ref({"id":3})
 
 const handleSelChange = (event) => {
   // event.target.selectedOptions[0] 即可拿到当前选中的 option 标签对象
@@ -317,11 +345,27 @@ onMounted(() => {
   // layerText.value = layerSelRef.value.selectedOptions[0].text
   // metricText.value = metricSelRef.value.selectedOptions[0].text
   devices.windows[0] = 1
+  let jobs = fetchRunningJobs(houseCode)
 
   // todo: check running job
   // if (defaultItem) {
   //   selectedText.value = defaultItem.name
   // }
+})
+
+const fetchRunningJobs = (async (houseCode) => {
+  try {
+    //todo: device address hardcoded, will modify later
+    let jobs = await axios.post(`http-api/api/venti/jobs/${houseCode}`);
+    if (jobs) {
+      activeJob.value = jobs.data[0]
+    }
+    // console.log('result ', result)
+  } catch (err) {
+    alert('操作失败，请检查PLC连接');
+  } finally {
+    console.log('jobs fetched')
+  }
 })
 
 const modeList = ref([
@@ -400,7 +444,7 @@ const handleAdhocJob = async () => {
     //todo: device address hardcoded, will modify later
     await axios.post("http-api/api/venti/adhoc/start", {
       house_code: '001',
-      mode_id: selectedMode.value,
+      // mode_id: selectedMode.value,
       // mode_name: modeList.value[selectedMode.value].name,
       devices: devices,
       duration: durationControl.enabled ? durationControl.mins : 30
@@ -440,6 +484,7 @@ const handleSchedJob = async () => {
       end_condition: parentEnd.value,
       duration: durationControl.enabled ? durationControl.mins : 30
     });
+    let jobs = await fetchRunningJobs(houseCode)
     // console.log('result ', result)
   } catch (err) {
     alert('操作失败，请检查 PLC 连接');
@@ -475,6 +520,7 @@ const handleStopJob = async () => {
   }
 
 };
+
 
 // 3. 保存模式
 // const handleSaveMode = () => {
@@ -819,12 +865,12 @@ const handleStopJob = async () => {
 
 .btn-adhoc {
   background-color: #1f1ce7;
-  color: #fff;
+  /* color: #fff; */
 }
 
 .btn-success {
   background-color: #22c55e;
-  color: #fff;
+  /* color: #fff; */
 }
 
 
