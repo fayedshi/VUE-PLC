@@ -209,8 +209,9 @@
       </div>
     </div>
     <!--当前运行中的作业  -->
-    <span>当前运行中的作业：</span>
-    <div class="table-wrapper">
+    <span>当前运行中的作业：
+      <span v-if=!activeJob?.id>无</span></span>
+    <div v-if="activeJob?.id" class="table-wrapper">
       <table class="native-table">
         <thead>
           <tr>
@@ -225,12 +226,12 @@
         </thead>
         <tbody>
           <tr>
-            <td>{{ activeJob.id }}</td>
-            <td>{{ activeJob.mode_name }}</td>
-            <td>{{ activeJob.house_code }}</td>
-            <td>{{ activeJob.status_text }}</td>
-            <td>{{ activeJob.create_time }}</td>
-            <td>{{ activeJob.update_time }}</td>
+            <td>{{ activeJob?.id }}</td>
+            <td>{{ activeJob?.mode_name }}</td>
+            <td>{{ activeJob?.house_code }}</td>
+            <td>{{ activeJob?.status_text }}</td>
+            <td>{{ activeJob?.create_time }}</td>
+            <td>{{ activeJob?.update_time }}</td>
           </tr>
         </tbody>
       </table>
@@ -238,9 +239,9 @@
 
     <!-- 5. 底部控制按钮 -->
     <div class="action-bar">
-      <button class="btn btn-adhoc" :disabled="activeJob!==null" @click="handleAdhocJob">开始即时作业</button>
-      <button class="btn btn-success" :disabled="activeJob!==null" @click="handleSchedJob">开始智能作业</button>
-      <button class="btn btn-danger" :disabled="activeJob===null" @click="handleStopJob">停止当前作业</button>
+      <button class="btn btn-success" :disabled="isStartJobClicked" @click="handleSchedJob">开始智能作业</button>
+      <button class="btn btn-adhoc" :disabled="isStartJobClicked" @click="handleAdhocJob">开始即时作业</button>
+      <button class="btn btn-danger" :disabled="!activeJob || isStopJobClicked" @click="handleStopJob">停止当前作业</button>
       <!-- <button class="btn btn-primary" @click="handleSaveMode">保存模式</button> -->
     </div>
   </div>
@@ -261,7 +262,7 @@ const metricText = ref('')
 const layerSelRef = ref(null)
 const metricSelRef = ref(null)
 
-const activeJob = ref({"id":3})
+const activeJob = ref()
 
 const handleSelChange = (event) => {
   // event.target.selectedOptions[0] 即可拿到当前选中的 option 标签对象
@@ -313,8 +314,8 @@ const strategyConfig = ref({
 })
 
 
-const parentStart = ref({ 'minTotalTempDiff': 1, 'maxMoisture': 70 });
-const parentEnd = ref({});
+const parentStart = ref();
+const parentEnd = ref();
 
 // 计算属性：动态获取当前应该挂载的组件
 const currentConditionComponent = computed(() => {
@@ -340,26 +341,27 @@ const saveConfig = async () => {
   alert(`保存成功！已向PLC及Python策略引擎更新【${selectedMode.value}】条件。`)
 }
 
-onMounted(() => {
+onMounted(async () => {
   // layerText.value=startCondition.level
   // layerText.value = layerSelRef.value.selectedOptions[0].text
   // metricText.value = metricSelRef.value.selectedOptions[0].text
   devices.windows[0] = 1
-  let jobs = fetchRunningJobs(houseCode)
-
-  // todo: check running job
-  // if (defaultItem) {
-  //   selectedText.value = defaultItem.name
-  // }
+  await fetchRunningJobs(houseCode)
+  console.log('onMounted active job:', activeJob.value)
+  if (activeJob.value) {
+    isStartJobClicked.value = true
+    // isStopJobClicked.value = !isStartJobClicked.value
+  }
 })
 
 const fetchRunningJobs = (async (houseCode) => {
   try {
     //todo: device address hardcoded, will modify later
-    let jobs = await axios.post(`http-api/api/venti/jobs/${houseCode}`);
+    let jobs = await axios.get(`http-api/api/venti/jobs/${houseCode}`);
     if (jobs) {
       activeJob.value = jobs.data[0]
     }
+    console.log('in fetchRunningJobs jobs,', jobs.data)
     // console.log('result ', result)
   } catch (err) {
     alert('操作失败，请检查PLC连接');
@@ -393,7 +395,7 @@ const devices = reactive({
 // 运行时长控制
 const durationControl = reactive({
   enabled: false,
-  mins: 45
+  mins: 60
 });
 
 // 模式切换联动处理
@@ -420,15 +422,17 @@ const toggleBlower = (index: number, direction: 1 | 2) => {
 const validateDuration = () => {
   if (typeof durationControl.mins === 'number') {
     durationControl.mins = Math.max(1, Math.floor(durationControl.mins));
-  } else {
-    durationControl.mins = 30;
+  }
+  else {
+    durationControl.mins = 60;
   }
 };
 
 // ==================== 按钮核心逻辑（确认框交互） ====================
 
-const houseCode = 1
-
+const houseCode = '001'
+let isStartJobClicked = ref(false)
+let isStopJobClicked = ref(false)
 const handleAdhocJob = async () => {
   if (selectedMode.value > -1) {
     alert('请取消选择通风模式')
@@ -438,22 +442,31 @@ const handleAdhocJob = async () => {
   if (!isConfirmed) {
     return
   }
-  // alert("系统指令已下发：通风作业启动中...");
-  // TODO: 调用后端异步开始接口
+  isStartJobClicked.value = true
   try {
     //todo: device address hardcoded, will modify later
-    await axios.post("http-api/api/venti/adhoc/start", {
+    const adhocTask = axios.post("http-api/api/venti/adhoc/start", {
       house_code: '001',
       // mode_id: selectedMode.value,
       // mode_name: modeList.value[selectedMode.value].name,
       devices: devices,
-      duration: durationControl.enabled ? durationControl.mins : 30
+      duration: durationControl.mins
     });
+    setTimeout(async () => {
+      // console.log("⏳ 3. 这行会在 10 秒后才打印");
+      await fetchRunningJobs(houseCode)
+      console.log('handleAdhocJob active job,', activeJob.value)
+    }, 3000);
+    console.log('adhoc job started')
+    await adhocTask
+
     // console.log('result ', result)
   } catch (err) {
     alert('操作失败，请检查 PLC 连接');
   } finally {
-    console.log('finished mode switch')
+    console.log('reset isStartJobClicked')
+    isStartJobClicked.value = false
+    activeJob.value = null
   }
 
 }
@@ -475,6 +488,7 @@ const handleSchedJob = async () => {
   // TODO: 调用后端异步开始接口
   try {
     //todo: device address hardcoded, will modify later
+    // todo: add boolean btnClicked
     await axios.post("http-api/api/venti/sched/start", {
       house_code: houseCode,
       devices: devices,
@@ -484,38 +498,39 @@ const handleSchedJob = async () => {
       end_condition: parentEnd.value,
       duration: durationControl.enabled ? durationControl.mins : 30
     });
-    let jobs = await fetchRunningJobs(houseCode)
+
+    console.log('sched job started')
+    await fetchRunningJobs(houseCode)
+    console.log('handleSchedJob active job,', activeJob.value)
     // console.log('result ', result)
   } catch (err) {
     alert('操作失败，请检查 PLC 连接');
   } finally {
     console.log('finished mode switch')
   }
-
 }
 
 // 2. 停止作业
 const handleStopJob = async () => {
   const isConfirmed = confirm("🚨 紧急提示：确定要立刻强行【停止当前通风作业】吗？所有关联设备将关闭！");
-  // if (isConfirmed) {
-  //   // alert("系统指令已下发：设备正在全面紧急关闭...");
-  //   // TODO: 调用后端异步停止接口
-  // }
 
   if (isConfirmed) {
     // alert("系统指令已下发：通风作业启动中...");
     // TODO: 调用后端异步开始接口
+    isStopJobClicked.value = true
     try {
       //todo: device address hardcoded, will modify later
       await axios.post("http-api/api/venti/job/stop", {
         house_code: houseCode,
         devices: devices,
       });
-      // console.log('result ', result)
+      console.log('clicked stoped job')
+
     } catch (err) {
       alert('操作失败，err: ' + err);
     } finally {
       console.log('finished mode switch')
+      isStopJobClicked.value = false
     }
   }
 
@@ -864,23 +879,27 @@ const handleStopJob = async () => {
 }
 
 .btn-adhoc {
-  background-color: #1f1ce7;
+  background-color: #dee1e7;
   /* color: #fff; */
 }
 
+.btn-adhoc:hover {
+  background-color: #ddd123;
+}
+
 .btn-success {
-  background-color: #22c55e;
+  background-color: #dee1e7;
   /* color: #fff; */
 }
 
 
 .btn-success:hover {
-  background-color: #16a34a;
+  background-color: #21772d;
 }
 
 .btn-danger {
-  background-color: #ef4444;
-  color: #fff;
+  background-color: #dee1e7;
+  /* color: #fff; */
 }
 
 .btn-danger:hover {
