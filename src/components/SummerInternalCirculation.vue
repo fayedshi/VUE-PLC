@@ -1,15 +1,15 @@
 <template>
-  <span>❄️ 夏季内循环 - 触发条件设置</span>
+  <span>❄️ 夏季内循环 - 触发条件设置（AND 条件）</span>
   <div class="condition-box">
 
     <div class="form-item">
-      <label>目标整体降温温差 (表层平均 - 仓外) >= </label>
-      <input type="number" v-model="localStart.minTotalTempDiff" step="0.1" /> ℃
+      <label>表层粮温 - 底层平均粮温 >= </label>
+      <input type="number" v-model="startCondition.minTotalTempDiff" step="0.1" /> ℃
     </div>
     <span class="join">同时</span>
     <div class="form-item">
-      <label>仓内湿度 >= </label>
-      <input type="number" v-model="localStart.maxMoisture" step="0.1" /> %
+      <label>仓内湿度 < </label>
+          <input type="number" v-model="startCondition.maxMoisture" step="0.1" /> %
     </div>
     <!-- <div class="form-item">
       <label>策略运行模式:</label>
@@ -20,31 +20,29 @@
     </div> -->
   </div>
 
-  <span>❄️ 夏季内循环 - 结束条件设置</span>
+  <span>❄️ 夏季内循环 - 结束条件设置（OR 条件）</span>
   <div class="condition-box">
 
     <div class="form-item">
-      <label>目标整体降温温差 (表层平均 - 仓外) < </label>
-          <input type="number" v-model="localEnd.minTotalTempDiff" step="0.1" /> ℃
+      <label>表层粮温 - 底层平均粮温 < </label>
+          <input type="number" v-model="endCondition.minTotalTempDiff" step="0.1" /> ℃
     </div>
-    <span class="join">同时</span>
+    <span class="join">OR</span>
     <div class="form-item">
-      <label>仓内湿度 < </label>
-          <input type="number" v-model="localEnd.maxMoisture" step="0.1" /> %
+      <label>仓内湿度 > </label>
+      <input type="number" v-model="endCondition.maxMoisture" step="0.1" /> %
     </div>
-    <!-- <div class="form-item">
-      <label>策略运行模式:</label>
-      <select v-model="endCondition.economyMode">
-        <option value="economy">经济优先 (限谷电/绿电)</option>
-        <option value="performance">时效优先 (全天候触发)</option>
-      </select>
-    </div> -->
+    <span class="join">OR</span>
+    <div class="form-item">
+      <label>底层平均粮温 >= </label>
+      <input type="number" v-model="endCondition.bottomGrainAvgTemp" step="0.1" /> %
+    </div>
   </div>
 </template>
 
 <script setup>
 import { onMounted, reactive, watch } from 'vue'
-import { useVentiUpperSiloStore } from '../store/VentiUpperSilo.js'
+// import { useVentiUpperSiloStore } from '../store/VentiUpperSilo.js'
 // const props = defineProps({
 //   modelValue: Object
 // })
@@ -54,48 +52,49 @@ const props = defineProps({
 })
 const emit = defineEmits(['update:start', 'update:end'])
 
-// const startCondition = reactive({
-//   minTotalTempDiff: 2.0,
-//   maxMoistureLoss: 70,
-// })
+const startCondition = reactive({
+  minTotalTempDiff: 3.0,
+  maxMoisture: 68,
+})
 
-// const endCondition = reactive({
-//   minTotalTempDiff: 1.0,
-//   maxMoistureLoss: 55,
-// })
+const endCondition = reactive({
+  minTotalTempDiff: 1.5,
+  maxMoisture: 55,
+  bottomGrainAvgTemp: 18
+})
 
-const store = useVentiUpperSiloStore()
+// const store = useVentiUpperSiloStore()
 // 本地副本
-const localStart = reactive({ ...store.startCondition })
-const localEnd = reactive({ ...store.endCondition })
+// const startCondition = reactive({ ...store.startCondition })
+// const endCondition = reactive({ ...store.endCondition })
 
 
 // 4. 分别监听两组数据的变化，并实时吐给父组件
-watch(localStart, (newVal) => {
+watch(startCondition, (newVal) => {
   emit('update:start', { ...newVal })
 }, { deep: true })
 
-watch(localEnd, (newVal) => {
+watch(endCondition, (newVal) => {
   emit('update:end', { ...newVal })
 }, { deep: true })
 
 
 
 // 深度监听开启条件，变化时直接赋值给 store 的对应属性
-watch(localStart, (newVal) => {
-  console.log('localstart',newVal)
-  store.startCondition = { ...newVal }
-}, { deep: true })
+// watch(startCondition, (newVal) => {
+//   console.log('startCondition',newVal)
+//   store.startCondition = { ...newVal }
+// }, { deep: true })
 
-// 深度监听关闭条件
-watch(localEnd, (newVal) => {
-  store.endCondition = { ...newVal }
-}, { deep: true })
+// // 深度监听关闭条件
+// watch(endCondition, (newVal) => {
+//   store.endCondition = { ...newVal }
+// }, { deep: true })
 
 
-onMounted(()=>{
-  emit('update:start', localStart)
-  emit('update:end', localEnd)
+onMounted(() => {
+  emit('update:start', startCondition)
+  emit('update:end', endCondition)
 })
 </script>
 
