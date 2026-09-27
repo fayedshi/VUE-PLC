@@ -14,11 +14,6 @@
 
       <label class="section-label">选择通风模式：</label>
       <select v-model="selectedMode" @change="handleModeChange">
-        <!-- <option value=0>❄️ 降低表层粮温通风</option>
-        <option value="HEAT_ACCUMULATION">🔥 仓顶排积热通风</option>
-        <option value="WHOLE_SILO_COOLING">❄️ 降低整仓粮温通风</option>
-        <option value="MOISTURE_KEEPING">🌾 保墒平凉通风 (演示未注册)</option> -->
-        <!-- <option :value="null">-- 请选择 --</option> -->
         <option v-for="mode in modeList" :key="mode.id" :value="mode.id">
           {{ mode.name }}
         </option>
@@ -261,7 +256,7 @@ const metricText = ref('')
 const layerSelRef = ref(null)
 const metricSelRef = ref(null)
 
-const activeJob = ref({"id":3})
+const activeJob = ref({})
 
 const handleSelChange = (event) => {
   // event.target.selectedOptions[0] 即可拿到当前选中的 option 标签对象
@@ -286,24 +281,17 @@ import ConditionWholeSilo from '../../components/ConditionWholeSilo.vue'
 import ConditionUpperSilo from '../../components/ConditionUpperSilo.vue';
 
 // 当前选中的模式
-const selectedMode = ref(-1)
+const selectedMode = ref(0)
 
 
 
 // 核心：模式与组件的映射表 (使用 shallowRef 优化组件对象性能)
 const componentMap = {
-  0: ConditionUpperSilo,
-  1: ConditionAccumulatedHeat,
-  2: ConditionWholeSilo,
-  // 'MOISTURE_KEEPING': 可以后续扩展
+  0: null,
+  1: ConditionUpperSilo,
+  2: ConditionAccumulatedHeat,
+  3: ConditionWholeSilo,
 }
-
-// 统一的大对象：分别存储每种模式下的触发条件，切换模式时数据不会丢失
-// const strategyConfig = ref({
-//   HEAT_ACCUMULATION: { tempDiff: 3.5, dewPointMargin: 2.0, maxOutsideRh: 80 },
-//   WHOLE_SILO_COOLING: { minTotalTempDiff: 6.0, maxMoistureLoss: 0.3, economyMode: 'economy' },
-//   MOISTURE_KEEPING: {}
-// })
 
 const strategyConfig = ref({
   0: {},
@@ -313,7 +301,7 @@ const strategyConfig = ref({
 })
 
 
-const parentStart = ref({ 'minTotalTempDiff': 1, 'maxMoisture': 70 });
+const parentStart = ref({});
 const parentEnd = ref({});
 
 // 计算属性：动态获取当前应该挂载的组件
@@ -369,10 +357,12 @@ const fetchRunningJobs = (async (houseCode) => {
 })
 
 const modeList = ref([
-  { id: -1, name: '-' },
-  { id: 0, name: '❄️ 降低表层粮温通风' },
-  { id: 1, name: '🔥 仓顶排积热通风' },
-  { id: 2, name: '❄️ 降低整仓粮温通风' }
+  { id: 0, name: '-' },
+  { id: 1, name: '❄️ 降低表层粮温' },
+  // { id: 2, name: '🔥 仓顶排积热通风' },
+  // { id: 3, name: '❄️ 降低整仓粮温通风' }
+  { id: 2, name: '🔥 夏季外循环' },
+  { id: 3, name: '❄️ 冬季内循环' }
 ]);
 
 const selectedHouseCode = ref(null);
@@ -430,7 +420,7 @@ const validateDuration = () => {
 const houseCode = 1
 
 const handleAdhocJob = async () => {
-  if (selectedMode.value > -1) {
+  if (selectedMode.value > 0) {
     alert('请取消选择通风模式')
     return
   }
@@ -438,8 +428,7 @@ const handleAdhocJob = async () => {
   if (!isConfirmed) {
     return
   }
-  // alert("系统指令已下发：通风作业启动中...");
-  // TODO: 调用后端异步开始接口
+
   try {
     //todo: device address hardcoded, will modify later
     await axios.post("http-api/api/venti/adhoc/start", {
@@ -447,7 +436,7 @@ const handleAdhocJob = async () => {
       // mode_id: selectedMode.value,
       // mode_name: modeList.value[selectedMode.value].name,
       devices: devices,
-      duration: durationControl.enabled ? durationControl.mins : 30
+      duration: durationControl.mins
     });
     // console.log('result ', result)
   } catch (err) {
@@ -460,7 +449,7 @@ const handleAdhocJob = async () => {
 
 // 1. 开始作业
 const handleSchedJob = async () => {
-  if (selectedMode.value == -1) {
+  if (selectedMode.value == 0) {
     alert('请选择通风模式')
     return
   }
@@ -482,7 +471,7 @@ const handleSchedJob = async () => {
       mode_name: modeList.value[selectedMode.value].name,
       start_condition: parentStart.value,
       end_condition: parentEnd.value,
-      duration: durationControl.enabled ? durationControl.mins : 30
+      duration: durationControl.mins
     });
     let jobs = await fetchRunningJobs(houseCode)
     // console.log('result ', result)
