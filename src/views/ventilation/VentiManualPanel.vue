@@ -91,7 +91,7 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import axios from 'axios';
 
-const house_code ='001'
+const house_code = '001'
 const devStates = ref([])
 
 // 状态映射表（无需响应式，直接定义为普通变量）
@@ -194,7 +194,11 @@ const executeSingleAction = async (device, actionType) => {
             dev_id: device.id,
             action_type: actionType
         });
-        console.log('result ', result)
+        if (result.data.status == 'success')
+            alert(result.data.status)
+        else
+            alert(result.data.message)
+        // console.log('result ', result)
     } catch (err) {
         alert('操作失败，请检查 PLC 连接');
     } finally {

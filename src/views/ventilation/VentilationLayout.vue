@@ -1,15 +1,10 @@
 <template>
   <div class="navigate">
     <!-- 二级子菜单导航 -->
-    <!-- <RouterLink to  -->
-    <!-- <RouterLink to="/temperature/" exact-active-class="active">实时监控</RouterLink> -->
-    <RouterLink to="/ventilation/" exact-active-class="active">手动控制面板</RouterLink>
-    <!-- <RouterLink to="/temperature/comparison" active-class="active">粮情点位比较</RouterLink> -->
-    <!-- <RouterLink to="/temperature/slice-3d" active-class="active">三维粮温切面图</RouterLink> -->
+
     <RouterLink to="/ventilation/ventiTask" active-class="active">作业控制面板</RouterLink>
-    <!-- <RouterLink to="/temperature/area-analysis" active-class="active">区域粮温分析表</RouterLink> -->
-    <!-- <RouterLink to="/temperature/curve-chart" active-class="active">温湿度变化曲线</RouterLink> -->
-    <!-- <RouterLink to="/temperature/heatmap" active-class="active">温度云图</RouterLink> -->
+    <RouterLink to="/ventilation/" exact-active-class="active">手动控制面板</RouterLink>
+
   </div>
 
   <div>
