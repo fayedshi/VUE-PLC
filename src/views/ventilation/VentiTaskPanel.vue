@@ -265,8 +265,9 @@ const handleSelChange = (event) => {
   console.log('当前文本：', layerText.value)
 }
 
-const handleHouseChange = () => {
+const handleHouseChange = async() => {
   console.log(`切换至模式: ${selectedMode.value}`)
+  await fetchRunningJobs(selectedHouseCode.value)
   // query running job
 }
 
@@ -333,7 +334,7 @@ onMounted(async () => {
   // todo: load running jobs when switching house
   try {
     const [, houseFuture] = await Promise.all([
-      fetchRunningJobs(houseCode),
+      fetchRunningJobs(selectedHouseCode.value),
       axios.get('http-api/api/houses/codes')
     ])
 
@@ -372,7 +373,7 @@ const modeList = ref([
 
 const houseCodeList = ref([])
 
-const selectedHouseCode = ref(null);
+const selectedHouseCode = ref('001');
 
 
 // 设备选择响应式数据
@@ -432,8 +433,10 @@ let isStopJobClicked = ref(false)
 
 const startJob = async (jobType: string) => {
 
+  // console.log(selectedHouseCode.value)
+
   let payload = {
-    house_code: houseCode,
+    house_code: selectedHouseCode.value,
     devices: devices,
     mode_id: selectedMode.value,
     mode_name: modeList.value[selectedMode.value].name,
@@ -496,44 +499,44 @@ const startJob = async (jobType: string) => {
 }
 
 // 1. 开始作业
-const handleSchedJob = async () => {
-  if (selectedMode.value == 0) {
-    alert('请选择通风模式')
-    return
-  }
-  const isConfirmed = confirm("确定要开始智能通风作业吗？");
-  if (!isConfirmed) {
-    return
-  }
+// const handleSchedJob = async () => {
+//   if (selectedMode.value == 0) {
+//     alert('请选择通风模式')
+//     return
+//   }
+//   const isConfirmed = confirm("确定要开始智能通风作业吗？");
+//   if (!isConfirmed) {
+//     return
+//   }
 
-  console.log("系统指令已下发：通风作业启动中...");
-  console.log('parent_start', parentStart)
+//   console.log("系统指令已下发：通风作业启动中...");
+//   console.log('parent_start', parentStart)
 
-  // TODO: 调用后端异步开始接口
-  try {
-    //todo: device address hardcoded, will modify later
-    // todo: add boolean btnClicked
-    const result = await axios.post("http-api/api/venti/sched/start", {
-      house_code: houseCode,
-      devices: devices,
-      mode_id: selectedMode.value,
-      mode_name: modeList.value[selectedMode.value].name,
-      start_condition: parentStart.value,
-      end_condition: parentEnd.value,
-      duration: durationControl.mins
-    });
+//   // TODO: 调用后端异步开始接口
+//   try {
+//     //todo: device address hardcoded, will modify later
+//     // todo: add boolean btnClicked
+//     const result = await axios.post("http-api/api/venti/sched/start", {
+//       house_code: houseCode,
+//       devices: devices,
+//       mode_id: selectedMode.value,
+//       mode_name: modeList.value[selectedMode.value].name,
+//       start_condition: parentStart.value,
+//       end_condition: parentEnd.value,
+//       duration: durationControl.mins
+//     });
 
-    console.log('sched job started', result)
-    await fetchRunningJobs(houseCode)
-    console.log('handleSchedJob active job,', activeJob.value)
-    alert(result.data.message)
-    // console.log('result ', result)
-  } catch (err) {
-    alert('操作失败，请检查 PLC 连接');
-  } finally {
-    console.log('finished mode switch')
-  }
-}
+//     console.log('sched job started', result)
+//     await fetchRunningJobs(houseCode)
+//     console.log('handleSchedJob active job,', activeJob.value)
+//     alert(result.data.message)
+//     // console.log('result ', result)
+//   } catch (err) {
+//     alert('操作失败，请检查 PLC 连接');
+//   } finally {
+//     console.log('finished mode switch')
+//   }
+// }
 
 // 2. 停止作业
 const handleStopJob = async () => {
@@ -546,7 +549,7 @@ const handleStopJob = async () => {
     try {
       //todo: device address hardcoded, will modify later
       const result = await axios.post("http-api/api/venti/job/stop", {
-        house_code: houseCode,
+        house_code: selectedHouseCode.value,
         devices: devices,
       });
       console.log('clicked stoped job')
