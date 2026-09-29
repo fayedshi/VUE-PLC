@@ -114,8 +114,16 @@ let routes = [
       {
         path: '/nitrogen-generation',
         name: 'NitrogenGeneration',
-        component: () => import('../views/NitrogenGenerationView.vue'),
-        meta: { title: '制氮系统' }
+        component: () => import('../views/CA/NitrogenGeneration.vue'),
+        meta: { title: '制氮系统' },
+        // children: [
+        //   {
+        //     path: '', // 留空代表默认子路由，访问 / 时默认渲染此组件
+        //     name: 'CAMode',
+        //     component: () => import('../views/CA/NitrogenGeneration.vue'),
+        //     meta: { title: '手动控制面板' }
+        //   }
+        // ]
       },
       {
         path: '/environment-monitor',
@@ -143,6 +151,12 @@ let routes = [
         name: 'VentiMode',
         component: () => import('../views/settings/VentilationMode.vue'),
         meta: { title: '通风模式设置' }
+      },
+      {
+        path: 'ca', // 留空代表默认子路由，访问 / 时默认渲染此组件
+        name: 'CAMode',
+        component: () => import('../views/settings/CAMode.vue'),
+        meta: { title: '气调模式设置' }
       }
     ]
   },

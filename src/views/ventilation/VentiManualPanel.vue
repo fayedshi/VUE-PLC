@@ -196,7 +196,7 @@ const executeSingleAction = async (device, actionType) => {
             action_type: actionType
         });
         if (result.data.status == 'success')
-            alert(result.data.status)
+            console.log(result.data.status)
         else
             alert(result.data.message)
         // console.log('result ', result)
