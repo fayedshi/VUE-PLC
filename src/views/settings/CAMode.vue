@@ -15,6 +15,7 @@
       <el-table-column prop="target_warehouse_pressure" label="目标仓压" width="100" />
       <el-table-column prop="nitrogen_fill_amount" label="充氮量" width="100" />
       <el-table-column prop="create_time" label="创建时间" width="180" />
+      <el-table-column prop="update_time" label="更新时间" width="180" />
       <el-table-column label="操作" width="180" fixed="right" align="center">
         <template #default="scope">
           <el-button size="small" type="primary" @click="handleUpdate(scope.row)">编辑</el-button>
@@ -117,6 +118,18 @@
             </el-row>
           </el-tab-pane>
 
+          <el-tab-pane label="风机矩阵配置" name="blowers">
+            <el-row :gutter="20">
+              <el-col :span="6" v-for="i in 6" :key="i" style="margin-bottom: 15px;">
+                <el-card shadow="hover"
+                  body-style="padding: 10px; display: flex; justify-content: space-between; align-items: center;">
+                  <span style="font-size: 14px; font-weight: bold;">风机 #{{ i }}</span>
+                  <el-switch v-model="form[`blower_${i}`]" active-text="开启" inactive-text="关闭" inline-prompt />
+                </el-card>
+              </el-col>
+            </el-row>
+          </el-tab-pane>
+
         </el-tabs>
       </el-form>
       <template #footer>
@@ -161,6 +174,9 @@ const createEmptyForm = () => {
   }
   // 动态挂载 26 个阀门的默认关闭状态
   for (let i = 1; i <= 26; i++) {
+    if (i <= 6) {
+      baseForm[`blower_${i}`] = false
+    }
     baseForm[`valve_${i}`] = false
   }
   return baseForm
@@ -178,7 +194,8 @@ const rules = {
 const fetchList = async () => {
   loading.value = true
   try {
-    const res = await axios.get('/api/v1/ca/configs')
+
+    const res = await axios.get('http-api/api/ca/configs')
     list.value = res.data
   } catch (error) {
     ElMessage.error('获取数据失败')
@@ -188,9 +205,10 @@ const fetchList = async () => {
 }
 
 // 增
-const handleCreate = () => {
+const handleCreate = async () => {
   dialogTitle.value = '新增气调配置'
   Object.assign(form, createEmptyForm()) // 重置表单
+
   dialogVisible.value = true
   activeTab.value = 'params'
 }
@@ -210,11 +228,11 @@ const submitForm = () => {
     try {
       if (form.id) {
         // 更新
-        await axios.put(`/api/v1/ca/configs/${form.id}`, form)
+        await axios.put(`http-api/api/ca/configs/${form.id}`, form)
         ElMessage.success('更新成功')
       } else {
         // 创建
-        await axios.post('/api/v1/ca/configs', form)
+        await axios.post('http-api/api/ca/configs', form)
         ElMessage.success('创建成功')
       }
       dialogVisible.value = false
@@ -230,7 +248,7 @@ const handleDelete = (row) => {
   ElMessageBox.confirm(`确认删除模式 "${row.mode_name}" 吗？`, '警告', {
     type: 'warning'
   }).then(async () => {
-    await axios.delete(`/api/v1/ca/configs/${row.id}`)
+    await axios.delete(`http-api/api/ca/configs/${row.id}`)
     ElMessage.success('删除成功')
     fetchList()
   }).catch(() => { })

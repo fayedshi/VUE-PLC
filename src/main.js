@@ -21,8 +21,15 @@ import {
     ElCard,
     ElTable,
     ElButton,
-    ElInput
-    
+    ElInput,
+    ElTag,
+    ElOption,
+    ElSelect,
+    ElDatePicker,
+    ElDescriptionsItem,
+    ElDescriptions,
+
+
 } from 'element-plus'
 
 
@@ -42,6 +49,12 @@ app.use(ElCard)
 app.use(ElTable)
 app.use(ElButton)
 app.use(ElInput)
+app.use(ElTag)
+app.use(ElOption)
+app.use(ElSelect)
+app.use(ElDatePicker)
+app.use(ElDescriptionsItem)
+app.use(ElDescriptions)
 
 app.use(myRouter)
 app.use(pinia)

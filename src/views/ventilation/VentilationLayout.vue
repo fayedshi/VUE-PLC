@@ -2,8 +2,8 @@
   <div class="navigate">
     <!-- 二级子菜单导航 -->
 
-    <RouterLink to="/ventilation/ventiTask" active-class="active">作业控制面板</RouterLink>
-    <RouterLink to="/ventilation/" exact-active-class="active">手动控制面板</RouterLink>
+    <RouterLink to="/ventilation/" exact-active-class="active">作业控制面板</RouterLink>
+    <RouterLink to="/ventilation/ventiManual" active-class="active">手动控制面板</RouterLink>
 
   </div>
 

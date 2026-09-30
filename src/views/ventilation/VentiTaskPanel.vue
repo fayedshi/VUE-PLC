@@ -229,7 +229,7 @@
     <div class="action-bar">
       <button class="btn btn-success" @click="startJob('sched')">开始智能作业</button>
       <button class="btn btn-adhoc" @click="startJob('adhoc')">开始即时作业</button>
-      <button class="btn btn-danger" @click="handleStopJob">停止当前作业</button>
+      <button class="btn btn-danger" @click="handleStopJob">停止作业</button>
       <!-- <button class="btn btn-primary" @click="handleSaveMode">保存模式</button> -->
     </div>
   </div>
@@ -265,7 +265,7 @@ const handleSelChange = (event) => {
   console.log('当前文本：', layerText.value)
 }
 
-const handleHouseChange = async() => {
+const handleHouseChange = async () => {
   console.log(`切换至模式: ${selectedMode.value}`)
   await fetchRunningJobs(selectedHouseCode.value)
   // query running job
@@ -363,10 +363,10 @@ const fetchRunningJobs = (async (houseCode) => {
 })
 
 const modeList = ref([
-  { id: 0, name: '-' },
+  { id: 0, name: '' },
   { id: 1, name: '❄️ 降低表层粮温' },
   { id: 2, name: '🔥 夏季内循环' },
-  { id: 3, name: '❄️ 冬季外循环' }
+  // { id: 3, name: '❄️ 冬季外循环' }
   // { id: 2, name: '🔥 仓顶排积热通风' },
   // { id: 3, name: '❄️ 降低整仓粮温通风' }
 ]);
@@ -424,9 +424,6 @@ const validateDuration = () => {
   }
 };
 
-// ==================== 按钮核心逻辑（确认框交互） ====================
-
-const houseCode = '001'
 let isStartJobClicked = ref(false)
 let isStopJobClicked = ref(false)
 
@@ -440,7 +437,7 @@ const startJob = async (jobType: string) => {
     devices: devices,
     mode_id: selectedMode.value,
     mode_name: modeList.value[selectedMode.value].name,
-    duration: durationControl.mins
+    duration: durationControl.mins * 60
   }
   let isConfirmed = null
   let apiUrl = null
@@ -450,13 +447,13 @@ const startJob = async (jobType: string) => {
       return
     }
     apiUrl = 'http-api/api/venti/adhoc/start'
-    isConfirmed = confirm("确定开始即时作业吗？");
+    isConfirmed = confirm(`确定开始仓房${selectedHouseCode.value}的即时作业吗？`);
   } else {
     if (selectedMode.value == 0) {
       alert('请选择通风模式')
       return
     }
-    isConfirmed = confirm("确定开始智能作业吗？");
+    isConfirmed = confirm(`确定开始仓房${selectedHouseCode.value}的智能作业吗？`);
     apiUrl = 'http-api/api/venti/sched/start'
     payload.start_condition = parentStart.value ?? '';
     payload.end_condition = parentEnd.value ?? '';
@@ -468,20 +465,13 @@ const startJob = async (jobType: string) => {
   try {
     //todo: device address hardcoded, will modify later
     const result = await axios.post(apiUrl,
-      // {
-      //   house_code: '001',
-      //   mode_id: selectedMode.value,
-      //   mode_name: modeList.value[selectedMode.value].name,
-      //   devices: devices,
-      //   duration: durationControl.mins
-      // }
       payload
     );
     console.log('payload: ', payload)
     if (result.data.status != 'busy') {
       setTimeout(async () => {
         // console.log("这行会在 3 秒后才打印");
-        await fetchRunningJobs(houseCode)
+        await fetchRunningJobs('001')
         console.log('handleAdhocJob active job,', activeJob.value)
       }, 1000);
     }
@@ -490,57 +480,12 @@ const startJob = async (jobType: string) => {
     alert(result.data.message)
   } catch (err) {
     alert('操作失败，请检查 PLC 连接');
-  } finally {
-    // console.log('reset isStartJobClicked')
-    // isStartJobClicked.value = false
-    // activeJob.value = {}
   }
-
 }
-
-// 1. 开始作业
-// const handleSchedJob = async () => {
-//   if (selectedMode.value == 0) {
-//     alert('请选择通风模式')
-//     return
-//   }
-//   const isConfirmed = confirm("确定要开始智能通风作业吗？");
-//   if (!isConfirmed) {
-//     return
-//   }
-
-//   console.log("系统指令已下发：通风作业启动中...");
-//   console.log('parent_start', parentStart)
-
-//   // TODO: 调用后端异步开始接口
-//   try {
-//     //todo: device address hardcoded, will modify later
-//     // todo: add boolean btnClicked
-//     const result = await axios.post("http-api/api/venti/sched/start", {
-//       house_code: houseCode,
-//       devices: devices,
-//       mode_id: selectedMode.value,
-//       mode_name: modeList.value[selectedMode.value].name,
-//       start_condition: parentStart.value,
-//       end_condition: parentEnd.value,
-//       duration: durationControl.mins
-//     });
-
-//     console.log('sched job started', result)
-//     await fetchRunningJobs(houseCode)
-//     console.log('handleSchedJob active job,', activeJob.value)
-//     alert(result.data.message)
-//     // console.log('result ', result)
-//   } catch (err) {
-//     alert('操作失败，请检查 PLC 连接');
-//   } finally {
-//     console.log('finished mode switch')
-//   }
-// }
 
 // 2. 停止作业
 const handleStopJob = async () => {
-  const isConfirmed = confirm("🚨 确定要停止当前通风作业吗？");
+  const isConfirmed = confirm(`🚨 确定要停止仓房${selectedHouseCode.value}的当前通风作业吗？`);
 
   if (isConfirmed) {
     // alert("系统指令已下发：通风作业启动中...");
