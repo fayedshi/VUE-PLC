@@ -1,5 +1,5 @@
 {
-  "name": "hellovue",
+  "name": "vue-gran-demo",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -15,12 +15,13 @@
     "echarts": "^6.1.0",
     "mitt": "^3.0.1",
     "pinia": "^3.0.4",
+    "pinia-plugin-persistedstate": "^4.7.1",
     "three": "^0.185.1",
     "vue": "^3.5.13",
-    "vue-router": "^5.0.4"
+    "vue-router": "^5.3.1"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^5.2.1",
+    "@vitejs/plugin-vue": "^6.0.2",
     "vite": "^6.0.11",
     "vite-plugin-vue-devtools": "^7.7.0"
   }
