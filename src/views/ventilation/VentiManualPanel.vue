@@ -8,17 +8,17 @@
             </div>
             <!-- 第一组：远程 / 本地 -->
             <div class="btn-group">
-                <button :class="{ active: controlMode === 2 }" @click="switchControlMode(1, 2, '远程')">
+                <button :class="{ active: controlMode === 1 }" @click="switchControlMode(1, 2, '远程')">
                     远程
                 </button>
-                <button :class="{ active: controlMode === 1 }" @click="switchControlMode(1, 1, '本地')">
+                <button :class="{ active: controlMode === 0 }" @click="switchControlMode(1, 1, '本地')">
                     本地
                 </button>
             </div>
 
             <!-- 第二组：手动 / 自动 -->
             <div class="btn-group">
-                <button :class="{ active: runMode === 2 }" @click="switchControlMode(2, 2, '手动')">
+                <button :class="{ active: runMode === 6 }" @click="switchControlMode(2, 2, '手动')">
                     手动
                 </button>
                 <button :class="{ active: runMode === 1 }" @click="switchControlMode(2, 1, '自动')">
@@ -91,8 +91,9 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import axios from 'axios';
 
-const house_code ='001'
+const house_code = '001'
 const devStates = ref([])
+const controlStates = ref([])
 
 // 状态映射表（无需响应式，直接定义为普通变量）
 
@@ -194,7 +195,11 @@ const executeSingleAction = async (device, actionType) => {
             dev_id: device.id,
             action_type: actionType
         });
-        console.log('result ', result)
+        if (result.data.status == 'success')
+            console.log(result.data.status)
+        else
+            alert(result.data.message)
+        // console.log('result ', result)
     } catch (err) {
         alert('操作失败，请检查 PLC 连接');
     } finally {
@@ -217,9 +222,10 @@ const executeGlobalAction = async (cateType, actionType) => {
 };
 
 let socket: any = null;
-
+let isExplicitlyClosed = false
 const initWebSocket = () => {
     // todo: need granary switch control in ui, hardcode 001 for now
+    isExplicitlyClosed = false
     socket = new WebSocket(`ws-api/ws/dev-state/${house_code}`);
     // socket = new WebSocket(`ws://${backendAdd}/ws/dev-state`);
 
@@ -231,14 +237,21 @@ const initWebSocket = () => {
     // 接收到后端实时数据事件
     socket.onmessage = (event: any) => {
         // 解析后端传过来的 JSON 字符串
-        devStates.value = JSON.parse(event.data);
-        console.log('devstate', devStates.value)
+        let allStates = JSON.parse(event.data);
+        // console.log('3. 解析后的类型:', Array.isArray(allStates) ? '数组' : typeof allStates)
+        devStates.value = allStates.splice(2);
+        controlStates.value = allStates.splice(0, 2);
+        controlMode.value = controlStates.value[0]
+        runMode.value = controlStates.value[1]
+        // console.log('devstate', event.data)
+        console.log('controlStates', controlStates.value)
     };
 
     // 连接关闭事件
     socket.onclose = () => {
         // console.log('【前端提示】连接已断开，3秒后尝试自动重连...');
-        setTimeout(initWebSocket, 3000); // 掉线自动重连机制
+        if (!isExplicitlyClosed)
+            setTimeout(initWebSocket, 3000); // 掉线自动重连机制
     };
 
     // 发生错误事件
@@ -255,8 +268,12 @@ onMounted(() => {
 
 // 4. 生命周期：组件销毁时关闭连接，释放工控机内存
 onBeforeUnmount(() => {
-    if (socket)
+    if (socket) {
+        console.log('venti manual panel destroyed')
         socket.close();
+        isExplicitlyClosed = true
+    }
+
 });
 
 // const getStatusText = (s) => ['初始化', '开启', '关闭', '停', '开到位', '关到位', '窗故障'][s] || '未知';
@@ -270,10 +287,10 @@ const runMode = ref(1)     // 2 手动, 1 自动
 // 2. 远程 / 本地 切换点击事件
 const switchControlMode = async (groupIndex, mode, modeText) => {
     let curModeVal = groupIndex == 1 ? controlMode.value : runMode.value
-    if (curModeVal === mode) {
-        console.log('已经是当前模式则不重复触发')
-        return // 已经是当前模式则不重复触发
-    }
+    // if (curModeVal === mode) {
+    //     console.log('已经是当前模式则不重复触发')
+    //     return // 已经是当前模式则不重复触发
+    // }
     try {
         //todo: device address hardcoded, will modify later
         let devId = groupIndex == 1 ? 'switch-399' : 'switch-0'
@@ -284,11 +301,11 @@ const switchControlMode = async (groupIndex, mode, modeText) => {
         });
         console.log('result ', result)
         console.log(`控制模式已成功切换为：${modeText}模式`)
-        if (groupIndex == 1) {
-            controlMode.value = mode
-        } else {
-            runMode.value = mode
-        }
+        // if (groupIndex == 1) {
+        //     controlMode.value = mode
+        // } else {
+        //     runMode.value = mode
+        // }
     } catch (err) {
         alert('操作失败，请检查 PLC 连接');
     } finally {

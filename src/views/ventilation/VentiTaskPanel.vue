@@ -5,15 +5,15 @@
     <!-- 1. 模式选择区域 -->
     <div class="section mode-section">
       <label class="section-label"> 选择仓房：</label>
-      <select v-model="selectedHouseCode" class="native-select mode-select" @change="handleHouseChange">
+      <select v-model="selectedHouseCode" class="native-select" @change="handleHouseChange">
         <option :value="null">-- 请选择 --</option>
-        <!-- <option v-for="mode in modeList" :key="mode.id" :value="mode.id">
-          {{ mode.name }}
-        </option> -->
+        <option v-for="houseCode in houseCodeList" :key="houseCode" :value="houseCode">
+          {{ houseCode }}
+        </option>
       </select>
 
       <label class="section-label">选择通风模式：</label>
-      <select v-model="selectedMode" @change="handleModeChange">
+      <select v-model="selectedMode" class="native-select" @change="handleModeChange">
         <option v-for="mode in modeList" :key="mode.id" :value="mode.id">
           {{ mode.name }}
         </option>
@@ -114,13 +114,6 @@
         </div> -->
 
     </div>
-    <!-- 3. 保存与下发测试 -->
-    <!-- <div class="action-bar">
-        <button @click="saveConfig" class="btn-save">保存当前策略并下发PLC</button>
-      </div> -->
-
-    <!-- 4. 调试数据看板 -->
-    <!-- <pre class="debug-view">当前模式 {{ selectedMode }} 的实时配置数据：{{ strategyConfig[selectedMode] }}</pre> -->
   </div>
 
 
@@ -204,14 +197,14 @@
       </div>
     </div>
     <!--当前运行中的作业  -->
-    <span>当前运行中的作业：
+    <span>运行中的作业：
       <span v-if=!activeJob?.id>无</span></span>
     <div v-if="activeJob?.id" class="table-wrapper">
       <table class="native-table">
         <thead>
           <tr>
             <th>作业ID</th>
-            <th>模式名称</th>
+            <th>模式</th>
             <th>仓房名称</th>
             <th>作业状态</th>
             <!-- <th>异常详情</th> -->
@@ -222,7 +215,7 @@
         <tbody>
           <tr>
             <td>{{ activeJob?.id }}</td>
-            <td>{{ activeJob?.mode_name }}</td>
+            <td>{{ activeJob?.mode_name ? activeJob?.mode_name : '无' }}</td>
             <td>{{ activeJob?.house_code }}</td>
             <td>{{ activeJob?.status_text }}</td>
             <td>{{ activeJob?.create_time }}</td>
@@ -234,9 +227,9 @@
 
     <!-- 5. 底部控制按钮 -->
     <div class="action-bar">
-      <button class="btn btn-success"  @click="handleSchedJob">开始智能作业</button>
-      <button class="btn btn-adhoc"  @click="handleAdhocJob">开始即时作业</button>
-      <button class="btn btn-danger"  @click="handleStopJob">停止当前作业</button>
+      <button class="btn btn-success" @click="startJob('sched')">开始智能作业</button>
+      <button class="btn btn-adhoc" @click="startJob('adhoc')">开始即时作业</button>
+      <button class="btn btn-danger" @click="handleStopJob">停止作业</button>
       <!-- <button class="btn btn-primary" @click="handleSaveMode">保存模式</button> -->
     </div>
   </div>
@@ -272,14 +265,16 @@ const handleSelChange = (event) => {
   console.log('当前文本：', layerText.value)
 }
 
-const handleHouseChange = () => {
+const handleHouseChange = async () => {
   console.log(`切换至模式: ${selectedMode.value}`)
+  await fetchRunningJobs(selectedHouseCode.value)
   // query running job
 }
 
 import SummerInternalCirculation from '../../components/SummerInternalCirculation.vue';
 // import ConditionWholeSilo from '../../components/ConditionWholeSilo.vue'
 import ConditionUpperSilo from '../../components/ConditionUpperSilo.vue';
+import { ConstNode } from 'three/webgpu';
 
 // 当前选中的模式
 const selectedMode = ref(0)
@@ -316,29 +311,38 @@ const handleModeChange = () => {
 }
 
 // 保存逻辑：将当前配置提交给 Python 后端接口
-const saveConfig = async () => {
-  // const currentParams = parentStart.value
-  const payload = {
-    mode: selectedMode.value,
-    start_condition: parentStart.value,
-    end_condition: parentEnd.value
-  }
+// const saveConfig = async () => {
+//   // const currentParams = parentStart.value
+//   const payload = {
+//     mode: selectedMode.value,
+//     start_condition: parentStart.value,
+//     end_condition: parentEnd.value
+//   }
 
-  console.log('正在向 Python 后端发送策略数据...', payload)
-  // await axios.post('/api/ventilation/strategy', payload)
-  alert(`保存成功！已向PLC及Python策略引擎更新【${selectedMode.value}】条件。`)
-}
+//   console.log('正在向 Python 后端发送策略数据...', payload)
+//   // await axios.post('/api/ventilation/strategy', payload)
+//   alert(`保存成功！已向PLC及Python策略引擎更新【${selectedMode.value}】条件。`)
+// }
 
 onMounted(async () => {
   // layerText.value=startCondition.level
   // layerText.value = layerSelRef.value.selectedOptions[0].text
   // metricText.value = metricSelRef.value.selectedOptions[0].text
-  devices.windows[0] = 1
-  await fetchRunningJobs(houseCode)
+
+  // await fetchRunningJobs(houseCode)
   console.log('onMounted active job:', activeJob.value)
-  if (activeJob.value) {
-    isStartJobClicked.value = true
-    // isStopJobClicked.value = !isStartJobClicked.value
+  // todo: load running jobs when switching house
+  try {
+    const [, houseFuture] = await Promise.all([
+      fetchRunningJobs(selectedHouseCode.value),
+      axios.get('http-api/api/houses/codes')
+    ])
+
+    // 统一赋值
+    houseCodeList.value = houseFuture.data
+    console.log('✅ 所有数据加载完毕！')
+  } catch (error) {
+    console.error('其中一个请求失败了：', error)
   }
 })
 
@@ -359,15 +363,17 @@ const fetchRunningJobs = (async (houseCode) => {
 })
 
 const modeList = ref([
-  { id: 0, name: '-' },
+  { id: 0, name: '' },
   { id: 1, name: '❄️ 降低表层粮温' },
+  { id: 2, name: '🔥 夏季内循环' },
+  // { id: 3, name: '❄️ 冬季外循环' }
   // { id: 2, name: '🔥 仓顶排积热通风' },
   // { id: 3, name: '❄️ 降低整仓粮温通风' }
-  { id: 2, name: '🔥 夏季内循环' },
-  { id: 3, name: '❄️ 冬季外循环' }
 ]);
 
-const selectedHouseCode = ref(null);
+const houseCodeList = ref([])
+
+const selectedHouseCode = ref('001');
 
 
 // 设备选择响应式数据
@@ -418,91 +424,68 @@ const validateDuration = () => {
   }
 };
 
-// ==================== 按钮核心逻辑（确认框交互） ====================
-
-const houseCode = '001'
 let isStartJobClicked = ref(false)
 let isStopJobClicked = ref(false)
-const handleAdhocJob = async () => {
-  if (selectedMode.value > 0) {
-    alert('请取消选择通风模式')
-    return
+
+
+const startJob = async (jobType: string) => {
+
+  // console.log(selectedHouseCode.value)
+
+  let payload = {
+    house_code: selectedHouseCode.value,
+    devices: devices,
+    mode_id: selectedMode.value,
+    mode_name: modeList.value[selectedMode.value].name,
+    duration: durationControl.mins * 60
   }
-  const isConfirmed = confirm("⚠️确定开始即时任务吗？");
+  let isConfirmed = null
+  let apiUrl = null
+  if (jobType == 'adhoc') {
+    if (selectedMode.value > 0) {
+      alert('请取消选择通风模式')
+      return
+    }
+    apiUrl = 'http-api/api/venti/adhoc/start'
+    isConfirmed = confirm(`确定开始仓房${selectedHouseCode.value}的即时作业吗？`);
+  } else {
+    if (selectedMode.value == 0) {
+      alert('请选择通风模式')
+      return
+    }
+    isConfirmed = confirm(`确定开始仓房${selectedHouseCode.value}的智能作业吗？`);
+    apiUrl = 'http-api/api/venti/sched/start'
+    payload.start_condition = parentStart.value ?? '';
+    payload.end_condition = parentEnd.value ?? '';
+  }
+
   if (!isConfirmed) {
     return
   }
-
   try {
     //todo: device address hardcoded, will modify later
-    const adhocTask = axios.post("http-api/api/venti/adhoc/start", {
-      house_code: '001',
-      // mode_id: selectedMode.value,
-      // mode_name: modeList.value[selectedMode.value].name,
-      devices: devices,
-      duration: durationControl.mins
-    });
-    setTimeout(async () => {
-      // console.log("⏳ 3. 这行会在 10 秒后才打印");
-      await fetchRunningJobs(houseCode)
-      console.log('handleAdhocJob active job,', activeJob.value)
-    }, 3000);
-    console.log('adhoc job started')
-    await adhocTask
-
-    // console.log('result ', result)
+    const result = await axios.post(apiUrl,
+      payload
+    );
+    console.log('payload: ', payload)
+    if (result.data.status != 'busy') {
+      setTimeout(async () => {
+        // console.log("这行会在 3 秒后才打印");
+        await fetchRunningJobs('001')
+        console.log('handleAdhocJob active job,', activeJob.value)
+      }, 1000);
+    }
+    console.log('job started')
+    console.log('result ', result)
+    alert(result.data.message)
   } catch (err) {
     alert('操作失败，请检查 PLC 连接');
-  } finally {
-    // console.log('reset isStartJobClicked')
-    // isStartJobClicked.value = false
-    activeJob.value = null
-  }
-
-}
-
-// 1. 开始作业
-const handleSchedJob = async () => {
-  if (selectedMode.value == 0) {
-    alert('请选择通风模式')
-    return
-  }
-  const isConfirmed = confirm("⚠️ 警告：确定要立即下发控制指令，【开始通风作业】吗？");
-  if (!isConfirmed) {
-    return
-  }
-
-  console.log("系统指令已下发：通风作业启动中...");
-  console.log('parent_start', parentStart)
-
-  // TODO: 调用后端异步开始接口
-  try {
-    //todo: device address hardcoded, will modify later
-    // todo: add boolean btnClicked
-    await axios.post("http-api/api/venti/sched/start", {
-      house_code: houseCode,
-      devices: devices,
-      mode_id: selectedMode.value,
-      mode_name: modeList.value[selectedMode.value].name,
-      start_condition: parentStart.value,
-      end_condition: parentEnd.value,
-      duration: durationControl.mins
-    });
-
-    console.log('sched job started')
-    await fetchRunningJobs(houseCode)
-    console.log('handleSchedJob active job,', activeJob.value)
-    // console.log('result ', result)
-  } catch (err) {
-    alert('操作失败，请检查 PLC 连接');
-  } finally {
-    console.log('finished mode switch')
   }
 }
 
 // 2. 停止作业
 const handleStopJob = async () => {
-  const isConfirmed = confirm("🚨 紧急提示：确定要立刻强行【停止当前通风作业】吗？所有关联设备将关闭！");
+  const isConfirmed = confirm(`🚨 确定要停止仓房${selectedHouseCode.value}的当前通风作业吗？`);
 
   if (isConfirmed) {
     // alert("系统指令已下发：通风作业启动中...");
@@ -510,12 +493,12 @@ const handleStopJob = async () => {
     // isStopJobClicked.value = true
     try {
       //todo: device address hardcoded, will modify later
-      await axios.post("http-api/api/venti/job/stop", {
-        house_code: houseCode,
+      const result = await axios.post("http-api/api/venti/job/stop", {
+        house_code: selectedHouseCode.value,
         devices: devices,
       });
       console.log('clicked stoped job')
-
+      alert(result.data.message)
     } catch (err) {
       alert('操作失败，err: ' + err);
     } finally {
@@ -608,6 +591,7 @@ const handleStopJob = async () => {
   background-color: #fff;
   outline: none;
   cursor: pointer;
+  margin-right: 20px;
 }
 
 .native-select:focus {
@@ -948,38 +932,30 @@ const handleStopJob = async () => {
   /* min-height: 100px; */
 }
 
-.empty-tip {
-  padding: 30px;
-  border: 1px dashed #ccc;
-  text-align: center;
-  color: #999;
-}
-
 .action-bar {
   margin-top: 20px;
 }
 
-.btn-save {
-  background: #4caf50;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 16px;
-}
-
-.btn-save:hover {
-  background: #45a049;
-}
-
-.debug-view {
-  background: #333;
-  color: #fff;
-  padding: 15px;
-  border-radius: 4px;
-  margin-top: 20px;
-  font-size: 12px;
+.table-wrapper {
   overflow-x: auto;
+}
+
+.native-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 14px;
+}
+
+.native-table th,
+.native-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #efefef;
+}
+
+.native-table th {
+  background-color: #fafafa;
+  color: #666;
+  font-weight: 600;
 }
 </style>
