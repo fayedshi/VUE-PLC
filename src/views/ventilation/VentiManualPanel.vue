@@ -25,6 +25,7 @@
                     自动
                 </button>
             </div>
+            <HouseSelect v-model="selectedHouseCode" @change="handleHouseChange" />
         </div>
 
         <!-- 以下为您原有的 4 个设备大类循环，保持不变 -->
@@ -50,7 +51,7 @@
                     <!-- 下半部分：单个设备专属的操作按钮组 -->
                     <div class="device-actions">
                         <!-- 针对：通风窗、门控制、排风扇 (开/关/停 或 开/停) -->
-                        <template v-if="['window', 'door', 'exhaust'].includes(cat.type)">
+                        <template v-if="['windows', 'dampers', 'exhaustFans'].includes(cat.type)">
                             <button class="action-single btn-open-text" @click="executeSingleAction(dev, 1)">开</button>
                             <button v-if="cat.type !== 'exhaust'" class="action-single btn-close-text"
                                 @click="executeSingleAction(dev, 2)">关</button>
@@ -58,14 +59,14 @@
                         </template>
 
                         <!-- 针对：风机专属 (正转/反转/停) -->
-                        <template v-if="cat.type === 'fan'">
+                        <template v-if="cat.type === 'blowers'">
                             <button class="action-single btn-open-text" @click="executeSingleAction(dev, 1)">正</button>
                             <button class="action-single btn-invert-text"
                                 @click="executeSingleAction(dev, 2)">反</button>
                             <button class="action-single btn-stop-text" @click="executeSingleAction(dev, 3)">停</button>
                         </template>
 
-                        <template v-if="cat.type === 'ac'">
+                        <template v-if="cat.type === 'airConditioners'">
                             <button class="action-single btn-open-text" @click="executeSingleAction(dev, 1)">开</button>
                             <button class="action-single btn-stop-text" @click="executeSingleAction(dev, 2)">停</button>
                         </template>
@@ -90,13 +91,74 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import axios from 'axios';
+import HouseSelect from '../../components/HouseSelect.vue';
 
 const house_code = '001'
 const devStates = ref([])
 const controlStates = ref([])
+const selectedHouseCode = ref('001');
+
+const granConfig = ref({})
+
+const getDevLen = (devName) => {
+    let start = granConfig.value?.[devName]?.[0]
+    console.log('start: ',start)
+    if(!start){
+        console.log('returning 0')
+        return 0
+    }
+    let end = granConfig.value?.[devName][1]
+    console.log('dev len: ', end - start + 1)
+    return end - start + 1
+}
+
+
+
+const categories = ref([
+    {
+        type: 'windows',
+        label: '窗',
+        globalActions: [
+            { type: 1, name: '全开', className: 'btn-open' },
+            { type: 2, name: '全关', className: 'btn-close' },
+            { type: 3, name: '全停', className: 'btn-stop' }
+        ],
+        devices: []
+    },
+    {
+        type: 'dampers',
+        label: '风门',
+        globalActions: [
+            { type: 1, name: '全开', className: 'btn-open' },
+            { type: 2, name: '全关', className: 'btn-close' },
+            { type: 3, name: '全停', className: 'btn-stop' }
+        ],
+        devices: []
+    },
+    {
+        type: 'blowers',
+        label: '风机',
+        globalActions: [],
+        devices: []
+    },
+    {
+        type: 'exhaustFans',
+        label: '排风扇',
+        globalActions: [],
+        devices: []
+    },
+    {
+        type: 'airConditioners',
+        label: '空调',
+        globalActions: [],
+        devices: []
+    }
+]);
 
 // 状态映射表（无需响应式，直接定义为普通变量）
-
+const handleHouseChange = async () => {
+    initGranConfig()
+}
 
 const winDoorStatusMap = { 0: '初始化', 1: '正在打开', 2: '正在关闭', 3: '停', 4: '开到位', 5: '关到位', 6: '故障' }
 const fanStatusMap = { 0: '初始化', 1: '正转', 2: '反转', 3: '停', 6: '故障' }
@@ -111,66 +173,27 @@ const statusToText = (devId, catType) => {
     // console.log('in statusToText',devInfo, 'index ', index, 'sates: ',devStates.value)
     // console.log('any ',devStates.)
     switch (catType) {
-        case 'window':
-        case 'door':
+        case 'windows':
+        case 'dampers':
             // console.log('devStates[index] ',devStates.value[index])
             // console.log(winDoorStatusMap[devStates.value[index]])
             return winDoorStatusMap[devStates.value[index]]
-        case 'fan':
+        case 'blowers':
             // console.log(fanStatusMap[devStates.value[index]])
             return fanStatusMap[devStates.value[index]]
-        case 'exhaust':
+        case 'exhaustFans':
             // console.log(exhaustStatusMap[devStates.value[index]])
             return exhaustStatusMap[devStates.value[index]]
-        case 'ac':
+        case 'airConditioners':
             // console.log(acStatusMap[devStates.value[index]])
             // 中间隔了全窗控和全门控
+            // 10/04: todo: 为什么减2看一下,应该不对
             return acStatusMap[devStates.value[index - 2]]
         default:
             return '未知'
     }
 }
-// 核心数据结构（使用 ref 包裹使其具备响应式能力，方便后续对接 API 动态更新状态）
-const categories = ref([
-    {
-        type: 'window',
-        label: '通风窗',
-        globalActions: [
-            { type: 1, name: '全开', className: 'btn-open' },
-            { type: 2, name: '全关', className: 'btn-close' },
-            { type: 3, name: '全停', className: 'btn-stop' }
-        ],
-        devices: Array.from({ length: 10 }, (_, i) => ({ id: `win-${i + 1}`, name: `窗 ${i + 1}`, status: 4 }))
-    },
-    {
-        type: 'door',
-        label: '门控制',
-        globalActions: [
-            { type: 1, name: '全开', className: 'btn-open' },
-            { type: 2, name: '全关', className: 'btn-close' },
-            { type: 3, name: '全停', className: 'btn-stop' }
-        ],
-        devices: Array.from({ length: 8 }, (_, i) => ({ id: `door-${i + 11}`, name: `门 ${i + 1}`, status: 4 }))
-    },
-    {
-        type: 'fan',
-        label: '风机',
-        globalActions: [],
-        devices: Array.from({ length: 8 }, (_, i) => ({ id: `fan-${i + 19}`, name: `风机 ${i + 1}`, status: 0 }))
-    },
-    {
-        type: 'exhaust',
-        label: '排风扇',
-        globalActions: [],
-        devices: Array.from({ length: 4 }, (_, i) => ({ id: `exhaust-${i + 27}`, name: `排风 ${i + 1}`, status: 0 }))
-    },
-    {
-        type: 'ac',
-        label: '空调',
-        globalActions: [],
-        devices: Array.from({ length: 2 }, (_, i) => ({ id: `ac-${i + 33}`, name: `空调 ${i + 1}`, status: 0 }))
-    }
-]);
+
 
 // 状态样式计算函数
 const getStatusClass = (devId) => {
@@ -180,9 +203,9 @@ const getStatusClass = (devId) => {
     // if ([1, 3, 5, 6].includes(status)) return 'status-active';
     // if ([2, 4].includes(status)) return 'status-inactive';
     // console.log("class ", devStates.value[index])
-    if (devInfo[0] == 'ac') {
-        return 'status-' + devStates.value[index - 2];
-    }
+    // if (devInfo[0] == 'ac') {
+    //     return 'status-' + devStates.value[index - 2];
+    // }
     return 'status-' + devStates.value[index];
 };
 
@@ -190,7 +213,6 @@ const executeSingleAction = async (device, actionType) => {
     console.log(`单独控制设备【${device.name}】(ID: ${device.id})，执行操作代码: ${actionType}`);
     try {
         let result = await axios.post(`http-api/api/dev/control`, {
-            // let result = await axios.post(`http://${backendAdd}/api/dev/control`, {
             house_code: house_code,
             dev_id: device.id,
             action_type: actionType
@@ -211,7 +233,6 @@ const executeSingleAction = async (device, actionType) => {
 const executeGlobalAction = async (cateType, actionType) => {
     try {
         await axios.post(`http-api/api/dev/control`, {
-            // await axios.post(`http://${backendAdd}/api/dev/control`, {
             house_code: house_code,
             category_type: cateType,
             action_type: actionType
@@ -264,7 +285,37 @@ const initWebSocket = () => {
 onMounted(() => {
     console.log('ready to start fetching plc backend data')
     initWebSocket();
+    initGranConfig()
+    console.log('aftr initwebosocket')
 });
+
+
+const initGranConfig = async () => {
+    // loading.value = true
+    console.log('in fetchGranaryList')
+    try {
+        // 💡 动态将前端的输入框内容拼接到 URL 的参数中 (Query Parameters)
+        const response = await axios.get(`http-api/api/dev-address/${house_code}`)
+        // 将后端返回的 MySQL 字典列表直接赋给组件变量
+        granConfig.value = response.data
+        // windowList.value= Array.from({ length: devSize.value }, (_, i) => ({ id: `windows-${i + granConfig.value['windows'][0]}`, name: `窗 ${i + 1}`, status: 4 }))
+        // damperList.value= Array.from({ length: 8 }, (_, i) => ({ id: `damper-${i + granConfig.value['dampers'][0]}`, name: `风机 ${i + 1}`, status: 0 }))
+        // blowerList.value= Array.from({ length: 8 }, (_, i) => ({ id: `fan-${i + 19}`, name: `风机 ${i + 1}`, status: 0 }))
+        console.log('gran config: ', granConfig.value)
+
+        categories.value.forEach((cate)=>{
+            cate.devices=Array.from({ length: getDevLen(cate.type) }, (_, i) => ({ id: `${cate.type}-${i + granConfig.value[cate.type][0]}`, name: `${cate.label}#${i + 1}`, status: 4 }))
+        })
+
+        // numWindows.value = granConfig.value['windows']
+    } catch (error) {
+        console.error('❌ 请求后端接口失败:', error)
+        alert('数据加载失败，请检查后端服务是否启动！')
+    } finally {
+
+    }
+}
+
 
 // 4. 生命周期：组件销毁时关闭连接，释放工控机内存
 onBeforeUnmount(() => {
@@ -276,17 +327,12 @@ onBeforeUnmount(() => {
 
 });
 
-// const getStatusText = (s) => ['初始化', '开启', '关闭', '停', '开到位', '关到位', '窗故障'][s] || '未知';
-// const getStatusClass = (s) => [`status-${s}`];
-
-
 // 1. 定义两组模式的响应式状态变量（设置默认选中值）
 const controlMode = ref(1) // '2' 远程, '1' 本地
-const runMode = ref(1)     // 2 手动, 1 自动
+const runMode = ref()     // 2 手动, 1 自动
 
 // 2. 远程 / 本地 切换点击事件
 const switchControlMode = async (groupIndex, mode, modeText) => {
-    let curModeVal = groupIndex == 1 ? controlMode.value : runMode.value
     // if (curModeVal === mode) {
     //     console.log('已经是当前模式则不重复触发')
     //     return // 已经是当前模式则不重复触发

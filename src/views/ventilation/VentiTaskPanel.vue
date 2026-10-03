@@ -4,13 +4,16 @@
 
     <!-- 1. 模式选择区域 -->
     <div class="section mode-section">
-      <label class="section-label"> 选择仓房：</label>
-      <select v-model="selectedHouseCode" class="native-select" @change="handleHouseChange">
+      <!-- <label class="section-label"> 选择仓房：</label> -->
+      <!-- <select v-model="selectedHouseCode" class="native-select" @change="handleHouseChange">
         <option :value="null">-- 请选择 --</option>
         <option v-for="houseCode in houseCodeList" :key="houseCode" :value="houseCode">
           {{ houseCode }}
         </option>
-      </select>
+      </select> -->
+      <HouseSelect v-model="selectedHouseCode" @change="handleHouseChange" />
+      <!-- <button >{{ selectedHouseCode }}</button> -->
+
 
       <label class="section-label">选择通风模式：</label>
       <select v-model="selectedMode" class="native-select" @change="handleModeChange">
@@ -184,15 +187,15 @@
     <!-- 4. 运行时长设置区域 -->
     <div class="section duration-section">
       <div class="duration-wrapper">
-        <input type="checkbox" v-model="durationControl.enabled" id="duration-toggle" />
-        <label for="duration-toggle" class="duration-label font-bold">运行时长限制：</label>
+        <input type="checkbox" v-model="durationControl.enabled" id="duration-toggle" @change="handleDurationChange" />
+        <label for="duration-toggle" class="duration-label font-bold">运行最大时长：</label>
 
         <div class="input-group" :class="{ 'disabled-element': !durationControl.enabled }">
           <!-- <span class="ml-4 text-sm">运行时间：</span> -->
           <input type="number" v-model.number="durationControl.mins" :disabled="!durationControl.enabled" min="1"
             placeholder="30" class="native-input duration-input" @input="validateDuration" />
           <span class="unit">分钟 </span>
-          <span class="unit">默认执行{{ durationControl.mins }}分钟，勾选后可修改时长</span>
+          <span v-if="!durationControl.enabled" class="unit-tip">默认最长执行{{ durationControl.mins }}分钟，勾选后可修改最大时长</span>
         </div>
       </div>
     </div>
@@ -236,8 +239,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed, reactive, onMounted, shallowRef } from 'vue';
+import { ref, computed, reactive, onMounted } from 'vue';
 import axios from 'axios';
+import HouseSelect from '../../components/HouseSelect.vue'
+
 
 // 模拟从后端获取到的通风模式列表
 // interface ModeItem {
@@ -265,6 +270,13 @@ const handleSelChange = (event) => {
   console.log('当前文本：', layerText.value)
 }
 
+const handleDurationChange = () => {
+  if (!durationControl.enabled) {
+    console.log('用户取消了勾选');
+    durationControl.mins = 60
+  }
+};
+
 const handleHouseChange = async () => {
   console.log(`切换至模式: ${selectedMode.value}`)
   await fetchRunningJobs(selectedHouseCode.value)
@@ -274,7 +286,6 @@ const handleHouseChange = async () => {
 import SummerInternalCirculation from '../../components/SummerInternalCirculation.vue';
 // import ConditionWholeSilo from '../../components/ConditionWholeSilo.vue'
 import ConditionUpperSilo from '../../components/ConditionUpperSilo.vue';
-import { ConstNode } from 'three/webgpu';
 
 // 当前选中的模式
 const selectedMode = ref(0)
@@ -333,13 +344,12 @@ onMounted(async () => {
   console.log('onMounted active job:', activeJob.value)
   // todo: load running jobs when switching house
   try {
-    const [, houseFuture] = await Promise.all([
+    await Promise.all([
       fetchRunningJobs(selectedHouseCode.value),
-      axios.get('http-api/api/houses/codes')
+      // axios.get('http-api/api/houses/codes')
     ])
-
     // 统一赋值
-    houseCodeList.value = houseFuture.data
+    // houseCodeList.value = houseFuture.data
     console.log('✅ 所有数据加载完毕！')
   } catch (error) {
     console.error('其中一个请求失败了：', error)
@@ -371,7 +381,7 @@ const modeList = ref([
   // { id: 3, name: '❄️ 降低整仓粮温通风' }
 ]);
 
-const houseCodeList = ref([])
+// const houseCodeList = ref([])
 
 const selectedHouseCode = ref('001');
 
@@ -830,6 +840,17 @@ const handleStopJob = async () => {
   font-size: 13px;
   color: #64748b;
   margin-right: 20px;
+}
+
+.unit-tip {
+  font-size: 13px;
+  /* 略小于正文，突出辅助信息 */
+  color: #666666;
+  /* 深灰色，保证已勾选时的可读性 */
+  margin-left: 12px;
+  /* 与前面的“分钟”保持间距 */
+  transition: color 0.3s;
+  /* 状态切换时颜色过渡更平滑 */
 }
 
 /* 5. 底部按钮控制栏 */
