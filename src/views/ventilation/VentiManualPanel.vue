@@ -37,12 +37,12 @@
 
             <!-- 中间：设备列表展示区 -->
             <div class="device-list">
-                <div v-for="dev in cat.devices" :key="dev.id" class="device-card">
+                <div v-for="(dev,index) in cat.devices" :key="dev.id" class="device-card">
                     <!-- 上半部分：设备名与状态展示 -->
                     <div class="device-header">
                         <span class="dev-name">
                             {{ dev.name }}
-                            <span :class="['status-badge', getStatusClass(dev.id)]">
+                            <span :class="['status-badge', getStatusClass(cat.type, index)]">
                                 {{ statusToText(dev.id, cat.type) || '未知' }}
                             </span>
                         </span>
@@ -94,7 +94,9 @@ import axios from 'axios';
 import HouseSelect from '../../components/HouseSelect.vue';
 
 const house_code = '001'
-const devStates = ref([])
+const devStatesObj = ref({
+    'control':[],'windows':[], 'dampers':[], 'blowers':[],'exhaustFans':[],'airConditioners':[]
+})
 const controlStates = ref([])
 const selectedHouseCode = ref('001');
 
@@ -102,8 +104,8 @@ const granConfig = ref({})
 
 const getDevLen = (devName) => {
     let start = granConfig.value?.[devName]?.[0]
-    console.log('start: ',start)
-    if(!start){
+    console.log('start: ', start)
+    if (!start) {
         console.log('returning 0')
         return 0
     }
@@ -169,26 +171,27 @@ const acStatusMap = { 0: '停止', 1: '运行' }
 
 const statusToText = (devId, catType) => {
     let devInfo = devId.split('-');
-    let index = devInfo[1] - 1;
+    // 1004: 不用devInfo[1] - 1
+    let index = devInfo[1];
     // console.log('in statusToText',devInfo, 'index ', index, 'sates: ',devStates.value)
-    // console.log('any ',devStates.)
     switch (catType) {
         case 'windows':
+            return winDoorStatusMap[devStatesObj.value[catType][index]]
         case 'dampers':
             // console.log('devStates[index] ',devStates.value[index])
             // console.log(winDoorStatusMap[devStates.value[index]])
-            return winDoorStatusMap[devStates.value[index]]
+            return winDoorStatusMap[devStatesObj.value[catType][index]]
         case 'blowers':
             // console.log(fanStatusMap[devStates.value[index]])
-            return fanStatusMap[devStates.value[index]]
+            return fanStatusMap[devStatesObj.value[catType][index]]
         case 'exhaustFans':
             // console.log(exhaustStatusMap[devStates.value[index]])
-            return exhaustStatusMap[devStates.value[index]]
+            return exhaustStatusMap[devStatesObj.value[catType][index]]
         case 'airConditioners':
             // console.log(acStatusMap[devStates.value[index]])
             // 中间隔了全窗控和全门控
             // 10/04: todo: 为什么减2看一下,应该不对
-            return acStatusMap[devStates.value[index - 2]]
+            return acStatusMap[devStatesObj.value[catType][index]]
         default:
             return '未知'
     }
@@ -196,9 +199,9 @@ const statusToText = (devId, catType) => {
 
 
 // 状态样式计算函数
-const getStatusClass = (devId) => {
-    let devInfo = devId.split('-');
-    let index = devInfo[1] - 1;
+const getStatusClass = (cateType, index) => {
+    // let devInfo = devId.split('-')
+    // let index = devInfo[1] - 1;
 
     // if ([1, 3, 5, 6].includes(status)) return 'status-active';
     // if ([2, 4].includes(status)) return 'status-inactive';
@@ -206,7 +209,7 @@ const getStatusClass = (devId) => {
     // if (devInfo[0] == 'ac') {
     //     return 'status-' + devStates.value[index - 2];
     // }
-    return 'status-' + devStates.value[index];
+    return 'status-' + devStatesObj.value.cateType[index];
 };
 
 const executeSingleAction = async (device, actionType) => {
@@ -258,12 +261,13 @@ const initWebSocket = () => {
     // 接收到后端实时数据事件
     socket.onmessage = (event: any) => {
         // 解析后端传过来的 JSON 字符串
-        let allStates = JSON.parse(event.data);
+        devStatesObj.value = JSON.parse(event.data);
         // console.log('3. 解析后的类型:', Array.isArray(allStates) ? '数组' : typeof allStates)
-        devStates.value = allStates.splice(2);
-        controlStates.value = allStates.splice(0, 2);
-        controlMode.value = controlStates.value[0]
-        runMode.value = controlStates.value[1]
+        // devStatesObj.value = allStates.splice(2);
+        // controlStates.value = allStates.splice(0, 2);
+
+        controlMode.value = devStatesObj.value['control'][0]
+        runMode.value = devStatesObj.value.control[1]
         // console.log('devstate', event.data)
         console.log('controlStates', controlStates.value)
     };
@@ -303,8 +307,9 @@ const initGranConfig = async () => {
         // blowerList.value= Array.from({ length: 8 }, (_, i) => ({ id: `fan-${i + 19}`, name: `风机 ${i + 1}`, status: 0 }))
         console.log('gran config: ', granConfig.value)
 
-        categories.value.forEach((cate)=>{
-            cate.devices=Array.from({ length: getDevLen(cate.type) }, (_, i) => ({ id: `${cate.type}-${i + granConfig.value[cate.type][0]}`, name: `${cate.label}#${i + 1}`, status: 4 }))
+        categories.value.forEach((cate) => {
+            // cate.devices=Array.from({ length: getDevLen(cate.type) }, (_, i) => ({ id: `${cate.type}-${i + granConfig.value[cate.type][0]}`, name: `${cate.label}#${i + 1}`, status: 4 }))
+            cate.devices = Array.from({ length: getDevLen(cate.type) }, (_, i) => ({ id: `${cate.type}-${i}`, name: `${cate.label}#${i + 1}`, status: 4 }))
         })
 
         // numWindows.value = granConfig.value['windows']
