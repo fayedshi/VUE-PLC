@@ -209,7 +209,7 @@ const getStatusClass = (cateType, index) => {
     // if (devInfo[0] == 'ac') {
     //     return 'status-' + devStates.value[index - 2];
     // }
-    return 'status-' + devStatesObj.value.cateType[index];
+    return 'status-' + devStatesObj.value[cateType][index];
 };
 
 const executeSingleAction = async (device, actionType) => {
