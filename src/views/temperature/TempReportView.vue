@@ -2,6 +2,7 @@
   <div class="report-container">
     <!-- 1. 时间查询工具栏 -->
     <div class="search-bar">
+      <HouseSelect v-model="selectedHouseCode" />
       <div class="search-item">
         <label>选择时间：</label>
         <!-- 使用 datetime-local 方便用户精确选择到分钟 -->
@@ -75,12 +76,15 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import axios from 'axios'
+import HouseSelect from '../../components/HouseSelect.vue'
 
 
 // 响应式数据：存储原始 JSON 对象数据
 const temp_cache = ref({})
 const isLoading = ref(false)
 const localTime = ref()
+
+const selectedHouseCode = ref('001');
 // 查询表单数据
 const searchQuery = ref({
   dateTime: ''
@@ -103,7 +107,8 @@ const fetchTemperatureData = async (formattedTime = '') => {
     const response = await axios.get('http-api/api/tempreport', {
     // const response = await http.get('/api/tempbytime', {
       params: {
-        input_time: formattedTime
+        input_time: formattedTime,
+        house_code: selectedHouseCode.value
       }
     });
     console.log('ui response',response.data)
