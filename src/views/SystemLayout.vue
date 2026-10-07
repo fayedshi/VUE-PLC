@@ -20,7 +20,7 @@
       <RouterLink to="/ventilation" active-class="active">通风系统</RouterLink>      
       <RouterLink to="/power" active-class="active">能耗监测</RouterLink>
       
-      <RouterLink to="/nitrogen-generation" active-class="active">气调系统</RouterLink>
+      <RouterLink to="/ca" active-class="active">气调系统</RouterLink>
       <RouterLink to="/hvac" active-class="active">空调系统</RouterLink>
       <RouterLink to="/environment-monitor" active-class="active">环境监测</RouterLink>
     </nav>

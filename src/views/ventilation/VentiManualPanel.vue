@@ -93,7 +93,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import axios from 'axios';
 import HouseSelect from '../../components/HouseSelect.vue';
 
-const house_code = '001'
+// const house_code = '001'
 const devStatesObj = ref({
     'control':[],'windows':[], 'dampers':[], 'blowers':[],'exhaustFans':[],'airConditioners':[]
 })
@@ -216,7 +216,7 @@ const executeSingleAction = async (device, actionType) => {
     console.log(`单独控制设备【${device.name}】(ID: ${device.id})，执行操作代码: ${actionType}`);
     try {
         let result = await axios.post(`http-api/api/dev/control`, {
-            house_code: house_code,
+            house_code: selectedHouseCode.value,
             dev_id: device.id,
             action_type: actionType
         });
@@ -236,7 +236,7 @@ const executeSingleAction = async (device, actionType) => {
 const executeGlobalAction = async (cateType, actionType) => {
     try {
         await axios.post(`http-api/api/dev/control`, {
-            house_code: house_code,
+            house_code: selectedHouseCode.value,
             category_type: cateType,
             action_type: actionType
         });
@@ -250,7 +250,7 @@ let isExplicitlyClosed = false
 const initWebSocket = () => {
     // todo: need granary switch control in ui, hardcode 001 for now
     isExplicitlyClosed = false
-    socket = new WebSocket(`ws-api/ws/dev-state/${house_code}`);
+    socket = new WebSocket(`ws-api/ws/dev-state/${selectedHouseCode.value}`);
     // socket = new WebSocket(`ws://${backendAdd}/ws/dev-state`);
 
     // 连接成功事件
@@ -299,7 +299,7 @@ const initGranConfig = async () => {
     console.log('in fetchGranaryList')
     try {
         // 💡 动态将前端的输入框内容拼接到 URL 的参数中 (Query Parameters)
-        const response = await axios.get(`http-api/api/dev-address/${house_code}`)
+        const response = await axios.get(`http-api/api/dev-address/${selectedHouseCode.value}`)
         // 将后端返回的 MySQL 字典列表直接赋给组件变量
         granConfig.value = response.data
         // windowList.value= Array.from({ length: devSize.value }, (_, i) => ({ id: `windows-${i + granConfig.value['windows'][0]}`, name: `窗 ${i + 1}`, status: 4 }))
@@ -346,7 +346,7 @@ const switchControlMode = async (groupIndex, mode, modeText) => {
         //todo: device address hardcoded, will modify later
         let devId = groupIndex == 1 ? 'switch-399' : 'switch-0'
         let result = await axios.post(`http-api/api/dev/control`, {
-            house_code: house_code,
+            house_code: selectedHouseCode.value,
             dev_id: devId,
             action_type: mode
         });

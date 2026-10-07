@@ -77,7 +77,7 @@ let routes = [
         path: '/gas-control',
         name: 'GasControl',
         component: () => import('../views/GasControlView.vue'),
-        meta: { title: '气调系统' }
+        meta: { title: '气调test系统' }
       },
       {
         path: '/ventilation',
@@ -113,18 +113,24 @@ let routes = [
         meta: { title: '能耗监测' }
       },
       {
-        path: '/nitrogen-generation',
-        name: 'NitrogenGeneration',
-        component: () => import('../views/CA/cajobconsole.vue'),
+        path: '/ca',
+        name: 'CA',
+        component: () => import('../views/CA/CALayout.vue'),
         meta: { title: '气调系统' },
-        // children: [
-        //   {
-        //     path: '', // 留空代表默认子路由，访问 / 时默认渲染此组件
-        //     name: 'CAMode',
-        //     component: () => import('../views/CA/NitrogenGeneration.vue'),
-        //     meta: { title: '手动控制面板' }
-        //   }
-        // ]
+        children: [
+          {
+            path: '', // 留空代表默认子路由，访问 / 时默认渲染此组件
+            name: 'GasMonitor',
+            component: () => import('../views/CA/GasMonitor.vue'),
+            meta: { title: '气体检测' }
+          },
+          {
+            path: 'caJobConsole', // 留空代表默认子路由，访问 / 时默认渲染此组件
+            name: 'CAJobConsole',
+            component: () => import('../views/CA/CAJobConsole.vue'),
+            meta: { title: '气调作业控制面板' }
+          }
+        ]
       },
       {
         path: '/environment-monitor',

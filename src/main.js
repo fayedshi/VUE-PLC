@@ -28,7 +28,8 @@ import {
     ElDatePicker,
     ElDescriptionsItem,
     ElDescriptions,
-
+    ElIcon,
+    ElStatistic
 
 } from 'element-plus'
 
@@ -55,7 +56,8 @@ app.use(ElSelect)
 app.use(ElDatePicker)
 app.use(ElDescriptionsItem)
 app.use(ElDescriptions)
-
+app.use(ElIcon)
+app.use(ElStatistic)
 app.use(myRouter)
 app.use(pinia)
     .mount('#myapp')

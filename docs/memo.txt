@@ -3,14 +3,62 @@
 version: '3.8'
 
 问题:
+	0926: 窗1状态显示不对，无法关闭
+	0924: 先按下停止，再开启job，is_job_cancelled 就没有复位
+	0922, save to alarm history TypeError: not all arguments converted during string formatting 
+	0922异常后还在继续走： INFO: 拼接后的字符串 for 仓房-001: plc_humid_data,plc_type=s7-smart200,station_id=001  1790045982304264900
+	
+	后端如果连接多个websocket前端，怎么办？
+	humid107 老是读出 999i，
+		答：取相邻值
+	
+	实时温度和湿度都是2000多，要控制globe_plc_temp_cache，plc异常时，ws/live仍取了cache中的值
+	'temp79': 216, 'temp80': 63036, 'temp81': 63036, 'temp82': 63036, 'temp83': 213, 'temp84': 63036, 
+	'temp106': 63036, 'temp107': 63036, 'temp108': 226, 'temp109': 63036, 
+	'temp110': 63036, 'temp111': 63036, 'temp112': 63036, 'temp113': 63036, 'temp114': 63036,
+	溫度數據不太對
+	
+	
+	目前plc_temp_data写的是int型的，因为第一次写入都是int，需要删掉现有数据
+	这里可以切换厫间，是不是要同时采集所有厫间数据？
+	140个测温点是怎么排列的
+	有35根电缆，每根挂4个测温点，跟excel表格中的寄存器序号怎么对应上的？是从坐往右数吗
+
+
+	
+	
+	
+	
+
+	温度曲线，超时设置更长一些
 	这里可以切换厫间，是不是要同时采集所有厫间数据？
 	140个测温点是怎么排列的，--已解答
 	有35根电缆，每根挂4个测温点，跟excel表格中的寄存器序号怎么对应上的？是从坐往右数吗
 
 todo:
+	1007: check_plc_connection for gas PLC
+	10/07：devices 没有勾选的也传过来了，需要过滤
+	10/07：通风job表加上duration, controlled_devices字段
+	10/05: 通风，环流，制冷，充氮, 5个阶段都做完
+	10/05: 拷贝一份用于DeQing	
 	1004: mode-display 这里代码里还是hard-code 
 	1002: 按照阀门数量最多的仓房来配置数据库
+	10/05: 通风，环流，制冷，充氮, 5个阶段都做完
+	10/05: 拷贝一份用于DeQing
+	0928: shutdown dampers first when shutdown fans
+	0928： 制氮模式设置：几个固定模式，然后条件（抽空负压值等，下面是阀门选择），上充下排
+	0928： 弄好oneDrive
+	0928: 开风机、排风扇需要先完全打开风门，需要调整dampers等它开到位
 	0925: run_job只管跑，check_condition只管检测条件是否满足
+	0924： 任务状态有： 等待触发（-1），运行中(0)，结束(1，正常结束 2，等待触发超时，3，等待结束超时， 4，被取消  5：异常中止)
+	
+	0924： 记录下设备选择到pinia中，每次回来要显示上一次的通风模式的设备选择
+	0921：试下502端口，模拟2个仓房同时写入，可能要关闭服务器进程
+	读设备正常流程：
+		先onMounted 发请求到后端，读取配置文件中的设备地址，开启job时，返回json对象 {address1:action1, address2:action2 }
+	氮气气调作业，不需要子组件，因为触发条件是固定的，上面有目标仓压值，抽空负压值等，下面是阀门选择
+	
+	通风作业，需要子组件，因为触发条件有多种组合
 	
 	试下502端口，模拟2个仓房同时写入，可能要关闭服务器进程
 	读设备正常流程：
@@ -35,6 +83,26 @@ todo:
 	else if count==5: #may not be required
 		write status data
 	write statics to influxdb
+
+记录：
+	0930: 阀门我们自己的仓房还没配置，数量每个仓房可能不一样
+	0929:德清 26个阀门(1-10制氮阀门，11-26环流for气调)，4个空调，6个风机(只有开停两个状态)
+	# 手动自动切换 0
+	await write_single_step(0,2) --状态对应364 (6手动，1自动)
+    # 本地远程切换 399 
+    await write_single_step(399,2) --状态对应363
+	
+	1. 环流时间（Circulation Duration / Time）
+	• 指什么：是指气调风机持续开启、让仓内气体进行循环流动的【总时长】（通常单位为秒或分钟）。
+	• 物理意义：充入氮气或其他气体后，为了让仓内的气体浓度分布均匀（避免局部浓度过高或过低），需要开启环流风机。配置里的“环流时间”就是告诉系统：“当进入环流阶段时，风机需要持续运转多少秒/分钟再关闭”。
+	2. 排气时间（Exhaust Duration / Time）
+	• 指什么：是指排气阀门保持开启状态，进行置换换气或泄压的【总时长】（通常单位为秒）。
+	• 物理意义：当仓内压力过大（超过暂停仓压值），或者气调作业结束需要引入新鲜空气复验时，系统会打开排气阀。这里的“排气时间”是指“阀门每次开启持续放气多少秒”，用来控制气体的排出量，防止一次性排气过多导致仓内结构受损。
+		
+	INFO: 已新增记录 venti_task_id: <coroutine object persist_venti_task at 0x0000015617DBBED0> ：因为没有await persist_db()
+	influxdb3 本地token: apiv3_ntcKjOE7rToG5Z9tcxJ9XQj1_8Bm-ANFgIECpNtyhPeBuSJstAglB_pF1awNFt9oUcCZL4Og9kwd3wnMDG29gQ
+	夏天内循环：室外高于室内最大温度15度，门窗全部关闭，风机（）
+	冬天外循环： 
 
 总结:
 	阶段一：高强度充气与杀虫阶段（运行 3 ～ 10 天）

@@ -3,7 +3,7 @@
   <div class="condition-box">
 
     <div class="form-item">
-      <label>目标整体降温温差 (表层平均 - 仓外) >= </label>
+      <label>表层平均 - 仓外 >= </label>
       <input type="number" v-model="localStart.minTotalTempDiff" step="0.1" /> ℃
     </div>
     <span class="join">同时</span>
@@ -25,7 +25,7 @@
   <div class="condition-box">
 
     <div class="form-item">
-      <label>目标整体降温温差 (表层平均 - 仓外) < </label>
+      <label>表层平均 - 仓外 < </label>
           <input type="number" v-model="localEnd.minTotalTempDiff" step="0.1" /> ℃
     </div>
     <span class="join">同时</span>

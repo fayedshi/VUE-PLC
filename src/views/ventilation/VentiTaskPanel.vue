@@ -279,6 +279,7 @@ const handleDurationChange = () => {
 
 const handleHouseChange = async () => {
   console.log(`切换至模式: ${selectedMode.value}`)
+  initDevices()
   await fetchRunningJobs(selectedHouseCode.value)
   // query running job
 }
@@ -348,6 +349,7 @@ onMounted(async () => {
       fetchRunningJobs(selectedHouseCode.value),
       // axios.get('http-api/api/houses/codes')
     ])
+    initDevices()
     // 统一赋值
     // houseCodeList.value = houseFuture.data
     console.log('✅ 所有数据加载完毕！')
@@ -397,6 +399,18 @@ const devices = reactive({
     1: null, 2: null, 3: null, 4: null, 5: null, 6: null, 7: null, 8: null
   })
 });
+
+const initDevices = () => {
+  devices.windows = [];
+  devices.dampers = [];
+  devices.exhaustFans = [];
+  devices.airConditioners = [];
+
+  // 重置风机状态
+  Object.keys(devices.blowers).forEach(key => {
+    devices.blowers[Number(key)] = null;
+  });
+}
 
 // 运行时长控制
 const durationControl = reactive({
