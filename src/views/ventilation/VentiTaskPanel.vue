@@ -523,11 +523,11 @@ const handleStopJob = async () => {
       });
       console.log('clicked stoped job')
       alert(result.data.message)
+      await fetchRunningJobs(selectedHouseCode.value)
     } catch (err) {
       alert('操作失败，err: ' + err);
     } finally {
       console.log('finished handleStopJob')
-      // isStopJobClicked.value = false
     }
   }
 

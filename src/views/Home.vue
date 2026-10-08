@@ -164,7 +164,7 @@ const initWebSocket = async () => {
   // 连接关闭事件
   socket.onclose = () => {
     isConnected.value = false;
-    console.log('【前端提示】home连接已断开');
+    console.log('【前端提示】home连接已断开 granCode:',granCode);
     // no reconnect if manually closed
     if (!isExplicitlyClosed) {
       console.log('3秒后尝试自动重连...');

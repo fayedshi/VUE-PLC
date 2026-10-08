@@ -2,8 +2,9 @@
   <div class="navigate">
     <!-- 二级子菜单导航 -->
 
-    <RouterLink to="/ca" exact-active-class="active">气体检测</RouterLink>
-    <RouterLink to="/ca/caJobConsole" active-class="active">气调作业控制面板</RouterLink>
+    <RouterLink to="/ca" exact-active-class="active">实时气体全览</RouterLink>
+    <RouterLink to="/ca/gasHistory" active-class="active">历史气体查询</RouterLink>
+    <RouterLink to="/ca/caJobConsole" active-class="active">作业控制面板</RouterLink>
 
   </div>
 

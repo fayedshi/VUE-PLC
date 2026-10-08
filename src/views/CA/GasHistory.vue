@@ -6,10 +6,21 @@
         <div class="card-header">
           <!-- <span class="header-title">🌍 环境综合指标</span> -->
           <HouseSelect v-model="selectedHouseCode" @change="handleHouseChange" />
+          <el-date-picker v-model="controls.start_time" type="datetime" placeholder="请选择时间" style="width: 200px" />
+          <!-- 搜索按钮：绑定点击事件，并在搜索进行中或任务激活时禁用 -->
+          <el-button type="primary" :loading="isLoading" :disabled="!controls.start_time" @click="handleSearch">
+            查询
+          </el-button>
+
+          <!-- 可选：重置按钮（日常开发中通常成对出现，体验更好） -->
+          <el-button :disabled="isLoading" @click="handleReset">
+            重置
+          </el-button>
+
         </div>
 
       </template>
-      <el-row :gutter="20">
+      <el-row :gutter="20" v-if="envData.temperature">
         <el-col :span="4" :xs="12">
           <el-statistic title="温度" :value="envData.temperature" suffix="°C" />
         </el-col>
@@ -35,7 +46,7 @@
     </el-card>
 
     <!-- 2. 主体：四大核心检测项区域 -->
-    <el-row :gutter="20" class="detection-grid">
+    <el-row :gutter="20" class="detection-grid" v-if="envData.temperature">
       <!-- ⭐ 关键修改：将 :span 改为 24，让每个区域不论在 PC 还是手机都独占一行 -->
       <el-col :span="24" :xs="24" v-for="item in detectionItems" :key="item.key" class="detection-col">
         <el-card shadow="hover" class="item-card">
@@ -65,26 +76,75 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { User } from '@element-plus/icons-vue'
 import HouseSelect from '../../components/HouseSelect.vue';
+import axios from 'axios';
+import { ElMessage } from 'element-plus';
 
 const selectedHouseCode = ref('001');
 
 let socket = null
 let isExplicitlyClosed = false
 
-const handleHouseChange = async () => {
-  if (socket) {
-    socket.close();
+const controls = reactive({
+  house_code: '',
+  start_time: ''
+})
+
+const isLoading = ref(false)
+const handleSearch = async () => {
+  if (!controls.start_time) {
+    alert('请先选择要查询的日期和具体时间！')
+    return
   }
-  isExplicitlyClosed = true;
-  // console.log('plc_code', activeGranary.value.plc_code)
-  initWebSocket()
+  isLoading.value = true
+  // 💡 避坑处理：datetime-local 默认格式是 "2026-08-11T14:30" 
+  // 此处通过正则和拼接，将其自动格式化为后端数据库标准的 "2026-08-11 14:30:00"
+  const rawTime = controls.start_time
+  const isoStartTime = new Date(controls.start_time).toISOString().split('.')[0] + 'Z'
+  console.log(rawTime)
+  const formattedTime = rawTime
+  console.log('发起历史时间点查询：', isoStartTime)
+
+  try {
+    // console.log('formattedTime', formattedTime)
+    const response = await axios.get('http-api/api/gas/querygas', {
+      params: {
+        input_time: isoStartTime,
+        house_code: selectedHouseCode.value
+      }
+    });
+    if (!response.data || Object.keys(response.data).length == 0) {
+      ElMessage.error('未找到该时间点的数据')
+      envData.temperature = null
+      return
+    }
+    ElMessage.success('数据查询成功')
+    // console.log('ui response', response.data)
+    channelData.value = response.data
+    detectionItems.forEach(item => {
+      item.channels = populateChannels(channelData.value.splice(0, 16))
+    })
+    envData.humidity = channelData.value[1].toFixed(1)
+    envData.temperature = channelData.value[0].toFixed(1)
+    envData.distance = channelData.value[2]
+    envData.peopleCount = channelData.value[3]
+    envData.dust = channelData.value[4]
+  } catch (err) {
+    console.error('获取数据异常:', err)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const handleReset = () => {
+  controls.start_time = ''
+}
+
+
+const handleHouseChange = async () => {
   console.log(`切换至house: ${selectedHouseCode.value}`)
-  // initDevices()
-  // await fetchRunningJobs(selectedHouseCode.value)
-  // query running job
 }
 
 interface Channel {
@@ -97,7 +157,6 @@ interface DetectionItem {
   name: string
   unit: string
   channels: Channel[]
-  // value: Number
 }
 
 const channelData = ref([])
@@ -105,7 +164,7 @@ const channelData = ref([])
 const populateChannels = (nums): Channel[] => {
   return Array.from({ length: 16 }, (_, i) => ({
     id: i + 1,
-    value: Number(nums[i])
+    value: nums[i]
   }))
 }
 
@@ -116,12 +175,6 @@ const envData = reactive({
   peopleCount: null,
   distance: null
 })
-// const detectionItems = reactive<DetectionItem[]>([
-//   { key: 'ph3', name: '🧪 磷化氢 (PH₃)', unit: 'ppm', channels: populateChannels(0, 15) },
-//   { key: 'o2', name: '💨 氧气 (O₂)', unit: '%', channels: populateChannels(18, 23) },
-//   { key: 'co2', name: '🌫️ 二氧化碳 (CO₂)', unit: 'ppm', channels: populateChannels(350, 1200) },
-//   { key: 'bugs', name: '🐛 虫数检测', unit: '🪲', channels: populateChannels(0, 8) }
-// ])
 
 const detectionItems = reactive<DetectionItem[]>([
   { key: 'ph3', name: '🧪 磷化氢 (PH₃)', unit: 'ppm', channels: [] },
@@ -153,72 +206,6 @@ const getAlarmClass = (value: number, type: string): string => {
 }
 
 onMounted(async () => {
-  initWebSocket()
-})
-
-// 2. 建立 WebSocket 连接函数
-const initWebSocket = async () => {
-
-
-  // const granCode = activeGranary.value.code
-  // if (!granCode) {
-  //   console.warn('【前端提示】当前无可用的 仓房编号，取消初始化 WebSocket');
-  //   return;
-  // }
-  // 如果在电脑本机测试，保持 localhost；如果要手机访问，请改为工控机的局域网 IP
-  socket = new WebSocket(`ws-api/ws/gas/${selectedHouseCode.value}`);
-  // socket = new WebSocket('ws:192.168.0.100:8000/ws/live');
-
-  // 连接成功事件
-  socket.onopen = () => {
-
-    console.log('成功连接到 Python 后端 gas WebSocket！,gran code', selectedHouseCode.value);
-    isExplicitlyClosed = false; // 每次全新建立连接时，重置手动关闭状态
-  };
-
-  // 接收到后端实时数据事件
-  socket.onmessage = (event) => {
-    // 解析后端传过来的 JSON 字符串
-    const res = JSON.parse(event.data);
-    // 直接赋值，Vue 3 会自动、高效地刷新界面上对应的数字
-    // console.log('取得后端数据', res)
-    channelData.value = res;
-    // console.log(channelData.value)
-    detectionItems.forEach(item => {
-      item.channels = populateChannels(channelData.value.splice(0, 16))
-    })
-    envData.humidity = channelData.value[1].toFixed(1)
-    envData.temperature = channelData.value[0].toFixed(1)
-    envData.distance = channelData.value[2]
-    envData.peopleCount = channelData.value[3]
-    envData.dust = channelData.value[4]
-  };
-
-  // 连接关闭事件
-  socket.onclose = () => {
-
-    console.log('【前端提示】home连接已断开');
-    // no reconnect if manually closed
-    if (!isExplicitlyClosed) {
-      console.log('3秒后尝试自动重连...');
-      setTimeout(initWebSocket, 3000); // 掉线自动重连机制
-    }
-    // liveData.value = ['--', '--', '--', '--', '--', '--'];
-  };
-
-  // 发生错误事件
-  socket.onerror = (error) => {
-    console.error('【前端提示】WebSocket 发生错误:', error);
-  };
-};
-
-onBeforeUnmount(() => {
-  if (socket) {
-    socket.close();
-    // 切换tab时，没必要保持连接，当成手动关闭
-    console.log('manually closed websocket')
-    isExplicitlyClosed = true
-  }
 
 })
 </script>

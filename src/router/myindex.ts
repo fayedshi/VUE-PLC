@@ -122,7 +122,13 @@ let routes = [
             path: '', // 留空代表默认子路由，访问 / 时默认渲染此组件
             name: 'GasMonitor',
             component: () => import('../views/CA/GasMonitor.vue'),
-            meta: { title: '气体检测' }
+            meta: { title: '实时气体检测' }
+          },
+          {
+            path: 'gasHistory', // 留空代表默认子路由，访问 / 时默认渲染此组件
+            name: 'GasHistory',
+            component: () => import('../views/CA/GasHistory.vue'),
+            meta: { title: '历史气体' }
           },
           {
             path: 'caJobConsole', // 留空代表默认子路由，访问 / 时默认渲染此组件

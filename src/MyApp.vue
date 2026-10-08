@@ -4,5 +4,5 @@
 
 <script setup>
 
-import Router01 from './components/Router01.vue';
+import Router01 from './views/MainLayout.vue';
 </script>
