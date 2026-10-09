@@ -139,10 +139,10 @@ let routes = [
         ]
       },
       {
-        path: '/environment-monitor',
-        name: 'EnvironmentMonitor',
-        component: () => import('../views/EnvironmentMonitorView.vue'),
-        meta: { title: '环境监测' }
+        path: '/video',
+        name: 'SecurityMonitor',
+        component: () => import('../views/video/MainMonitor.vue'),
+        meta: { title: '安防监控' }
       },
     ]
   },

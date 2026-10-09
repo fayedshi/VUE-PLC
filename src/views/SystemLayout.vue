@@ -8,8 +8,9 @@
       <RouterLink to="/power" active-class="active">能耗监测</RouterLink>
       
       <RouterLink to="/ca" active-class="active">气调系统</RouterLink>
+      <RouterLink to="/video" active-class="active">安防监控</RouterLink>
       <RouterLink to="/hvac" active-class="active">空调系统</RouterLink>
-      <RouterLink to="/environment-monitor" active-class="active">环境监测</RouterLink>
+      <!-- <RouterLink to="/environment-monitor" active-class="active">环境监测</RouterLink> -->
     </nav>
   </div>
 

@@ -29,7 +29,11 @@ import {
     ElDescriptionsItem,
     ElDescriptions,
     ElIcon,
-    ElStatistic
+    ElStatistic,
+    ElAside,
+    ElMain,
+    ElContainer,
+    ElEmpty
 
 } from 'element-plus'
 
@@ -37,6 +41,7 @@ import {
 const app = createApp(MyApp);
 const pinia = createPinia()
 pinia.use(piniaPluginPersistedstate)
+app.use(ElAside).use(ElMain).use(ElContainer).use(ElEmpty)
 app.use(ElTabs)
 app.use(ElTabPane)
 app.use(ElRow)
