@@ -41,7 +41,7 @@
                         <div class="time-picker-block">
                             <span class="ctrl-label">选择回放开始时间：</span>
                             <el-date-picker v-model="controls.start_time" type="datetime" placeholder="请选择回放时间"
-                                style="width: 200px" :disabled="!activeChannelId || isLive" />
+                                style="width: 200px" />
                         </div>
 
                         <div class="btn-group">
@@ -88,33 +88,34 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, nextTick, onBeforeUnmount } from 'vue'
+import { ref, reactive, computed, nextTick, onBeforeUnmount, onMounted } from 'vue'
 import { VideoCamera, Search, Refresh, Monitor } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import axios from 'axios';
 
 // --- ⚙️ 模拟硬盘录像机（NVR）及关联通道的数据点点表 ---
 interface Channel { id: string; name: string }
 interface NVR { id: number; name: string; channels: Channel[] }
 
 const nvrList = ref<NVR[]>([
-    {
-        id: 1,
-        name: '🏢 1号仓主硬盘录像机',
-        channels: [
-            { id: '101', name: '1号仓东侧低位监控' },
-            { id: '102', name: '1号仓西侧高位监控' },
-            { id: '201', name: '2号仓全景球机' },
-            { id: '301', name: '3号仓通道传感器绑定机' }
-        ]
-    },
-    {
-        id: 2,
-        name: '🌾 2号储备库备份录像机',
-        channels: [
-            { id: '101', name: '储备库A区大门' },
-            { id: '201', name: '储备库B区内部监测' }
-        ]
-    }
+    // {
+    //     id: 1,
+    //     name: '🏢 1号仓主硬盘录像机',
+    //     channels: [
+    //         { id: '101', name: '1号仓东侧低位监控' },
+    //         { id: '201', name: '2号仓全景球机' },
+    //         { id: '301', name: '3号仓通道传感器绑定机' },
+    //         { id: '401', name: '1号仓西侧高位监控' }
+    //     ]
+    // },
+    // {
+    //     id: 2,
+    //     name: '🌾 2号储备库备份录像机',
+    //     channels: [
+    //         { id: '101', name: '储备库A区大门' },
+    //         { id: '201', name: '储备库B区内部监测' }
+    //     ]
+    // }
 ])
 
 // 联动响应式状态
@@ -134,6 +135,51 @@ const controls = reactive({
 const currentChannels = computed(() => {
     const found = nvrList.value.find(n => n.id === activeNvrId.value)
     return found ? found.channels : []
+})
+
+onMounted(async () => {
+    try {
+        // 假设这是通过 axios 从后台请求回来的原始数据列表
+        const rawData = await axios.get('http-api/api/nvr/channels')
+        // const rawData = [
+        //     {
+        //         "1": "大门",
+        //         "2": "门外西",
+        //         "3": "门外东",
+        //         "4": "快递室",
+        //         "5": "围墙东南朝西",
+        //         "6": "停车场"
+        //     }
+        // ]
+
+        // 4. 遍历后台返回的数组（一个元素对应一个 NVR 录像机）
+        rawData.data.forEach((nvrObj) => {
+            // 基于当前已有的长度，动态生成一个新的 NVR 唯一编号（例如从 id: 3 开始）
+            const nextNvrId = nvrList.value.length + 1
+
+            // 解析出该 NVR 下的所有通道
+            const parsedChannels: Channel[] = Object.entries(nvrObj).map(([key, value]) => {
+                // 核心转换逻辑：将 "1" 转为 "101"，"2" 转为 "201"
+                const rtspId = String(Number(key) * 100 + 1)
+
+                return {
+                    id: rtspId,
+                    name: value as string
+                }
+            })
+
+            // 5. 拼装成符合 NVR 接口的对象
+            const newNvrItem: NVR = {
+                id: nextNvrId,
+                name: `🎥 硬盘录像机-${nextNvrId}`, // 可以根据业务定义具体的录像机名称
+                channels: parsedChannels
+            }
+            nvrList.value.push(newNvrItem)
+        })
+        console.log('✅ 数据填充成功，当前完整的 nvrList:', nvrList.value)
+    } catch (error) {
+        console.error('❌ 获取或解析 NVR 数据失败:', error)
+    }
 })
 
 // 当切换选中的录像机时，清空当前激活的通道状态
@@ -163,8 +209,12 @@ const handleSearchPlayback = async () => {
     isLive.value = false // 切换状态至历史回放模式
 
     try {
+        console.log('start time', controls.start_time)
         // 💡 转换为标准 ISO 字符串，并切割掉毫秒以满足海康及 FastAPI 格式要求
-        const isoStr = new Date(controls.start_time).toISOString().split('.')[0] + 'Z'
+        const date = new Date(controls.start_time);
+        // to convert to format: 20261010t144000z
+        const isoStr = new Date(date.getTime() - (date.getTimezoneOffset() * 60000))
+            .toISOString().replaceAll("-", "").replaceAll(":", "").split('.')[0] + 'z'
         console.log('触发历史回放嗅探时间:', isoStr)
 
         renderKey.value++ // 重新刷新画布
