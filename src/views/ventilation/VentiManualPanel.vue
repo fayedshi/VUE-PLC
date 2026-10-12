@@ -37,7 +37,7 @@
 
             <!-- 中间：设备列表展示区 -->
             <div class="device-list">
-                <div v-for="(dev,index) in cat.devices" :key="dev.id" class="device-card">
+                <div v-for="(dev, index) in cat.devices" :key="dev.id" class="device-card">
                     <!-- 上半部分：设备名与状态展示 -->
                     <div class="device-header">
                         <span class="dev-name">
@@ -95,7 +95,7 @@ import HouseSelect from '../../components/HouseSelect.vue';
 
 // const house_code = '001'
 const devStatesObj = ref({
-    'control':[],'windows':[], 'dampers':[], 'blowers':[],'exhaustFans':[],'airConditioners':[]
+    'control': [], 'windows': [], 'dampers': [], 'blowers': [], 'exhaustFans': [], 'airConditioners': []
 })
 const controlStates = ref([])
 const selectedHouseCode = ref('001');
@@ -172,7 +172,7 @@ const acStatusMap = { 0: '停止', 1: '运行' }
 const statusToText = (devId, catType) => {
     let devInfo = devId.split('-');
     // 1004: 不用devInfo[1] - 1
-    let index = devInfo[1];
+    let index = devInfo[1] - 1;
     // console.log('in statusToText',devInfo, 'index ', index, 'sates: ',devStates.value)
     switch (catType) {
         case 'windows':
@@ -222,8 +222,8 @@ const executeSingleAction = async (device, actionType) => {
         });
         if (result.data.status == 'success')
             console.log(result.data.status)
-        else
-            alert(result.data.message)
+        // else
+        alert(result.data.message)
         // console.log('result ', result)
     } catch (err) {
         alert('操作失败，请检查 PLC 连接');
@@ -309,7 +309,7 @@ const initGranConfig = async () => {
 
         categories.value.forEach((cate) => {
             // cate.devices=Array.from({ length: getDevLen(cate.type) }, (_, i) => ({ id: `${cate.type}-${i + granConfig.value[cate.type][0]}`, name: `${cate.label}#${i + 1}`, status: 4 }))
-            cate.devices = Array.from({ length: getDevLen(cate.type) }, (_, i) => ({ id: `${cate.type}-${i}`, name: `${cate.label}#${i + 1}`, status: 4 }))
+            cate.devices = Array.from({ length: getDevLen(cate.type) }, (_, i) => ({ id: `${cate.type}-${i + 1}`, name: `${cate.label}#${i + 1}`, status: 4 }))
         })
 
         // numWindows.value = granConfig.value['windows']
