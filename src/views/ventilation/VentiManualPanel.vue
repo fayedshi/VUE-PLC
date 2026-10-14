@@ -17,14 +17,14 @@
             </div>
 
             <!-- 第二组：手动 / 自动 -->
-            <div class="btn-group">
+            <!-- <div class="btn-group">
                 <button :class="{ active: runMode === 6 }" @click="switchControlMode(2, 2, '手动')">
                     手动
                 </button>
                 <button :class="{ active: runMode === 1 }" @click="switchControlMode(2, 1, '自动')">
                     自动
                 </button>
-            </div>
+            </div> -->
             <HouseSelect v-model="selectedHouseCode" @change="handleHouseChange" />
         </div>
 
@@ -95,7 +95,7 @@ import HouseSelect from '../../components/HouseSelect.vue';
 
 // const house_code = '001'
 const devStatesObj = ref({
-    'control': [], 'windows': [], 'dampers': [], 'blowers': [], 'exhaustFans': [], 'airConditioners': []
+    'switch': [], 'windows': [], 'dampers': [], 'blowers': [], 'exhaustFans': [], 'airConditioners': []
 })
 const controlStates = ref([])
 const selectedHouseCode = ref('001');
@@ -266,8 +266,8 @@ const initWebSocket = () => {
         // devStatesObj.value = allStates.splice(2);
         // controlStates.value = allStates.splice(0, 2);
 
-        controlMode.value = devStatesObj.value['control'][0]
-        runMode.value = devStatesObj.value.control[1]
+        controlMode.value = devStatesObj.value['switch'][0]
+        // runMode.value = devStatesObj.value.control[1]
         // console.log('devstate', event.data)
         console.log('controlStates', controlStates.value)
     };
@@ -344,7 +344,7 @@ const switchControlMode = async (groupIndex, mode, modeText) => {
     // }
     try {
         //todo: device address hardcoded, will modify later
-        let devId = groupIndex == 1 ? 'switch-399' : 'switch-0'
+        let devId = groupIndex == 1 ? 'switch-1' : 'switch-2'
         let result = await axios.post(`http-api/api/dev/control`, {
             house_code: selectedHouseCode.value,
             dev_id: devId,

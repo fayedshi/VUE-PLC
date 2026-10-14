@@ -9,7 +9,7 @@
         </div>
 
       </template>
-      <el-row :gutter="20">
+      <el-row :gutter="20" v-if="envData.temperature">
         <el-col :span="4" :xs="12">
           <el-statistic title="温度" :value="envData.temperature" suffix="°C" />
         </el-col>
@@ -35,7 +35,7 @@
     </el-card>
 
     <!-- 2. 主体：四大核心检测项区域 -->
-    <el-row :gutter="20" class="detection-grid">
+    <el-row :gutter="20" class="detection-grid" v-if="envData.temperature">
       <!-- ⭐ 关键修改：将 :span 改为 24，让每个区域不论在 PC 还是手机都独占一行 -->
       <el-col :span="24" :xs="24" v-for="item in detectionItems" :key="item.key" class="detection-col">
         <el-card shadow="hover" class="item-card">
@@ -109,19 +109,20 @@ const populateChannels = (nums): Channel[] => {
   }))
 }
 
-const envData = reactive({
+const createInitialState = () => ({
   temperature: null,
   humidity: null,
   dust: null,
   peopleCount: null,
   distance: null
 })
-// const detectionItems = reactive<DetectionItem[]>([
-//   { key: 'ph3', name: '🧪 磷化氢 (PH₃)', unit: 'ppm', channels: populateChannels(0, 15) },
-//   { key: 'o2', name: '💨 氧气 (O₂)', unit: '%', channels: populateChannels(18, 23) },
-//   { key: 'co2', name: '🌫️ 二氧化碳 (CO₂)', unit: 'ppm', channels: populateChannels(350, 1200) },
-//   { key: 'bugs', name: '🐛 虫数检测', unit: '🪲', channels: populateChannels(0, 8) }
-// ])
+
+const envData = reactive(createInitialState())
+
+const resetEnvData = () => {
+  // 使用 Object.assign 将初始值安全地覆盖回 envData
+  Object.assign(envData, createInitialState())
+}
 
 const detectionItems = reactive<DetectionItem[]>([
   { key: 'ph3', name: '🧪 磷化氢 (PH₃)', unit: 'ppm', channels: [] },
@@ -181,17 +182,21 @@ const initWebSocket = async () => {
     // 解析后端传过来的 JSON 字符串
     const res = JSON.parse(event.data);
     // 直接赋值，Vue 3 会自动、高效地刷新界面上对应的数字
-    // console.log('取得后端数据', res)
-    channelData.value = res;
-    // console.log(channelData.value)
-    detectionItems.forEach(item => {
-      item.channels = populateChannels(channelData.value.splice(0, 16))
-    })
-    envData.humidity = channelData.value[1].toFixed(1)
-    envData.temperature = channelData.value[0].toFixed(1)
-    envData.distance = channelData.value[2]
-    envData.peopleCount = channelData.value[3]
-    envData.dust = channelData.value[4]
+    console.log('取得后端数据', res)
+    if (res.length > 0) {
+      channelData.value = res;
+      // console.log(channelData.value)
+      detectionItems.forEach(item => {
+        item.channels = populateChannels(channelData.value.splice(0, 16))
+      })
+      envData.humidity = channelData.value[1].toFixed(1)
+      envData.temperature = channelData.value[0].toFixed(1)
+      envData.distance = channelData.value[2]
+      envData.peopleCount = channelData.value[3]
+      envData.dust = channelData.value[4]
+    } else {
+      resetEnvData()
+    }
   };
 
   // 连接关闭事件

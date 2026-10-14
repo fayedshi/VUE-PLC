@@ -15,6 +15,7 @@
                             <th>触发时间</th>
                             <th>仓房名称</th>
                             <th>报警类型</th>
+                            <th>报警对象</th>
                             <th>异常详情</th>
                             <th>操作栏</th>
                         </tr>
@@ -30,9 +31,10 @@
                             <td>
                                 <span
                                     :class="['badge', item.type === 'PLC_DISCONNECT' ? 'badge-danger' : 'badge-warning']">
-                                    {{ item.type === 'PLC_DISCONNECT' ? '⚡ PLC断线' : '🔥 温度超限' }}
+                                    {{ warningLabelMap[item.type] }}
                                 </span>
                             </td>
+                            <td class="msg-cell">{{ item.custom_key }}</td>
                             <td class="msg-cell">{{ item.message }}</td>
                             <td class="action-cell">
                                 <button class="btn-ack" @click="handleAck(item)" :disabled="item.ack">
@@ -83,6 +85,7 @@
                             <th>报警时间</th>
                             <th>仓房名称</th>
                             <th>类型</th>
+                            <th>对象</th>
                             <th>报警内容</th>
                             <th>是否确认</th>
                             <th>确认时间</th>
@@ -95,7 +98,9 @@
                             <td>{{ index + 1 }}</td>
                             <td>{{ log.trigger_time }}</td>
                             <td>{{ log.house_code }}</td>
-                            <td>{{ log.type === 'PLC_DISCONNECT' ? 'PLC断线' : '温度超限' }}</td>
+                            <td>{{ warningLabelMap[log.type] }}</td>
+                            <!-- <td>{{ log.type }}</td>  -->
+                            <td>{{ log.custom_key }}</td>
                             <td>{{ log.message }}</td>
                             <td>{{ log.ack ? '是' : '否' }}</td>
                             <td>{{ log.ack_time }}</td>
@@ -136,6 +141,14 @@ import axios from 'axios'
 const activeAlarmsMap = ref({})
 const activeAlarms = ref([])
 let wsClients = []
+const warningLabelMap = {
+    // 'PLC_DISCONNECT': '⚡ PLC断线',
+    // 'TEMP_HIGH': '🔥 温度超限',
+    // 'DEVICE_MALFUNCTION': '🔴 设备故障'
+    'PLC_DISCONNECT': 'PLC断线',
+    'TEMP_HIGH': '温度超限',
+    'DEVICE_MALFUNCTION': '设备故障'
+}
 
 // --- 历史报警状态 ---
 const historyLog = ref([])
@@ -167,7 +180,8 @@ const removeToast = (id) => {
 const handleAck = (item) => {
     try {
         // 1. 调用后端接口告诉服务器该告警已确认（伪代码）
-        axios.post('http-api/api/alarm/ack', { alarm_key: item.house_code + '_' + item.type })
+        axios.post('http-api/api/alarm/ack',
+            { alarm_key: item.house_code + '_' + item.type + (item.custom_key ? '_' + item.custom_key : '') })
         item.ack = true
         console.log(`确认了仓房 ${item.house_code} 的 ${item.type} 告警`)
     } catch (err) {
