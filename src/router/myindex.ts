@@ -101,6 +101,12 @@ let routes = [
         ]
       },
       {
+        path: '/silo-access',
+        name: 'SiloAccess', // HVAC 是加热通风与空调系统的国际标准通用缩写
+        component: () => import('../views/SiloAccess/SiloEntryLogs.vue'),
+        meta: { title: '查粮门禁模块' }
+      },
+      {
         path: '/hvac',
         name: 'Hvac', // HVAC 是加热通风与空调系统的国际标准通用缩写
         component: () => import('../views/3DModelDemo.vue'),
@@ -122,14 +128,14 @@ let routes = [
             path: '', // 留空代表默认子路由，访问 / 时默认渲染此组件
             name: 'GasMonitor',
             component: () => import('../views/CA/GasMonitor.vue'),
-            meta: { title: '实时气体检测' }
+            meta: { title: '气体检测' }
           },
-          {
-            path: 'gasHistory', // 留空代表默认子路由，访问 / 时默认渲染此组件
-            name: 'GasHistory',
-            component: () => import('../views/CA/GasHistory.vue'),
-            meta: { title: '历史气体' }
-          },
+          // {
+          //   path: 'gasHistory', // 留空代表默认子路由，访问 / 时默认渲染此组件
+          //   name: 'GasHistory',
+          //   component: () => import('../views/CA/GasHistory.vue'),
+          //   meta: { title: '历史气体' }
+          // },
           {
             path: 'caJobConsole', // 留空代表默认子路由，访问 / 时默认渲染此组件
             name: 'CAJobConsole',
@@ -179,12 +185,12 @@ let routes = [
     component: () => import('../views/TasksView.vue'),
     meta: { title: '任务计划' }
   },
-  {
-    path: '/data-center',
-    name: 'DataCenter',
-    component: () => import('../views/DataCenterView.vue'),
-    meta: { title: '数据中心' }
-  },
+  // {
+  //   path: '/data-center',
+  //   name: 'DataCenter',
+  //   component: () => import('../views/DataCenterView.vue'),
+  //   meta: { title: '数据中心' }
+  // },
   // {
   //   path: '/air-tightness',
   //   name: 'AirTightness',

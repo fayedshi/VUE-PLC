@@ -9,6 +9,7 @@
       
       <RouterLink to="/ca" active-class="active">气调系统</RouterLink>
       <RouterLink to="/video" active-class="active">安防监控</RouterLink>
+      <RouterLink to="/silo-access" active-class="active">查粮门禁</RouterLink>
       <RouterLink to="/hvac" active-class="active">空调系统</RouterLink>
       <!-- <RouterLink to="/environment-monitor" active-class="active">环境监测</RouterLink> -->
     </nav>

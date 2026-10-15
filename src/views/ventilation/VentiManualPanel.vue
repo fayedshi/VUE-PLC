@@ -406,7 +406,7 @@ const switchControlMode = async (groupIndex, mode, modeText) => {
     border: 1px solid #e4e7ed;
     border-radius: 6px;
     padding: 10px;
-    width: 105px;
+    width: 110px;
     background: #fff;
     box-sizing: border-box;
 }

@@ -6,7 +6,26 @@
         <div class="card-header">
           <!-- <span class="header-title">🌍 环境综合指标</span> -->
           <HouseSelect v-model="selectedHouseCode" @change="handleHouseChange" />
+          <el-date-picker v-model="controls.start_time" type="datetime" placeholder="请选择时间" style="width: 200px" />
+          <!-- 搜索按钮：绑定点击事件，并在搜索进行中或任务激活时禁用 -->
+          <el-button type="primary" :loading="isLoading" :disabled="!controls.start_time" @click="handleSearch">
+            查询
+          </el-button>
+          <!-- 可选：重置按钮（日常开发中通常成对出现，体验更好） -->
+          <el-button :disabled="isLoading" @click="handleReset">
+            重置
+          </el-button>
+          <el-button type="success" :icon="Refresh" :disabled="isLive" @click="switchToLive">
+            切回实时数据
+          </el-button>
+
+
+          <!-- <div class="status-badge"> -->
+          <el-tag :type="isLive ? 'danger' : 'warning'" effect="dark" style="margin-left: 10px">
+            {{ isLive ? '● 正在浏览实时数据' : '⏳ 正在浏览历史数据' }}
+          </el-tag>
         </div>
+        <!-- </div> -->
 
       </template>
       <el-row :gutter="20" v-if="envData.temperature">
@@ -68,11 +87,23 @@
 import { onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { User } from '@element-plus/icons-vue'
 import HouseSelect from '../../components/HouseSelect.vue';
+import axios from 'axios';
+import { ElMessage } from 'element-plus';
+import { tr } from 'element-plus/es/locales.mjs';
+
 
 const selectedHouseCode = ref('001');
-
+const isLive = ref(true)
 let socket = null
 let isExplicitlyClosed = false
+
+const switchToLive = () => {
+    isLive.value = true
+    handleReset()
+    initWebSocket()
+    ElMessage.info('已切回实时预览状态')
+}
+
 
 const handleHouseChange = async () => {
   if (socket) {
@@ -153,6 +184,70 @@ const getAlarmClass = (value: number, type: string): string => {
   }
 }
 
+
+const controls = reactive({
+  house_code: '',
+  start_time: ''
+})
+
+const isLoading = ref(false)
+
+const handleSearch = async () => {
+  if (!controls.start_time) {
+    alert('请先选择要查询的日期和具体时间！')
+    return
+  }
+  isLoading.value = true
+  // 💡 避坑处理：datetime-local 默认格式是 "2026-08-11T14:30" 
+  // 此处通过正则和拼接，将其自动格式化为后端数据库标准的 "2026-08-11 14:30:00"
+  const rawTime = controls.start_time
+  const isoStartTime = new Date(controls.start_time).toISOString().split('.')[0] + 'Z'
+  console.log(rawTime)
+  isLive.value = false
+  console.log('发起历史时间点查询：', isoStartTime)
+
+  try {
+    if(socket){
+      isExplicitlyClosed=true
+      socket.close();
+      
+    }
+    // console.log('formattedTime', formattedTime)
+    const response = await axios.get('http-api/api/gas/querygas', {
+      params: {
+        input_time: isoStartTime,
+        house_code: selectedHouseCode.value
+      }
+    });
+    if (!response.data || Object.keys(response.data).length == 0) {
+      ElMessage.error('未找到该时间点的数据')
+      envData.temperature = null
+      return
+    }
+    ElMessage.success('数据查询成功')
+    console.log('数据查询成功 backend response', response.data)
+    channelData.value = response.data
+    detectionItems.forEach(item => {
+      item.channels = populateChannels(channelData.value.splice(0, 16))
+    })
+    envData.humidity = channelData.value[1].toFixed(1)
+    envData.temperature = channelData.value[0].toFixed(1)
+    envData.distance = channelData.value[2]
+    envData.peopleCount = channelData.value[3]
+    envData.dust = channelData.value[4]
+  } catch (err) {
+    console.error('获取数据异常:', err)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const handleReset = () => {
+  controls.start_time = ''
+}
+
+
+
 onMounted(async () => {
   initWebSocket()
 })
@@ -175,6 +270,7 @@ const initWebSocket = async () => {
 
     console.log('成功连接到 Python 后端 gas WebSocket！,gran code', selectedHouseCode.value);
     isExplicitlyClosed = false; // 每次全新建立连接时，重置手动关闭状态
+    isLive.value = true
   };
 
   // 接收到后端实时数据事件
@@ -182,7 +278,7 @@ const initWebSocket = async () => {
     // 解析后端传过来的 JSON 字符串
     const res = JSON.parse(event.data);
     // 直接赋值，Vue 3 会自动、高效地刷新界面上对应的数字
-    console.log('取得后端数据', res)
+    console.log('取得后端live数据', res)
     if (res.length > 0) {
       channelData.value = res;
       // console.log(channelData.value)
@@ -323,17 +419,7 @@ onBeforeUnmount(() => {
   /* animation: pulse 2s infinite; */
 }
 
-/* @keyframes pulse {
-  0% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: 0.8;
-  }
-
-  100% {
-    opacity: 1;
-  }
-} */
+.status-badge {
+  margin-left: auto;
+}
 </style>

@@ -33,7 +33,9 @@ import {
     ElAside,
     ElMain,
     ElContainer,
-    ElEmpty
+    ElEmpty,
+    ElPagination,
+    ElAlert
 
 } from 'element-plus'
 
@@ -41,7 +43,7 @@ import {
 const app = createApp(MyApp);
 const pinia = createPinia()
 pinia.use(piniaPluginPersistedstate)
-app.use(ElAside).use(ElMain).use(ElContainer).use(ElEmpty)
+app.use(ElAside).use(ElMain).use(ElContainer).use(ElEmpty).use(ElPagination).use(ElAlert)
 app.use(ElTabs)
 app.use(ElTabPane)
 app.use(ElRow)

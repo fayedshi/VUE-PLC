@@ -6,7 +6,7 @@
       <RouterLink to="/main" active-class="active">系统主页</RouterLink>
       <RouterLink to="/settings" active-class="active">系统设置</RouterLink>
       <RouterLink to="/tasks" active-class="active">任务计划</RouterLink>
-      <RouterLink to="/data-center" active-class="active">数据中心</RouterLink>
+      <!-- <RouterLink to="/data-center" active-class="active">数据中心</RouterLink> -->
       <!-- <RouterLink to="/air-tightness" active-class="active">气密性检测</RouterLink>
       <RouterLink to="/mobile-control" active-class="active">手机控制</RouterLink> -->
       <RouterLink to="/alarms" active-class="active">系统报警</RouterLink>
