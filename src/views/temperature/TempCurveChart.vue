@@ -3,6 +3,7 @@
 
     <!-- 1. 时间范围查询工具栏 -->
     <div class="search-bar">
+      <HouseSelect v-model="selectedHouseCode" @change="handleHouseChange" />
       <div class="search-item">
         <label>开始时间：</label>
         <input type="datetime-local" v-model="timeRange.startTime" class="input-date" />
@@ -59,6 +60,7 @@ import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import axios from 'axios'
 // 💡 请确保项目已安装 echarts: npm install echarts
 import * as echarts from 'echarts'
+import HouseSelect from '../../components/HouseSelect.vue';
 
 const chartRef = ref(null)
 let myChart = null
@@ -222,6 +224,8 @@ const http = axios.create({
   timeout: 5000
 });
 
+const selectedHouseCode = ref('001');
+
 // 3. 核心请求逻辑：从后端获取聚合后的三条曲线数据
 const fetchTrendData = async () => {
   if (!timeRange.value.startTime || !timeRange.value.endTime) {
@@ -250,6 +254,7 @@ const fetchTrendData = async () => {
     const url = '/api/temp-trend'
     const response = await http.get(url, {
       params: {
+        house_code: selectedHouseCode.value,
         start_time: timeRange.value.startTime,
         end_time: timeRange.value.endTime,
         layer: currentLayer.value,
