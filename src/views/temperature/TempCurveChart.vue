@@ -399,6 +399,9 @@ const resetTimeRange = () => {
   fetchTrendData()
 }
 
+const handleHouseChange=()=>{
+  fetchTrendData()
+}
 // 6. 响应式视口缩放适配
 const handleResize = () => {
   myChart && myChart.resize()

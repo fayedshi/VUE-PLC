@@ -1,221 +1,226 @@
+import UserManagement from '@/views/UserManagement.vue';
+import { ElMessage } from 'element-plus';
 import { createWebHistory, createRouter } from 'vue-router';
 
 let routes = [
 
   {
-    path: '/',
-    name: 'Home',
-    // component: () => import('../views/TasksView.vue'),
-    // meta: { title: '任务计划' }
-    // {
-    // path: '', // 留空代表默认子路由，访问 / 时默认渲染此组件
-    // name: 'GranLive',
-    component: () => import('../views/Home.vue'),
-    meta: { title: '首页' }
+    path: '/login',
+    name: 'Login',
+    component: () => import('../views/Login.vue'),
+    meta: { title: '登录' }
     // redirect: 'curveChart'
     // },
   },
   {
-    path: '/main',
-    name: 'Main',
-    component: () => import('../views/SystemLayout.vue'),
-    meta: { title: '系统主页' },
+    path: '/',
+    name: 'MainLayout',
+    component: () => import('../views/MainLayout.vue'),
+    meta: { title: '首页', requiresAuth: false },
+    // redirect: 'curveChart'
+    // },
     children: [
       {
-        path: '/temperature',
-        name: 'Temperature',
-        component: () => import('../views/temperature/TemperatureLayout.vue'),
-        meta: { title: '测温系统' },
-        children: [
-          // {
-          //   path: '', // 留空代表默认子路由，访问 / 时默认渲染此组件
-          //   name: 'GranLive',
-          //   component: () => import('../views/temperature/GranLive.vue'),
-          //   meta: { title: '实时监控' }
-          //   // redirect: 'curveChart'
-          // },
-          {
-            path: '', // 留空代表默认子路由，访问 / 时默认渲染此组件
-            name: 'CurveChart',
-            component: () => import('../views/temperature/TempCurveChart.vue'),
-            meta: { title: '温湿度变化曲线' }
-            // redirect: 'curveChart'
-          },
-          {
-            path: 'comparison', // 实际访问路径：/comparison
-            name: 'TempComparison',
-            component: () => import('../views/temperature/TempComparisonView.vue'),
-            meta: { title: '粮情点位比较' }
-          },
-          {
-            path: 'slice-3d', // 实际访问路径：/slice-3d
-            name: 'TempSlice3D',
-            component: () => import('../views/temperature/TempSlice3DView.vue'),
-            meta: { title: '三维粮温切面图' }
-          },
-          {
-            path: 'report', // 实际访问路径：/report
-            name: 'TempReport',
-            component: () => import('../views/temperature/TempReportView.vue'),
-            meta: { title: '综合温度报表' }
-          },
-          {
-            path: 'area-analysis', // 实际访问路径：/area-analysis
-            name: 'TempAreaAnalysis',
-            component: () => import('../views/temperature/TempAreaAnalysisView.vue'),
-            meta: { title: '区域粮温分析表' }
-          },
-          {
-            path: 'heatmap', // 实际访问路径：/heatmap
-            name: 'TempHeatmap',
-            component: () => import('../views/temperature/TempHeatmapView.vue'),
-            meta: { title: '温度云图' }
-          }
-        ]
+        path: '/',
+        name: 'Home',
+        component: () => import('../views/Home.vue'),
+        meta: { title: '登录' }
+        // redirect: 'curveChart'
+        // },
       },
       {
-        path: '/gas-control',
-        name: 'GasControl',
-        component: () => import('../views/GasControlView.vue'),
-        meta: { title: '气调test系统' }
+        path: '/users',
+        name: 'Users',
+        component: UserManagement,
+        meta: { requiresAuth: false }
       },
-      {
-        path: '/ventilation',
-        name: 'Ventilation',
-        component: () => import('../views/ventilation/VentilationLayout.vue'),
-        meta: { title: '通风系统' },
-        children: [
-          {
-            path: '', // 留空代表默认子路由，访问 / 时默认渲染此组件
-            name: 'VentiTaskPanel',
-            component: () => import('../views/ventilation/VentiTaskPanel.vue'),
-            meta: { title: '作业控制面板' }
-          },
-          {
-            path: 'ventiManual', // 留空代表默认子路由，访问 / 时默认渲染此组件
-            name: 'VentiMnaual',
-            component: () => import('../views/ventilation/VentiManualPanel.vue'),
-            meta: { title: '手动控制面板' }
-          }
-          
-        ]
-      },
-      {
-        path: '/silo-access',
-        name: 'SiloAccess', // HVAC 是加热通风与空调系统的国际标准通用缩写
-        component: () => import('../views/SiloAccess/SiloEntryLogs.vue'),
-        meta: { title: '查粮门禁模块' }
-      },
-      {
-        path: '/hvac',
-        name: 'Hvac', // HVAC 是加热通风与空调系统的国际标准通用缩写
-        component: () => import('../views/3DModelDemo.vue'),
-        meta: { title: '空调系统' }
-      },
-      {
-        path: '/power',
-        name: 'Power', // HVAC 是加热通风与空调系统的国际标准通用缩写
-        component: () => import('../views/power/PowerCurveChart.vue'),
-        meta: { title: '能耗监测' }
-      },
-      {
-        path: '/ca',
-        name: 'CA',
-        component: () => import('../views/CA/CALayout.vue'),
-        meta: { title: '气调系统' },
-        children: [
-          {
-            path: '', // 留空代表默认子路由，访问 / 时默认渲染此组件
-            name: 'GasMonitor',
-            component: () => import('../views/CA/GasMonitor.vue'),
-            meta: { title: '气体检测' }
-          },
-          // {
-          //   path: 'gasHistory', // 留空代表默认子路由，访问 / 时默认渲染此组件
-          //   name: 'GasHistory',
-          //   component: () => import('../views/CA/GasHistory.vue'),
-          //   meta: { title: '历史气体' }
-          // },
-          {
-            path: 'caJobConsole', // 留空代表默认子路由，访问 / 时默认渲染此组件
-            name: 'CAJobConsole',
-            component: () => import('../views/CA/CAJobConsole.vue'),
-            meta: { title: '气调作业控制面板' }
-          }
-        ]
-      },
-      {
-        path: '/video',
-        name: 'SecurityMonitor',
-        component: () => import('../views/video/MainMonitor.vue'),
-        meta: { title: '安防监控' }
-      },
-    ]
-  },
 
-  {
-    path: '/settings',
-    name: 'Settings',
-    component: () => import('../views/settings/SettingsLayout.vue'),
-    meta: { title: '系统设置' },
-    children: [
+
       {
-        path: '', // 留空代表默认子路由，访问 / 时默认渲染此组件
-        name: 'GranaryData',
-        component: () => import('../views/settings/GranaryDataEntry.vue'),
-        meta: { title: '熬间信息录入' }
+        path: '/main',
+        name: 'Main',
+        component: () => import('../views/SystemLayout.vue'),
+        meta: { title: '系统主页' },
+        children: [
+          {
+            path: '/temperature',
+            name: 'Temperature',
+            component: () => import('../views/temperature/TemperatureLayout.vue'),
+            meta: { title: '测温系统', requiresAuth: false },
+            children: [
+              // {
+              //   path: '', // 留空代表默认子路由，访问 / 时默认渲染此组件
+              //   name: 'GranLive',
+              //   component: () => import('../views/temperature/GranLive.vue'),
+              //   meta: { title: '实时监控' }
+              //   // redirect: 'curveChart'
+              // },
+              {
+                path: '', // 留空代表默认子路由，访问 / 时默认渲染此组件
+                name: 'CurveChart',
+                component: () => import('../views/temperature/TempCurveChart.vue'),
+                meta: { title: '温湿度变化曲线' }
+                // redirect: 'curveChart'
+              },
+              {
+                path: 'comparison', // 实际访问路径：/comparison
+                name: 'TempComparison',
+                component: () => import('../views/temperature/TempComparisonView.vue'),
+                meta: { title: '粮情点位比较' }
+              },
+              {
+                path: 'slice-3d', // 实际访问路径：/slice-3d
+                name: 'TempSlice3D',
+                component: () => import('../views/temperature/TempSlice3DView.vue'),
+                meta: { title: '三维粮温切面图' }
+              },
+              {
+                path: 'report', // 实际访问路径：/report
+                name: 'TempReport',
+                component: () => import('../views/temperature/TempReportView.vue'),
+                meta: { title: '综合温度报表' }
+              },
+              {
+                path: 'area-analysis', // 实际访问路径：/area-analysis
+                name: 'TempAreaAnalysis',
+                component: () => import('../views/temperature/TempAreaAnalysisView.vue'),
+                meta: { title: '区域粮温分析表' }
+              },
+              {
+                path: 'heatmap', // 实际访问路径：/heatmap
+                name: 'TempHeatmap',
+                component: () => import('../views/temperature/TempHeatmapView.vue'),
+                meta: { title: '温度云图' }
+              }
+            ]
+          },
+          {
+            path: '/gas-control',
+            name: 'GasControl',
+            component: () => import('../views/GasControlView.vue'),
+            meta: { title: '气调test系统' }
+          },
+          {
+            path: '/ventilation',
+            name: 'Ventilation',
+            component: () => import('../views/ventilation/VentilationLayout.vue'),
+            meta: { title: '通风系统' },
+            children: [
+              {
+                path: '', // 留空代表默认子路由，访问 / 时默认渲染此组件
+                name: 'VentiTaskPanel',
+                component: () => import('../views/ventilation/VentiTaskPanel.vue'),
+                meta: { title: '作业控制面板' }
+              },
+              {
+                path: 'ventiManual', // 留空代表默认子路由，访问 / 时默认渲染此组件
+                name: 'VentiMnaual',
+                component: () => import('../views/ventilation/VentiManualPanel.vue'),
+                meta: { title: '手动控制面板' }
+              }
+
+            ]
+          },
+          {
+            path: '/silo-access',
+            name: 'SiloAccess', // HVAC 是加热通风与空调系统的国际标准通用缩写
+            component: () => import('../views/SiloAccess/SiloEntryLogs.vue'),
+            meta: { title: '查粮门禁模块' }
+          },
+          {
+            path: '/hvac',
+            name: 'Hvac', // HVAC 是加热通风与空调系统的国际标准通用缩写
+            component: () => import('../views/3DModelDemo.vue'),
+            meta: { title: '空调系统' }
+          },
+          {
+            path: '/power',
+            name: 'Power', // HVAC 是加热通风与空调系统的国际标准通用缩写
+            component: () => import('../views/power/PowerCurveChart.vue'),
+            meta: { title: '能耗监测' }
+          },
+          {
+            path: '/ca',
+            name: 'CA',
+            component: () => import('../views/CA/CALayout.vue'),
+            meta: { title: '气调系统' },
+            children: [
+              {
+                path: '', // 留空代表默认子路由，访问 / 时默认渲染此组件
+                name: 'GasMonitor',
+                component: () => import('../views/CA/GasMonitor.vue'),
+                meta: { title: '气体检测' }
+              },
+              // {
+              //   path: 'gasHistory', // 留空代表默认子路由，访问 / 时默认渲染此组件
+              //   name: 'GasHistory',
+              //   component: () => import('../views/CA/GasHistory.vue'),
+              //   meta: { title: '历史气体' }
+              // },
+              {
+                path: 'caJobConsole', // 留空代表默认子路由，访问 / 时默认渲染此组件
+                name: 'CAJobConsole',
+                component: () => import('../views/CA/CAJobConsole.vue'),
+                meta: { title: '气调作业控制面板' }
+              }
+            ]
+          },
+          {
+            path: '/video',
+            name: 'SecurityMonitor',
+            component: () => import('../views/video/MainMonitor.vue'),
+            meta: { title: '安防监控' }
+          },
+        ]
+      },
+
+      {
+        path: '/settings',
+        name: 'Settings',
+        component: () => import('../views/settings/SettingsLayout.vue'),
+        meta: { title: '系统设置' },
+        children: [
+          {
+            path: '', // 留空代表默认子路由，访问 / 时默认渲染此组件
+            name: 'GranaryData',
+            component: () => import('../views/settings/GranaryDataEntry.vue'),
+            meta: { title: '熬间信息录入' }
+          },
+          {
+            path: 'venti', // 留空代表默认子路由，访问 / 时默认渲染此组件
+            name: 'VentiMode',
+            component: () => import('../views/settings/VentilationMode.vue'),
+            meta: { title: '通风模式设置' }
+          },
+          {
+            path: 'ca', // 留空代表默认子路由，访问 / 时默认渲染此组件
+            name: 'CAMode',
+            component: () => import('../views/settings/CAMode.vue'),
+            meta: { title: '气调模式设置' }
+          }
+        ]
+      },
+
+      {
+        path: '/tasks',
+        name: 'Tasks',
+        component: () => import('../views/TasksView.vue'),
+        meta: { title: '任务计划' }
       },
       {
-        path: 'venti', // 留空代表默认子路由，访问 / 时默认渲染此组件
-        name: 'VentiMode',
-        component: () => import('../views/settings/VentilationMode.vue'),
-        meta: { title: '通风模式设置' }
+        path: '/alarms',
+        name: 'Alarms',
+        component: () => import('../views/alarms/Alarms.vue'),
+        meta: { title: '系统报警' }
       },
       {
-        path: 'ca', // 留空代表默认子路由，访问 / 时默认渲染此组件
-        name: 'CAMode',
-        component: () => import('../views/settings/CAMode.vue'),
-        meta: { title: '气调模式设置' }
+        path: '/permissions',
+        name: 'Permissions',
+        component: () => import('../views/PermissionsView.vue'),
+        meta: { title: '权限管理' }
       }
     ]
-  },
-  {
-    path: '/tasks',
-    name: 'Tasks',
-    component: () => import('../views/TasksView.vue'),
-    meta: { title: '任务计划' }
-  },
-  // {
-  //   path: '/data-center',
-  //   name: 'DataCenter',
-  //   component: () => import('../views/DataCenterView.vue'),
-  //   meta: { title: '数据中心' }
-  // },
-  // {
-  //   path: '/air-tightness',
-  //   name: 'AirTightness',
-  //   component: () => import('../views/AirTightnessView.vue'),
-  //   meta: { title: '气密性检测' }
-  // },
-  // {
-  //   path: '/mobile-control',
-  //   name: 'MobileControl',
-  //   component: () => import('../views/MobileControlView.vue'),
-  //   meta: { title: '手机控制' }
-  // },
-  {
-    path: '/alarms',
-    name: 'Alarms',
-    component: () => import('../views/alarms/Alarms.vue'),
-    meta: { title: '系统报警' }
-  },
-  {
-    path: '/permissions',
-    name: 'Permissions',
-    component: () => import('../views/PermissionsView.vue'),
-    meta: { title: '权限管理' }
-  }
-]
+  }]
 
 
 const myRouter = createRouter({
@@ -223,4 +228,22 @@ const myRouter = createRouter({
   routes
 }
 )
+
+myRouter.beforeEach((to, from, next) => {
+  const token = localStorage.getItem('token');
+
+  // 如果去往需要登录的页面，但本地没有 token
+  if (to.meta.requiresAuth && !token) {
+    ElMessage.warning('请先登录系统');
+    next('/login'); // 强制跳转到登录页
+  }
+  // 如果已经登录了，还想去登录页，直接把它拉回首页
+  else if (to.path === '/login' && token) {
+    next('/');
+  }
+  // 其他情况正常放行
+  else {
+    next();
+  }
+});
 export default myRouter;
