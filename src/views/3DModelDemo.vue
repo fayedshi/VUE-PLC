@@ -1,74 +1,78 @@
 <template>
   <!-- 3D 渲染容器 -->
-  <div ref="container" style="width: 100%; height: 100vh;"></div>
+  <div ref="canvasContainer" class="canvas-container"></div>
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue';
-import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { ref, onMounted, watch } from 'vue'
+import * as THREE from 'three'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 
-// 引入本地的 glb 模型（假设放在 src/assets/models/ 目录下）
-import modelUrl from '/asset/DiffuseTransmissionTeacup.glb';
+const props = defineProps({
+  windowStatus: { type: Number, default: 0 } // 传入的状态，4 代表正在开启
+})
 
-const container = ref(null);
-let scene, camera, renderer, controls, animationId;
+const canvasContainer = ref(null)
+let windowFlaps = [] // 存储窗扇的 Mesh 对象
+let renderer, scene, camera, animationFrameId
+
+// 1. 初始化 Three.js 场景
+const initThree = () => {
+  scene = new THREE.Scene()
+  camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
+  camera.position.set(0, 2, 5)
+
+  renderer = new THREE.WebGLRenderer({ antialias: true })
+  renderer.setSize(canvasContainer.value.clientWidth, canvasContainer.value.clientHeight)
+  canvasContainer.value.appendChild(renderer.domElement)
+
+  // 灯光
+  const light = new THREE.AmbientLight(0xffffff, 1)
+  scene.add(light)
+
+  // 加载 3D 窗户模型
+  const loader = new GLTFLoader()
+  loader.load('/models/window.gltf', (gltf) => {
+    scene.add(gltf.scene)
+    
+    // 🎯 核心：找出模型里的“窗扇”网格（假设在建模软件里命名为 "Flap"）
+    gltf.scene.traverse((child) => {
+      if (child.isMesh && child.name.includes('Flap')) {
+        windowFlaps.push(child)
+      }
+    })
+  })
+}
+
+// 2. 动画渲染循环
+const animate = () => {
+  animationFrameId = requestAnimationFrame(animate)
+
+  // 🎯 核心逻辑：如果状态是 4 (正在开启)，每帧增加旋转角度，直到开满（如 1.5 弧度，约90度）
+  if (props.windowStatus === 4) {
+    windowFlaps.forEach(flap => {
+      if (flap.rotation.y < 1.5) { 
+        flap.rotation.y += 0.02 // 控制开启速度
+      }
+    })
+  }
+
+  renderer.render(scene, camera)
+}
+
+// 监听状态变化（如果需要从其他状态切换回 4 时重置或触发）
+watch(() => props.windowStatus, (newStatus) => {
+  if (newStatus === 4) {
+    console.log('窗户开始执行开启工作...')
+  }
+})
 
 onMounted(() => {
-  // 1. 初始化场景与相机
-  scene = new THREE.Scene();
-  const { clientWidth, clientHeight } = container.value;
-  camera = new THREE.PerspectiveCamera(45, clientWidth / clientHeight, 0.1, 1000);
-  camera.position.set(0, 2, 5);
-
-  // 2. 初始化渲染器
-  renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setSize(clientWidth, clientHeight);
-  container.value.appendChild(renderer.domElement);
-
-  // 3. 添加光源（GLB 模型通常需要充足的光照才能展现材质）
-  scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-  const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-  dirLight.position.set(5, 10, 7);
-  scene.add(dirLight);
-
-  // 4. 添加鼠标轨道控制器
-  controls = new OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true; // 开启阻尼，让旋转更丝滑
-
-  // 5. 加载 GLB 模型
-  const loader = new GLTFLoader();
-  loader.load(
-    modelUrl, 
-    (gltf) => {
-      scene.add(gltf.scene);
-      // 💡 提示：如果模型太小或太大，可以在这里调整 gltf.scene.scale
-    },
-    undefined,
-    (error) => console.error('模型加载失败:', error)
-  );
-
-  // 6. 渲染循环
-  const animate = () => {
-    animationId = requestAnimationFrame(animate);
-    controls.update();
-    renderer.render(scene, camera);
-  };
-  animate();
-});
-
-// ⚠️ 7. 组件卸载时清理资源，防止内存泄漏
-onBeforeUnmount(() => {
-  cancelAnimationFrame(animationId);
-  controls.dispose();
-  renderer.dispose();
-  scene.traverse((obj) => {
-    if (obj.geometry) obj.geometry.dispose();
-    if (obj.material) {
-      if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
-      else obj.material.dispose();
-    }
-  });
-});
+  initThree()
+  animate()
+})
 </script>
+
+<style scoped>
+.canvas-container { width: 100%; height: 500px; }
+</style>

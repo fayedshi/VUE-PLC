@@ -10,7 +10,7 @@
       <RouterLink :to="{ name: 'CA' }" active-class="active">气调系统</RouterLink>
       <RouterLink :to="{ name: 'SecurityMonitor' }" active-class="active">安防监控</RouterLink>
       <RouterLink :to="{ name: 'SiloAccess' }" active-class="active">查粮门禁</RouterLink>
-      <RouterLink to="hvac" active-class="active">空调系统</RouterLink>
+      <RouterLink :to="{ name: 'Hvac' }" active-class="active">空调系统</RouterLink>
       <!-- <RouterLink to="environment-monitor" active-class="active">环境监测</RouterLink> -->
     </nav>
   </div>

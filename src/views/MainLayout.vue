@@ -38,7 +38,6 @@
         <!-- <el-button v-else type="danger" size="small" @click="handleLogout">登录</el-button> -->
       </el-header>
 
-
       <el-main class="layout-main">
 
         <router-view />
@@ -61,9 +60,9 @@
   <!-- <RouterLink to="/data-center" active-class="active">数据中心</RouterLink> -->
   <!-- <RouterLink to="/air-tightness" active-class="active">气密性检测</RouterLink>
       <RouterLink to="/mobile-control" active-class="active">手机控制</RouterLink> -->
-  <div class="main-content">
+  <!-- <div class="main-content">
     <RouterView></RouterView>
-  </div>
+  </div> -->
 
 </template>
 
