@@ -1,47 +1,46 @@
 <template>
+  <!-- <el-icon>
+            <Compass />
+          </el-icon> -->
   <el-container class="layout-container">
-    <!-- 左侧菜单栏 -->
+
     <el-aside width="220px" class="aside-menu">
       <div class="logo">🌾 智慧粮库管理系统</div>
       <el-menu :default-active="$route.path" router background-color="#304156" text-color="#bfcbd9"
         active-text-color="#409EFF">
         <el-menu-item index="/">
-          <el-icon>
-            <Compass />
-          </el-icon>
-          <span>粮情主控台</span>
+          <span>粮情看板</span>
         </el-menu-item>
         <el-menu-item index="/users">
-          <el-icon>
-            <User />
-          </el-icon>
+
           <span>用户管理</span>
         </el-menu-item>
         <el-menu-item index="/alarms">
-          <el-icon>
-            <User />
-          </el-icon>
+
           <span>系统报警</span>
         </el-menu-item>
-        <el-menu-item index="/main">
-          <el-icon>
-            <!-- <User /> -->
-          </el-icon>
+        <el-menu-item index="/system">
+
           <span>系统主页</span>
+        </el-menu-item>
+        <el-menu-item index="/settings">
+
+          <span>系统设置</span>
         </el-menu-item>
       </el-menu>
     </el-aside>
 
     <el-container>
-      <!-- 顶部信息栏 -->
+
       <el-header class="layout-header">
-        <div class="header-left">当前值班员：{{ username }} ({{ role === 'admin' ? '管理员' : '访客' }})</div>
-        <el-button type="danger" size="small" @click="handleLogout">退出登录</el-button>
+        <div v-if="username" class="header-left">当前值班员：{{ username }} ({{ role === 'admin' ? '管理员' : '普通用户' }})</div>
+        <el-button type="danger" size="small" @click="handleLogout">{{ username ? "退出登录" : "登录" }}</el-button>
+        <!-- <el-button v-else type="danger" size="small" @click="handleLogout">登录</el-button> -->
       </el-header>
 
-      <!-- 右侧核心内容区域 -->
+
       <el-main class="layout-main">
-        <!-- 核心：子路由的出口（Dashboard 或 UserManagement 会显示在这里） -->
+
         <router-view />
       </el-main>
     </el-container>
@@ -50,21 +49,21 @@
   <!-- <div class="navigate">
     <h1>智慧粮库管理系统</h1>
     <nav>
-      <RouterLink to="/" exact-active-class="active">首页</RouterLink>
-      <RouterLink to="/main" active-class="active">系统主页</RouterLink>
+      <RouterLink :to="{ name: 'Dashboard' }" exact-active-class="active">看板</RouterLink>
+      <RouterLink :to="{ name: 'System' }" active-class="active">系统主页</RouterLink>
       <RouterLink to="/settings" active-class="active">系统设置</RouterLink>
       <RouterLink to="/tasks" active-class="active">任务计划</RouterLink>
-      
+
       <RouterLink to="/alarms" active-class="active">系统报警</RouterLink>
       <RouterLink to="/permissions" active-class="active">权限管理</RouterLink>
     </nav>
   </div> -->
   <!-- <RouterLink to="/data-center" active-class="active">数据中心</RouterLink> -->
-      <!-- <RouterLink to="/air-tightness" active-class="active">气密性检测</RouterLink>
+  <!-- <RouterLink to="/air-tightness" active-class="active">气密性检测</RouterLink>
       <RouterLink to="/mobile-control" active-class="active">手机控制</RouterLink> -->
-  <!-- <div class="main-content">
+  <div class="main-content">
     <RouterView></RouterView>
-  </div> -->
+  </div>
 
 </template>
 
@@ -75,12 +74,13 @@ import { useRouter } from 'vue-router';
 import { Compass, User } from '@element-plus/icons-vue';
 
 const router = useRouter();
-const username = localStorage.getItem('username') || '未知';
+// const username = localStorage.getItem('username') || '未知';
+const username = localStorage.getItem('username');
 const role = localStorage.getItem('role');
 
 const handleLogout = () => {
-  localStorage.clear(); // 清除 token 和用户信息
-  router.push('/login');
+  localStorage.clear() // 清除 token 和用户信息
+  router.push('/login')
 };
 </script>
 
@@ -137,7 +137,7 @@ h1 {
   /* 四周留白，不让文字贴边 */
   min-height: 80vh;
   /* 保证内容少时也不会显得太短 */
-  background-color: #5c6f6c;
+  /* background-color: #5c6f6c; */
   /* 背景通常设为白色或浅灰色 */
   margin: 0 auto;
   /* 配合 max-width 实现水平居中 */
@@ -162,10 +162,15 @@ h1 {
   background: #2b3643;
 }
 
+.el-menu--horizontal .el-menu-item {
+  padding: 50 50px;
+  /* 默认通常是 20px，调小可以缩短间隙，调大可以拉开间隙 */
+}
+
 .layout-header {
   background: #fff;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   border-bottom: 1px solid #e6e6e6;
 }

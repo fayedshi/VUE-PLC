@@ -1,12 +1,10 @@
 <template>
   <div class="navigate">
     <!-- 二级子菜单导航 -->
-    <!-- <RouterLink to  -->
-    <!-- <RouterLink to="/temperature/" exact-active-class="active">实时监控</RouterLink> -->
-    <RouterLink to="/temperature/" exact-active-class="active">温湿度变化曲线</RouterLink>
+    <RouterLink :to="{name: 'CurveChart'}" exact-active-class="active">温湿度变化曲线</RouterLink>
     <!-- <RouterLink to="/temperature/comparison" active-class="active">粮情点位比较</RouterLink> -->
     <!-- <RouterLink to="/temperature/slice-3d" active-class="active">三维粮温切面图</RouterLink> -->
-    <RouterLink to="/temperature/report" active-class="active">测温点位全览</RouterLink>
+    <RouterLink :to="{name: 'TempReport'}" active-class="active">测温点位全览</RouterLink>
     <!-- <RouterLink to="/temperature/area-analysis" active-class="active">区域粮温分析表</RouterLink> -->
     <!-- <RouterLink to="/temperature/curve-chart" active-class="active">温湿度变化曲线</RouterLink> -->
     <!-- <RouterLink to="/temperature/heatmap" active-class="active">温度云图</RouterLink> -->
@@ -14,7 +12,7 @@
 
   <div>
     <main class="main-content">
-      <router-view></router-view>
+      <router-view />
     </main>
   </div>
 </template>
@@ -97,11 +95,11 @@
 }
 
 .main-content {
-  padding: 20px;
+  /* padding: 20px; */
   /* 四周留白，不让文字贴边 */
   min-height: 80vh;
   /* 保证内容少时也不会显得太短 */
-  background-color: #5c6f6c;
+  /* background-color: #5c6f6c; */
   /* 背景通常设为白色或浅灰色 */
   margin: 0 auto;
   /* 配合 max-width 实现水平居中 */

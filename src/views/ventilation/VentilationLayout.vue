@@ -2,8 +2,8 @@
   <div class="navigate">
     <!-- 二级子菜单导航 -->
 
-    <RouterLink to="/ventilation/" exact-active-class="active">作业控制面板</RouterLink>
-    <RouterLink to="/ventilation/ventiManual" active-class="active">手动控制面板</RouterLink>
+    <RouterLink to="/system/ventilation/" exact-active-class="active">作业控制面板</RouterLink>
+    <RouterLink to="/system/ventilation/ventiManual" active-class="active">手动控制面板</RouterLink>
 
   </div>
 
@@ -92,11 +92,11 @@
 }
 
 .main-content {
-  padding: 20px;
+  /* padding: 20px; */
   /* 四周留白，不让文字贴边 */
   min-height: 80vh;
   /* 保证内容少时也不会显得太短 */
-  background-color: #5c6f6c;
+  /* background-color: #5c6f6c; */
   /* 背景通常设为白色或浅灰色 */
   margin: 0 auto;
   /* 配合 max-width 实现水平居中 */

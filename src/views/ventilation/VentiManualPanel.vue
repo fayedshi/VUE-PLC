@@ -102,14 +102,14 @@ const selectedHouseCode = ref('001');
 
 const granConfig = ref({})
 
-const getDevLen = (devName) => {
-    let start = granConfig.value?.[devName]?.[0]
+const getDevLen = (devCate) => {
+    let start = granConfig.value?.[devCate]?.[0]
     console.log('start: ', start)
     if (!start) {
         console.log('returning 0')
         return 0
     }
-    let end = granConfig.value?.[devName][1]
+    let end = granConfig.value?.[devCate][1]
     console.log('dev len: ', end - start + 1)
     return end - start + 1
 }
@@ -309,7 +309,9 @@ const initGranConfig = async () => {
 
         categories.value.forEach((cate) => {
             // cate.devices=Array.from({ length: getDevLen(cate.type) }, (_, i) => ({ id: `${cate.type}-${i + granConfig.value[cate.type][0]}`, name: `${cate.label}#${i + 1}`, status: 4 }))
-            cate.devices = Array.from({ length: getDevLen(cate.type) }, (_, i) => ({ id: `${cate.type}-${i + 1}`, name: `${cate.label}#${i + 1}`, status: 4 }))
+            if (granConfig.value[cate]) {
+                cate.devices = Array.from({ length: getDevLen(cate.type) }, (_, i) => ({ id: `${cate.type}-${i + 1}`, name: `${cate.label}#${i + 1}`, status: 4 }))
+            }
         })
 
         // numWindows.value = granConfig.value['windows']

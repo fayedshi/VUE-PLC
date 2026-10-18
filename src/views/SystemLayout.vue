@@ -1,22 +1,22 @@
 <template>
- 
+
   <div class="system-navigate">
     <nav>
-      <RouterLink to="/temperature" active-class="active">测温系统</RouterLink>
-      <!-- <RouterLink to="/gas-control" active-class="active">气调系统</RouterLink> -->
-      <RouterLink to="/ventilation" active-class="active">通风系统</RouterLink>      
-      <RouterLink to="/power" active-class="active">能耗监测</RouterLink>
-      
-      <RouterLink to="/ca" active-class="active">气调系统</RouterLink>
-      <RouterLink to="/video" active-class="active">安防监控</RouterLink>
-      <RouterLink to="/silo-access" active-class="active">查粮门禁</RouterLink>
-      <RouterLink to="/hvac" active-class="active">空调系统</RouterLink>
-      <!-- <RouterLink to="/environment-monitor" active-class="active">环境监测</RouterLink> -->
+      <RouterLink :to="{ name: 'Temperature' }" active-class="active">测温系统</RouterLink>
+      <!-- <RouterLink to="temperature" active-class="active">测温系统</RouterLink> -->
+      <RouterLink :to="{ name: 'Ventilation' }" active-class="active">通风系统</RouterLink>
+      <RouterLink :to="{ name: 'Power' }" active-class="active">能耗监测</RouterLink>
+
+      <RouterLink :to="{ name: 'CA' }" active-class="active">气调系统</RouterLink>
+      <RouterLink :to="{ name: 'SecurityMonitor' }" active-class="active">安防监控</RouterLink>
+      <RouterLink :to="{ name: 'SiloAccess' }" active-class="active">查粮门禁</RouterLink>
+      <RouterLink to="hvac" active-class="active">空调系统</RouterLink>
+      <!-- <RouterLink to="environment-monitor" active-class="active">环境监测</RouterLink> -->
     </nav>
   </div>
 
   <div class="main-content">
-    <RouterView></RouterView>
+    <RouterView />
   </div>
 
 </template>
@@ -26,7 +26,7 @@ import { RouterView, RouterLink } from 'vue-router';
 
 </script>
 
-<style>
+<style scoped>
 h1 {
   color: #333;
 }
@@ -78,7 +78,7 @@ h1 {
   /* 四周留白，不让文字贴边 */
   min-height: 80vh;
   /* 保证内容少时也不会显得太短 */
-  background-color: #5c6f6c;
+  /* background-color: #5c6f6c; */
   /* 背景通常设为白色或浅灰色 */
   margin: 0 auto;
   /* 配合 max-width 实现水平居中 */

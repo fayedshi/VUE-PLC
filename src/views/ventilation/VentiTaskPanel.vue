@@ -125,29 +125,29 @@
     <!-- <div class="section-title">设备选择控制</div> -->
 
     <!-- 通风窗 (10个) -->
-    <div class="device-row">
+    <div class="device-row" v-if="devices.windowsLen">
       <span class="device-label">通风窗：</span>
       <div class="device-list">
-        <label v-for="i in 10" :key="'window-' + i" class="checkbox-label">
+        <label v-for="i in devices.windowsLen" :key="'window-' + i" class="checkbox-label">
           <input type="checkbox" :value="i" v-model="devices.windows" /> 窗#{{ i }}
         </label>
       </div>
     </div>
 
     <!-- 风门 (8个) -->
-    <div class="device-row">
+    <div class="device-row" v-if="devices.dampersLen">
       <span class="device-label">风门：</span>
       <div class="device-list">
-        <label v-for="i in 8" :key="'damper-' + i" class="checkbox-label">
+        <label v-for="i in devices.dampersLen" :key="'damper-' + i" class="checkbox-label">
           <input type="checkbox" :value="i" v-model="devices.dampers" /> 门#{{ i }}
         </label>
       </div>
     </div>
     <!-- 风机 (8个，正/反单选，支持取消选中) -->
-    <div class="device-row">
+    <div class="device-row" v-if="devices.blowersLen">
       <span class="device-label">风机：</span>
       <div class="device-list inline-grid">
-        <div v-for="i in 8" :key="'blower-' + i" class="blower-group">
+        <div v-for="i in devices.blowersLen" :key="'blower-' + i" class="blower-group">
 
           <label class="radio-label">
             <span class="blower-name">风机#{{ i }}:</span>
@@ -162,20 +162,20 @@
       </div>
     </div>
     <!-- 排风扇 (4个) -->
-    <div class="device-row">
+    <div class="device-row" v-if="devices.exhaustFansLen">
       <span class="device-label">排风扇：</span>
       <div class="device-list">
-        <label v-for="i in 4" :key="'fan-' + i" class="checkbox-label">
+        <label v-for="i in devices.exhaustFansLen" :key="'fan-' + i" class="checkbox-label">
           <input type="checkbox" :value="i" v-model="devices.exhaustFans" /> 扇#{{ i }}
         </label>
       </div>
     </div>
 
     <!-- 空调 (2个) -->
-    <div class="device-row">
+    <div class="device-row" v-if="devices.airConditionersLen">
       <span class="device-label">空调：</span>
       <div class="device-list">
-        <label v-for="i in 2" :key="'ac-' + i" class="checkbox-label">
+        <label v-for="i in devices.airConditionersLen" :key="'ac-' + i" class="checkbox-label">
           <input type="checkbox" :value="i" v-model="devices.airConditioners" /> 空调#{{ i }}
         </label>
       </div>
@@ -188,7 +188,7 @@
     <div class="section duration-section">
       <div class="duration-wrapper">
         <input type="checkbox" v-model="durationControl.enabled" id="duration-toggle" @change="handleDurationChange" />
-        <label for="duration-toggle" class="duration-label font-bold">运行最大时长：</label>
+        <label for="duration-toggle" class="duration-label font-bold">运行最大时长限制：</label>
 
         <div class="input-group" :class="{ 'disabled-element': !durationControl.enabled }">
           <!-- <span class="ml-4 text-sm">运行时间：</span> -->
@@ -243,13 +243,6 @@ import { ref, computed, reactive, onMounted } from 'vue';
 import axios from 'axios';
 import HouseSelect from '../../components/HouseSelect.vue'
 
-
-// 模拟从后端获取到的通风模式列表
-// interface ModeItem {
-//   id: number;
-//   name: string;
-
-// }
 const layerText = ref('')
 const metricText = ref('')
 const layerSelRef = ref(null)
@@ -322,19 +315,6 @@ const handleModeChange = () => {
   console.log(`切换至模式: ${selectedMode.value}`)
 }
 
-// 保存逻辑：将当前配置提交给 Python 后端接口
-// const saveConfig = async () => {
-//   // const currentParams = parentStart.value
-//   const payload = {
-//     mode: selectedMode.value,
-//     start_condition: parentStart.value,
-//     end_condition: parentEnd.value
-//   }
-
-//   console.log('正在向 Python 后端发送策略数据...', payload)
-//   // await axios.post('/api/ventilation/strategy', payload)
-//   alert(`保存成功！已向PLC及Python策略引擎更新【${selectedMode.value}】条件。`)
-// }
 
 onMounted(async () => {
   // layerText.value=startCondition.level
@@ -347,9 +327,13 @@ onMounted(async () => {
   try {
     await Promise.all([
       fetchRunningJobs(selectedHouseCode.value),
+      initGranConfig()
       // axios.get('http-api/api/houses/codes')
     ])
     initDevices()
+
+
+
     // 统一赋值
     // houseCodeList.value = houseFuture.data
     console.log('✅ 所有数据加载完毕！')
@@ -386,7 +370,7 @@ const modeList = ref([
 // const houseCodeList = ref([])
 
 const selectedHouseCode = ref('001');
-
+const granConfig = ref({})
 
 // 设备选择响应式数据
 const devices = reactive({
@@ -397,19 +381,66 @@ const devices = reactive({
   // 8个风机，用 Record<键, 值> 存储。值可以是 '正' | '反' | null
   blowers: reactive<Record<number, 1 | 2 | null>>({
     1: null, 2: null, 3: null, 4: null, 5: null, 6: null, 7: null, 8: null
-  })
+  }),
+  windowsLen: 0,
+  dampersLen: 0,
+  exhaustFansLen: 0,
+  airConditionersLen: 0,
+  blowersLen: 0
 });
+
+const windowsLen = 0
+const dampersLen = 0
+const exhaustFansLen = 0
+const airConditionersLen = 0
+const blowersLen = 0
 
 const initDevices = () => {
   devices.windows = [];
   devices.dampers = [];
   devices.exhaustFans = [];
   devices.airConditioners = [];
+  devices.windowsLen=getDevLen('windows')
+  devices.dampersLen=getDevLen('dampers')
+  devices.blowersLen=getDevLen('blowers')
+  devices.exhaustFansLen=getDevLen('exhaustFans')
+  devices.airConditionersLen=getDevLen('airConditionersLen')
 
   // 重置风机状态
   Object.keys(devices.blowers).forEach(key => {
     devices.blowers[Number(key)] = null;
   });
+}
+
+const initGranConfig = async () => {
+  // loading.value = true
+  console.log('in fetchGranaryList')
+  try {
+    // 💡 动态将前端的输入框内容拼接到 URL 的参数中 (Query Parameters)
+    const response = await axios.get(`http-api/api/dev-address/${selectedHouseCode.value}`)
+    // 将后端返回的 MySQL 字典列表直接赋给组件变量
+    granConfig.value = response.data
+
+
+    // numWindows.value = granConfig.value['windows']
+  } catch (error) {
+    console.error('❌ 请求后端接口失败:', error)
+    alert('数据加载失败，请检查后端服务是否启动！')
+  } finally {
+
+  }
+}
+
+const getDevLen = (devCate) => {
+  let start = granConfig.value?.[devCate]?.[0]
+  console.log('start: ', start)
+  if (!start) {
+    console.log('returning 0')
+    return 0
+  }
+  let end = granConfig.value?.[devCate][1]
+  console.log('dev len: ', end - start + 1)
+  return end - start + 1
 }
 
 // 运行时长控制
