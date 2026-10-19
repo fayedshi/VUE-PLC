@@ -125,29 +125,29 @@
     <!-- <div class="section-title">设备选择控制</div> -->
 
     <!-- 通风窗 (10个) -->
-    <div class="device-row" v-if="devices.windowsLen">
+    <div class="device-row" v-if="windowsLen">
       <span class="device-label">通风窗：</span>
       <div class="device-list">
-        <label v-for="i in devices.windowsLen" :key="'window-' + i" class="checkbox-label">
+        <label v-for="i in windowsLen" :key="'window-' + i" class="checkbox-label">
           <input type="checkbox" :value="i" v-model="devices.windows" /> 窗#{{ i }}
         </label>
       </div>
     </div>
 
     <!-- 风门 (8个) -->
-    <div class="device-row" v-if="devices.dampersLen">
+    <div class="device-row" v-if="dampersLen">
       <span class="device-label">风门：</span>
       <div class="device-list">
-        <label v-for="i in devices.dampersLen" :key="'damper-' + i" class="checkbox-label">
+        <label v-for="i in dampersLen" :key="'damper-' + i" class="checkbox-label">
           <input type="checkbox" :value="i" v-model="devices.dampers" /> 门#{{ i }}
         </label>
       </div>
     </div>
     <!-- 风机 (8个，正/反单选，支持取消选中) -->
-    <div class="device-row" v-if="devices.blowersLen">
+    <div class="device-row" v-if="blowersLen">
       <span class="device-label">风机：</span>
       <div class="device-list inline-grid">
-        <div v-for="i in devices.blowersLen" :key="'blower-' + i" class="blower-group">
+        <div v-for="i in blowersLen" :key="'blower-' + i" class="blower-group">
 
           <label class="radio-label">
             <span class="blower-name">风机#{{ i }}:</span>
@@ -162,20 +162,20 @@
       </div>
     </div>
     <!-- 排风扇 (4个) -->
-    <div class="device-row" v-if="devices.exhaustFansLen">
+    <div class="device-row" v-if="exhaustFansLen">
       <span class="device-label">排风扇：</span>
       <div class="device-list">
-        <label v-for="i in devices.exhaustFansLen" :key="'fan-' + i" class="checkbox-label">
+        <label v-for="i in exhaustFansLen" :key="'fan-' + i" class="checkbox-label">
           <input type="checkbox" :value="i" v-model="devices.exhaustFans" /> 扇#{{ i }}
         </label>
       </div>
     </div>
 
     <!-- 空调 (2个) -->
-    <div class="device-row" v-if="devices.airConditionersLen">
+    <div class="device-row" v-if="airConditionersLen">
       <span class="device-label">空调：</span>
       <div class="device-list">
-        <label v-for="i in devices.airConditionersLen" :key="'ac-' + i" class="checkbox-label">
+        <label v-for="i in airConditionersLen" :key="'ac-' + i" class="checkbox-label">
           <input type="checkbox" :value="i" v-model="devices.airConditioners" /> 空调#{{ i }}
         </label>
       </div>
@@ -242,7 +242,7 @@
 import { ref, computed, reactive, onMounted } from 'vue';
 import axios from 'axios';
 import HouseSelect from '../../components/HouseSelect.vue'
-
+import http from '../../../api/http';
 const layerText = ref('')
 const metricText = ref('')
 const layerSelRef = ref(null)
@@ -272,9 +272,9 @@ const handleDurationChange = () => {
 
 const handleHouseChange = async () => {
   console.log(`切换至模式: ${selectedMode.value}`)
+  loadGranConfig()
   initDevices()
   await fetchRunningJobs(selectedHouseCode.value)
-  // query running job
 }
 
 import SummerInternalCirculation from '../../components/SummerInternalCirculation.vue';
@@ -327,7 +327,7 @@ onMounted(async () => {
   try {
     await Promise.all([
       fetchRunningJobs(selectedHouseCode.value),
-      initGranConfig()
+      loadGranConfig()
       // axios.get('http-api/api/houses/codes')
     ])
     initDevices()
@@ -345,7 +345,7 @@ onMounted(async () => {
 const fetchRunningJobs = (async (houseCode) => {
   try {
     //todo: device address hardcoded, will modify later
-    let jobs = await axios.get(`http-api/api/venti/jobs/${houseCode}`);
+    let jobs = await http.get(`/api/venti/jobs/${houseCode}`);
     if (jobs) {
       activeJob.value = jobs.data[0]
     }
@@ -381,30 +381,27 @@ const devices = reactive({
   // 8个风机，用 Record<键, 值> 存储。值可以是 '正' | '反' | null
   blowers: reactive<Record<number, 1 | 2 | null>>({
     1: null, 2: null, 3: null, 4: null, 5: null, 6: null, 7: null, 8: null
-  }),
-  windowsLen: 0,
-  dampersLen: 0,
-  exhaustFansLen: 0,
-  airConditionersLen: 0,
-  blowersLen: 0
+  })
 });
 
-const windowsLen = 0
-const dampersLen = 0
-const exhaustFansLen = 0
-const airConditionersLen = 0
-const blowersLen = 0
+let windowsLen = ref(0)
+let dampersLen = ref(0)
+let exhaustFansLen = ref(0)
+let airConditionersLen = ref(0)
+let blowersLen = ref(0)
+
 
 const initDevices = () => {
   devices.windows = [];
   devices.dampers = [];
   devices.exhaustFans = [];
   devices.airConditioners = [];
-  devices.windowsLen=getDevLen('windows')
-  devices.dampersLen=getDevLen('dampers')
-  devices.blowersLen=getDevLen('blowers')
-  devices.exhaustFansLen=getDevLen('exhaustFans')
-  devices.airConditionersLen=getDevLen('airConditionersLen')
+
+  windowsLen.value = getDevLen('windows');
+  dampersLen.value = getDevLen('dampers')
+  blowersLen.value = getDevLen('blowers')
+  exhaustFansLen.value = getDevLen('exhaustFans')
+  airConditionersLen.value = getDevLen('airConditionersLen')
 
   // 重置风机状态
   Object.keys(devices.blowers).forEach(key => {
@@ -412,7 +409,7 @@ const initDevices = () => {
   });
 }
 
-const initGranConfig = async () => {
+const loadGranConfig = async () => {
   // loading.value = true
   console.log('in fetchGranaryList')
   try {
@@ -420,9 +417,6 @@ const initGranConfig = async () => {
     const response = await axios.get(`http-api/api/dev-address/${selectedHouseCode.value}`)
     // 将后端返回的 MySQL 字典列表直接赋给组件变量
     granConfig.value = response.data
-
-
-    // numWindows.value = granConfig.value['windows']
   } catch (error) {
     console.error('❌ 请求后端接口失败:', error)
     alert('数据加载失败，请检查后端服务是否启动！')
@@ -501,7 +495,7 @@ const startJob = async (jobType: string) => {
       alert('请取消选择通风模式')
       return
     }
-    apiUrl = 'http-api/api/venti/adhoc/start'
+    apiUrl = '/api/venti/adhoc/start'
     isConfirmed = confirm(`确定开始仓房${selectedHouseCode.value}的即时作业吗？`);
   } else {
     if (selectedMode.value == 0) {
@@ -509,7 +503,7 @@ const startJob = async (jobType: string) => {
       return
     }
     isConfirmed = confirm(`确定开始仓房${selectedHouseCode.value}的智能作业吗？`);
-    apiUrl = 'http-api/api/venti/sched/start'
+    apiUrl = '/api/venti/sched/start'
     payload.start_condition = parentStart.value ?? '';
     payload.end_condition = parentEnd.value ?? '';
   }
@@ -519,7 +513,7 @@ const startJob = async (jobType: string) => {
   }
   try {
     //todo: device address hardcoded, will modify later
-    const result = await axios.post(apiUrl,
+    const result = await http.post(apiUrl,
       payload
     );
     console.log('payload: ', payload)
@@ -548,7 +542,7 @@ const handleStopJob = async () => {
     // isStopJobClicked.value = true
     try {
       //todo: device address hardcoded, will modify later
-      const result = await axios.post("http-api/api/venti/job/stop", {
+      const result = await http.post("/api/venti/job/stop", {
         house_code: selectedHouseCode.value,
         devices: devices,
       });

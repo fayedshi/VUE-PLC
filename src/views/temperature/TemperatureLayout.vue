@@ -1,10 +1,11 @@
 <template>
   <div class="navigate">
     <!-- 二级子菜单导航 -->
-    <RouterLink :to="{name: 'CurveChart'}" exact-active-class="active">温湿度变化曲线</RouterLink>
+    
     <!-- <RouterLink to="/temperature/comparison" active-class="active">粮情点位比较</RouterLink> -->
     <!-- <RouterLink to="/temperature/slice-3d" active-class="active">三维粮温切面图</RouterLink> -->
     <RouterLink :to="{name: 'TempReport'}" active-class="active">测温点位全览</RouterLink>
+    <RouterLink :to="{name: 'CurveChart'}" exact-active-class="active">温湿度变化曲线</RouterLink>
     <!-- <RouterLink to="/temperature/area-analysis" active-class="active">区域粮温分析表</RouterLink> -->
     <!-- <RouterLink to="/temperature/curve-chart" active-class="active">温湿度变化曲线</RouterLink> -->
     <!-- <RouterLink to="/temperature/heatmap" active-class="active">温度云图</RouterLink> -->

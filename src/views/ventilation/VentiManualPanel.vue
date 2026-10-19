@@ -92,7 +92,7 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import axios from 'axios';
 import HouseSelect from '../../components/HouseSelect.vue';
-
+import http from '../../../api/http';
 // const house_code = '001'
 const devStatesObj = ref({
     'switch': [], 'windows': [], 'dampers': [], 'blowers': [], 'exhaustFans': [], 'airConditioners': []
@@ -215,7 +215,7 @@ const getStatusClass = (cateType, index) => {
 const executeSingleAction = async (device, actionType) => {
     console.log(`单独控制设备【${device.name}】(ID: ${device.id})，执行操作代码: ${actionType}`);
     try {
-        let result = await axios.post(`http-api/api/dev/control`, {
+        let result = await http.post(`/api/dev/control`, {
             house_code: selectedHouseCode.value,
             dev_id: device.id,
             action_type: actionType
@@ -235,7 +235,7 @@ const executeSingleAction = async (device, actionType) => {
 
 const executeGlobalAction = async (cateType, actionType) => {
     try {
-        await axios.post(`http-api/api/dev/control`, {
+        await http.post(`/api/dev/control`, {
             house_code: selectedHouseCode.value,
             category_type: cateType,
             action_type: actionType
@@ -309,7 +309,7 @@ const initGranConfig = async () => {
 
         categories.value.forEach((cate) => {
             // cate.devices=Array.from({ length: getDevLen(cate.type) }, (_, i) => ({ id: `${cate.type}-${i + granConfig.value[cate.type][0]}`, name: `${cate.label}#${i + 1}`, status: 4 }))
-            if (granConfig.value[cate]) {
+            if (granConfig.value[cate.type]) {
                 cate.devices = Array.from({ length: getDevLen(cate.type) }, (_, i) => ({ id: `${cate.type}-${i + 1}`, name: `${cate.label}#${i + 1}`, status: 4 }))
             }
         })
@@ -347,7 +347,7 @@ const switchControlMode = async (groupIndex, mode, modeText) => {
     try {
         //todo: device address hardcoded, will modify later
         let devId = groupIndex == 1 ? 'switch-1' : 'switch-2'
-        let result = await axios.post(`http-api/api/dev/control`, {
+        let result = await http.post(`/api/dev/control`, {
             house_code: selectedHouseCode.value,
             dev_id: devId,
             action_type: mode

@@ -2,7 +2,7 @@
     <div class="user-management">
         <div class="header-actions">
             <h3>👥 用户管理账户中心</h3>
-            <el-button v-if="isAdmin" type="primary" icon="Plus" @click="openAddDialog">添加系统用户</el-button>
+            <el-button v-if="isAdmin" type="primary" icon="Plus" @click="openAddDialog">添加用户</el-button>
         </div>
 
         <!-- 访客视图兜底提示 -->
@@ -15,14 +15,14 @@
             <el-table-column prop="role" label="系统角色">
                 <template #default="scope">
                     <el-tag :type="scope.row.role === 'admin' ? 'danger' : 'success'">
-                        {{ scope.row.role === 'admin' ? '系统管理员' : '普通访客' }}
+                        {{ scope.row.role === 'admin' ? '系统管理员' : '一般用户' }}
                     </el-tag>
                 </template>
             </el-table-column>
             <el-table-column prop="created_at" label="创建时间" />
             <el-table-column label="操作" width="180" v-if="isAdmin">
                 <template #default="scope">
-                    <el-button type="danger" size="small" icon="Delete" :disabled="scope.row.username === 'admin'"
+                    <el-button type="danger" size="small" icon="Delete" :disabled="scope.row.username === 'admin' || scope.row.username ===  currentUser "
                         @click="handleDelete(scope.row)">
                         删除
                     </el-button>
@@ -31,7 +31,7 @@
         </el-table>
 
         <!-- 添加用户弹窗 -->
-        <el-dialog v-model="dialogVisible" title="新增上位机用户" width="400px">
+        <el-dialog v-model="dialogVisible" title="新增用户" width="400px">
             <el-form :model="userForm" label-width="80px">
                 <el-form-item label="用户名">
                     <el-input v-model="userForm.username" />
@@ -42,7 +42,7 @@
                 <el-form-item label="系统角色">
                     <el-select v-model="userForm.role" style="width: 100%">
                         <el-option label="系统管理员" value="admin" />
-                        <el-option label="普通访客" value="visitor" />
+                        <el-option label="一般用户" value="visitor" />
                     </el-select>
                 </el-form-item>
             </el-form>
@@ -64,6 +64,7 @@ const loading = ref(false);
 const dialogVisible = ref(false);
 
 const currentRole = localStorage.getItem('role');
+const currentUser = localStorage.getItem('username');
 const isAdmin = computed(() => currentRole === 'admin');
 
 const userForm = ref({ username: '', password: '', role: 'visitor' });
