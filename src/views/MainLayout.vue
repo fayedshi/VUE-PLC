@@ -33,7 +33,9 @@
     <el-container>
 
       <el-header class="layout-header">
-        <div v-if="username" class="header-left">当前用户：{{ username }} ({{ role }})</div>
+        <div v-if="username" class="header-left">当前用户：{{ username }} ({{ role }})
+          <el-button style="margin-left: 10px;" size="middle" @click="toChangePass()">修改密码</el-button>  
+        </div>
         <el-button style="margin-left: 10px;" size="middle" @click="handleLogout">{{ username ? "退出" : "登录" }}</el-button>
         <!-- <el-button v-else type="danger" size="small" @click="handleLogout">登录</el-button> -->
       </el-header>
@@ -81,6 +83,10 @@ const handleLogout = () => {
   localStorage.clear() // 清除 token 和用户信息
   router.push('/login')
 };
+
+const toChangePass=()=>{
+  router.push('/changePass')
+}
 </script>
 
 <style>

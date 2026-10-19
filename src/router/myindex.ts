@@ -13,10 +13,18 @@ let routes = [
     // },
   },
   {
+    path: '/changePass',
+    name: 'ChangePass',
+    component: () => import('../views/user/PassChange.vue'),
+    meta: { title: '修改密码' }
+    // redirect: 'curveChart'
+    // },
+  },
+  {
     path: '/',
     name: 'MainLayout',
     component: () => import('../views/MainLayout.vue'),
-    meta: { title: '首页', requiresAuth: true },
+    meta: { title: '首页', requiresAuth: false },
     // redirect: 'curveChart'
     // },
     children: [
@@ -30,26 +38,26 @@ let routes = [
         path: 'users',
         name: 'Users',
         component: UserManagement,
-        meta: { requiresAuth: true }
+        meta: { requiresAuth: false }
       },
       {
         path: 'system',
         name: 'System',
         component: () => import('../views/SystemLayout.vue'),
-        meta: { title: '系统主页', requiresAuth: true },
+        meta: { title: '系统主页', requiresAuth: false },
         children: [
           {
             path: 'temperature',
             name: 'Temperature',
             component: () => import('../views/temperature/TemperatureLayout.vue'),
-            meta: { title: '测温系统', requiresAuth: true },
+            meta: { title: '测温系统', requiresAuth: false },
             redirect: '/system/temperature',
             children: [
               {
                 path: 'curveChart', // 留空代表默认子路由，访问 / 时默认渲染此组件
                 name: 'CurveChart',
                 component: () => import('../views/temperature/TempCurveChart.vue'),
-                meta: { title: '温湿度变化曲线', requiresAuth: true }
+                meta: { title: '温湿度变化曲线', requiresAuth: false }
 
               },
               {
@@ -68,7 +76,7 @@ let routes = [
                 path: '', // 实际访问路径：/report
                 name: 'TempReport',
                 component: () => import('../views/temperature/TempReportView.vue'),
-                meta: { title: '综合温度报表', requiresAuth: true }
+                meta: { title: '综合温度报表', requiresAuth: false }
               },
               {
                 path: 'area-analysis', // 实际访问路径：/area-analysis
