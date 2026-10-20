@@ -171,6 +171,13 @@ let routes = [
             component: () => import('../views/video/MainMonitor.vue'),
             meta: { title: '安防监控' }
           },
+          {
+            path: 'power-supply',
+            name: 'PowerSupply',
+            component: () => import('../views/solar/PowerSupply.vue'),
+            meta: { title: '太阳能供电' }
+          }
+          
         ]
       },
 
