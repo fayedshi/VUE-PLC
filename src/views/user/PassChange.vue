@@ -62,6 +62,8 @@
 import { ref, reactive } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import axios from 'axios' // 假设使用 axios 进行通信
+import http from '../../../api/http'
+import myRouter from '../../router/myindex'
 
 const passwordFormRef = ref(null)
 const submitLoading = ref(false)
@@ -118,13 +120,15 @@ const handleSubmit = () => {
       submitLoading.value = true
       try {
         // 调用后端 FastAPI 接口
-        const response = await axios.post('/api/v1/auth/password/update', form)
+        const response = await http.post('/api/auth/password/update', form)
         
         ElMessageBox.alert(response.data.message || '修改成功', '操作成功', {
           confirmButtonText: '重新登录',
           callback: () => {
             // 这里清除本地 Token (例如 localStorage.clear())
             // 并通过路由跳转重定向回登录页
+            localStorage.clear()
+            myRouter.push('/login')
             console.log('清除Token，跳转至登录页')
           }
         })

@@ -11,7 +11,7 @@
         <el-menu-item index="/">
           <span>粮情看板</span>
         </el-menu-item>
-        <el-menu-item index="/users" v-if="role=='admin'">
+        <el-menu-item index="/users" v-if="role=='SUPER_ADMIN' || role === 'SUPER_ADMIN'">
 
           <span>用户管理</span>
         </el-menu-item>

@@ -2,11 +2,11 @@
     <div class="user-management">
         <div class="header-actions">
             <h3>👥 用户管理账户中心</h3>
-            <el-button v-if="isAdmin" type="primary" icon="Plus" @click="openAddDialog">添加用户</el-button>
+            <el-button v-if="isSuperAdmin" type="primary" icon="Plus" @click="openAddDialog">添加用户</el-button>
         </div>
 
         <!-- 访客视图兜底提示 -->
-        <el-alert v-if="!isAdmin" title="当前角色为 [访客]，无权修改用户信息，仅供查阅。" type="warning" show-icon :closable="false" />
+        <el-alert v-if="!isSuperAdmin" title="当前角色为 [访客]，无权修改用户信息，仅供查阅。" type="warning" show-icon :closable="false" />
 
         <!-- 用户表格 -->
         <el-table :data="userList" stripe style="width: 100%; margin-top: 20px" v-loading="loading">
@@ -14,21 +14,33 @@
             <el-table-column prop="username" label="用户名" />
             <el-table-column prop="role" label="系统角色">
                 <template #default="scope">
+                    <!-- 建议：这里的判断和显示可以根据您之前写的 Enum 进行匹配调整 -->
                     <el-tag :type="scope.row.role === 'admin' ? 'danger' : 'success'">
-                        {{ scope.row.role === 'admin' ? '系统管理员' : '一般用户' }}
+                        {{ scope.row.role }} <!-- 注意：这里原先的 currentRole 可能是个误笔，应该绑定当前行的 role -->
                     </el-tag>
                 </template>
             </el-table-column>
             <el-table-column prop="created_at" label="创建时间" />
-            <el-table-column label="操作" width="180" v-if="isAdmin">
+
+            <!-- ⚙️ 统一的操作列（仅超级管理员可见） -->
+            <el-table-column label="操作" width="220" v-if="isSuperAdmin">
                 <template #default="scope">
-                    <el-button type="danger" size="small" icon="Delete" :disabled="scope.row.username === 'admin' || scope.row.username ===  currentUser "
+
+
+                    <!-- 2. 删除按钮 -->
+                    <el-button type="danger" size="small" icon="Delete"
+                        :disabled="scope.row.username === 'admin' || scope.row.username === currentUser"
                         @click="handleDelete(scope.row)">
                         删除
+                    </el-button>
+                    <!-- 1. 重置密码按钮（使用 primary 或 warning 蓝色/黄色调，与删除的红色错开） -->
+                    <el-button type="primary" size="small" icon="Refresh" @click="handleResetPassword(scope.row)">
+                        重置密码
                     </el-button>
                 </template>
             </el-table-column>
         </el-table>
+
 
         <!-- 添加用户弹窗 -->
         <el-dialog v-model="dialogVisible" title="新增用户" width="400px">
@@ -41,8 +53,7 @@
                 </el-form-item>
                 <el-form-item label="系统角色">
                     <el-select v-model="userForm.role" style="width: 100%">
-                        <el-option label="系统管理员" value="admin" />
-                        <el-option label="一般用户" value="visitor" />
+                        <el-option v-for="role in roleList" :key="role.name" :label="role.desc" :value="role.name" />
                     </el-select>
                 </el-form-item>
             </el-form>
@@ -57,21 +68,22 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import http from '../../api/http';
+import http from '../../../api/http';
 
 const userList = ref([]);
+const roleList = ref([]);
 const loading = ref(false);
 const dialogVisible = ref(false);
 
 const currentRole = localStorage.getItem('role');
 const currentUser = localStorage.getItem('username');
-const isAdmin = computed(() => currentRole === 'admin');
+const isSuperAdmin = computed(() => currentRole === 'SUPER_ADMIN');
 
-const userForm = ref({ username: '', password: '', role: 'visitor' });
+const userForm = ref({ username: '', password: '', role: '' });
 
 // 获取用户列表
 const fetchUsers = async () => {
-    if (!isAdmin.value) return; // 访客不请求列表，由前端隔离或展示空白
+    if (!isSuperAdmin.value) return; // 访客不请求列表，由前端隔离或展示空白
     loading.value = true;
     try {
         const res = await http.get('/api/users');
@@ -83,8 +95,21 @@ const fetchUsers = async () => {
     }
 };
 
+const fetchRoles = async () => {
+    if (!isSuperAdmin.value) return; // 访客不请求列表，由前端隔离或展示空白
+    loading.value = true;
+    try {
+        const res = await http.get('/api/roles');
+        roleList.value = res.data;
+    } catch (err) {
+        console.error(err);
+    } finally {
+        loading.value = false;
+    }
+};
+
 const openAddDialog = () => {
-    userForm.value = { username: '', password: '', role: 'visitor' };
+    userForm.value = { username: '', password: '', role: '' };
     dialogVisible.value = true;
 };
 
@@ -120,8 +145,9 @@ const handleDelete = (row) => {
     }).catch(() => { });
 };
 
-onMounted(() => {
-    fetchUsers();
+onMounted(async () => {
+    await fetchUsers();
+    await fetchRoles();
 });
 </script>
 

@@ -37,7 +37,6 @@ const handleLogin = async () => {
         const res = await http.post('/api/login', {
             username: loginForm.username,
             password: loginForm.password,
-            role: 'visitor' // 契合后端校验格式，登录时不看此角色
         });
         localStorage.setItem('token', res.data.access_token);
         localStorage.setItem('role', res.data.role);

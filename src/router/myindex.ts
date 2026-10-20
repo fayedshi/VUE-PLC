@@ -1,4 +1,4 @@
-import UserManagement from '../views/UserManagement.vue';
+import UserManagement from '../views/user/UserManagement.vue';
 import { ElMessage } from 'element-plus';
 import { createWebHistory, createRouter } from 'vue-router';
 
