@@ -13,16 +13,15 @@
             </el-select>
           </div>
           <el-radio-group v-model="dimension" @change="handleDimensionChange" size="default">
-            <el-radio-button label="hour">小时</el-radio-button>
-            <el-radio-button label="day">日</el-radio-button>
-            <el-radio-button label="month">月</el-radio-button>
-            <el-radio-button label="year">年</el-radio-button>
+            <el-radio-button label="Hour">小时</el-radio-button>
+            <el-radio-button label="Day">日</el-radio-button>
+            <el-radio-button label="Month">月</el-radio-button>
+            <el-radio-button label="Year">年</el-radio-button>
           </el-radio-group>
 
           <!-- 2. 动态日期选择器（根据维度自动改变类型） -->
-          <el-date-picker v-if="dimension !== 'year'" v-model="selectedDate" :type="datePickerType"
-            :placeholder="pickerPlaceholder" :clearable="false" @change="fetchChartData"
-            style="width: 160px; margin-left: 15px;" />
+          <el-date-picker type="date" v-model="selectedDate" "
+              style=" width: 160px; margin-left: 15px;" />
         </div>
       </div>
     </template>
@@ -40,6 +39,12 @@ import http from '../../../api/http'
 
 // --- 响应式变量 ---
 const dimension = ref('day') // 当前维度：hour, day, month, year
+const dimensionMap = {
+  Hour: '小时',
+  Day: '日',
+  Month: '月',
+  Year: '年'
+}
 const selectedDate = ref(new Date()) // 选择的时间
 const chartRef = ref(null) // 图表 DOM 引用
 let myChart = null // ECharts 实例
@@ -47,24 +52,24 @@ let myChart = null // ECharts 实例
 const stationList = ref([])
 const activePlant = ref('')
 // --- 计算属性：根据维度动态改变 ElementPlus 选择器属性 ---
-const datePickerType = computed(() => {
-  if (dimension.value === 'hour') return 'date'
-  if (dimension.value === 'day') return 'month'
-  if (dimension.value === 'month') return 'year'
-  return 'year'
-})
+// const datePickerType = computed(() => {
+//   if (dimension.value === 'hour') return 'date'
+//   if (dimension.value === 'day') return 'month'
+//   if (dimension.value === 'month') return 'year'
+//   return 'year'
+// })
 
-const pickerPlaceholder = computed(() => {
-  if (dimension.value === 'hour') return '选择日期'
-  if (dimension.value === 'day') return '选择月份'
-  if (dimension.value === 'month') return '选择年份'
-  return '选择年份'
-})
+// const pickerPlaceholder = computed(() => {
+//   if (dimension.value === 'hour') return '选择日期'
+//   if (dimension.value === 'day') return '选择月份'
+//   if (dimension.value === 'month') return '选择年份'
+//   return '选择年份'
+// })
 
 const handlePlantChange = async () => {
   try {
     const res = await http.get('/api/stations');
-    console.log('res:', res)
+    console.log('power stations:', res)
     stationList.value = res.data;
   } catch (err) {
     console.error(err);
@@ -73,36 +78,41 @@ const handlePlantChange = async () => {
   }
 }
 // --- 模拟切换维度时生成契合 FusionSolar 的 X 轴和数据 ---
-const generateMockData = () => {
+const generateXAxiskData = (pvData) => {
   let xAxisData = []
   let seriesData = []
   const dim = dimension.value
 
-  if (dim === 'hour') {
-    // 24小时，白天有发电量，夜晚为0
-    for (let i = 0; i < 24; i++) {
-      xAxisData.push(`${i}:00`)
-      seriesData.push((i > 5 && i < 19) ? Math.floor(Math.random() * 50 + 20) : 0)
-    }
-  } else if (dim === 'day') {
-    // 按日：显示某月30天
-    for (let i = 1; i <= 30; i++) {
-      xAxisData.push(`${i}日`)
-      seriesData.push(Math.floor(Math.random() * 300 + 150))
-    }
-  } else if (dim === 'month') {
-    // 按月：显示1-12月
-    for (let i = 1; i <= 12; i++) {
-      xAxisData.push(`${i}月`)
-      seriesData.push(Math.floor(Math.random() * 5000 + 3000))
-    }
-  } else if (dim === 'year') {
-    // 按年：显示近年生命周期
-    const currentYear = new Date().getFullYear()
-    for (let i = currentYear - 5; i <= currentYear; i++) {
-      xAxisData.push(`${i}年`)
-      seriesData.push(Math.floor(Math.random() * 50000 + 40000))
-    }
+  // if (dim === 'Hour') {
+  //   // 24小时，白天有发电量，夜晚为0
+  //   for (let i = 0; i < dataLen; i++) {
+  //     xAxisData.push(`${i}:00`)
+  //     seriesData.push((i > 5 && i < 19) ? Math.floor(Math.random() * 50 + 20) : 0)
+  //   }
+  // } else if (dim === 'Day') {
+  //   // 按日：显示某月30天
+  //   for (let i = 1; i <= dataLen; i++) {
+  //     xAxisData.push(`${i}日`)
+  //     seriesData.push(Math.floor(Math.random() * 300 + 150))
+  //   }
+  // } else if (dim === 'Month') {
+  //   // 按月：显示1-12月
+  //   for (let i = 1; i <= dataLen; i++) {
+  //     xAxisData.push(`${i}月`)
+  //     seriesData.push(Math.floor(Math.random() * 5000 + 3000))
+  //   }
+  // } else if (dim === 'Year') {
+  //   // 按年：显示近年生命周期
+  //   const currentYear = new Date().getFullYear()
+  //   for (let i = currentYear - 5; i <= currentYear; i++) {
+  //     xAxisData.push(`${i}年`)
+  //     seriesData.push(Math.floor(Math.random() * 50000 + 40000))
+  //   }
+  // }
+
+  for (let i = 0; i < pvData.length; i++) {
+    xAxisData.push(pvData[i]['time'])
+    seriesData.push(pvData[i]['power'])
   }
   return { xAxisData, seriesData }
 }
@@ -124,7 +134,13 @@ const initChart = (xAxisData, seriesData) => {
       type: 'category',
       data: xAxisData,
       axisTick: { alignWithLabel: true },
-      axisLine: { lineStyle: { color: '#909399' } }
+      axisLine: { lineStyle: { color: '#909399' } },
+      axisLabel: {
+        interval: 0, // 强制显示所有标签（0 代表隔 0 个显示，即全部显示）
+
+        // 可选扩展：如果强制显示后文字太挤，可以开启以下配置
+        rotate: 30,  // 文字倾斜 30 度显示，防止挤压
+      }
     },
     yAxis: {
       type: 'value',
@@ -159,17 +175,39 @@ const initChart = (xAxisData, seriesData) => {
 }
 
 // --- 核心业务逻辑：获取数据并更新 ---
-const fetchChartData = () => {
+const fetchChartData = async () => {
   // 在实际开发中，这里需要将 selectedDate 转为时间戳并调用你的 Python/Go 北向 API
   // console.log("当前请求维度:", dimension.value, "选择的时间戳:", selectedDate.value.getTime())
 
-  const { xAxisData, seriesData } = generateMockData()
-  initChart(xAxisData, seriesData)
+
+  // isLoading.value = true
+  try {
+    // 💡 替换为您后端的趋势接口地址
+    const response = await http.get('/api/solar', {
+      params: {
+        plant_code: activePlant.value,
+        dimension: dimension.value,
+        input_time: selectedDate.value
+      }
+    })
+
+    console.log('response: ', response.data)
+    const { xAxisData, seriesData } = generateXAxiskData(response.data)
+    initChart(xAxisData, seriesData)
+
+  } catch (error) {
+    console.error('获取趋势图数据失败:', error)
+    alert('网络异常，获取能耗趋势失败')
+  } finally {
+    // isLoading.value = false
+  }
+
+
 }
 
 // 维度改变的回调
 const handleDimensionChange = () => {
-  selectedDate.value = new Date() // 切换维度重置为当前时间
+  // selectedDate.value = new Date() // 切换维度重置为当前时间
   fetchChartData()
 }
 
@@ -185,6 +223,7 @@ const fetchStationList = async () => {
     const res = await http.get('/api/stations');
     console.log('res:', res)
     stationList.value = res.data;
+    activePlant.value = stationList.value[0].code
   } catch (err) {
     console.error(err);
   } finally {
@@ -193,10 +232,10 @@ const fetchStationList = async () => {
 };
 
 // --- 生命周期钩子 ---
-onMounted(async () => {
-  fetchChartData()
-  await fetchStationList();
-  window.addEventListener('resize', handleResize)
+onMounted(() => {
+  // fetchChartData()
+  fetchStationList();
+  // window.addEventListener('resize', handleResize)
 })
 
 onUnmounted(() => {

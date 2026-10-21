@@ -23,7 +23,7 @@
             <el-table-column prop="created_at" label="创建时间" />
 
             <!-- ⚙️ 统一的操作列（仅超级管理员可见） -->
-            <el-table-column label="操作" width="220" v-if="isSuperAdmin">
+            <el-table-column label="操作" width="220">
                 <template #default="scope">
 
 
@@ -34,7 +34,8 @@
                         删除
                     </el-button>
                     <!-- 1. 重置密码按钮（使用 primary 或 warning 蓝色/黄色调，与删除的红色错开） -->
-                    <el-button type="primary" size="small" icon="Refresh" @click="handleResetPassword(scope.row)">
+                    <el-button typtype="warning" icon="Refresh" @click="handleResetPassword(scope.row)"
+                        :disabled="scope.row.username === 'admin'">
                         重置密码
                     </el-button>
                 </template>
@@ -107,6 +108,40 @@ const fetchRoles = async () => {
         loading.value = false;
     }
 };
+
+const handleResetPassword = (row) => {
+    ElMessageBox.confirm(
+        `确定要重置保管员 [ ${row.username} ] 的登录密码吗？`,
+        '安全警告',
+        {
+            confirmButtonText: '确定重置',
+            cancelButtonText: '取消',
+            type: 'warning',
+        }
+    ).then(async () => {
+        try {
+            // 发起后端请求，传入该用户的 ID
+            const response = await http.post(`/api/admin/users/${row.id}/reset-password`)
+            const initialPassword = response.data.data.initial_password
+
+            // 成功弹窗，并提供一键复制初始密码的提示
+            ElMessageBox.alert(
+                `该职工密码已重置成功！<br/>初始随机密码为：<b style="color: #f56c6c; font-size: 16px;">${initialPassword}</b><br/><br/>请将此密码告知该用户`,
+                // `该职工密码已重置成功！<br/>初始随机密码为：<b style="color: #f56c6c; font-size: 16px;">${initialPassword}</b><br/><br/>请将此密码告知该职工，其下次登录时系统将强制要求其修改密码。`,
+                '重置成功',
+                {
+                    dangerouslyUseHTMLString: true,
+                    confirmButtonText: '我知道了'
+                }
+            )
+        } catch (error) {
+            const errorMsg = error.response?.data?.detail || '重置失败，请检查网络或管理员权限'
+            ElMessage.error(errorMsg)
+        }
+    }).catch(() => {
+        ElMessage.info('已取消重置操作')
+    })
+}
 
 const openAddDialog = () => {
     userForm.value = { username: '', password: '', role: '' };

@@ -1,49 +1,23 @@
 <template>
   <div class="password-container">
     <el-card class="password-card" header="修改个人密码">
-      <el-alert
-        title="安全提示：请定期更换粮库系统密码。新密码长度至少8位，且需同时包含大小写字母、数字和特殊符号。"
-        type="warning"
-        show-icon
-        :closable="false"
-        style="margin-bottom: 20px"
-      />
+      <el-alert title="安全提示：请定期更换粮库系统密码。新密码长度至少8位，且需同时包含大小写字母、数字和特殊符号。" type="warning" show-icon :closable="false"
+        style="margin-bottom: 20px" />
 
-      <el-form
-        ref="passwordFormRef"
-        :model="form"
-        :rules="rules"
-        label-width="100px"
-        label-position="right"
-      >
+      <el-form ref="passwordFormRef" :model="form" :rules="rules" label-width="100px" label-position="right">
         <!-- 旧密码 -->
         <el-form-item label="当前旧密码" prop="old_password">
-          <el-input
-            v-model="form.old_password"
-            type="password"
-            show-password
-            placeholder="请输入您当前的登录密码"
-          />
+          <el-input v-model="form.old_password" type="password" show-password placeholder="请输入您当前的登录密码" />
         </el-form-item>
 
         <!-- 新密码 -->
         <el-form-item label="设置新密码" prop="new_password">
-          <el-input
-            v-model="form.new_password"
-            type="password"
-            show-password
-            placeholder="请设置新的强密码"
-          />
+          <el-input v-model="form.new_password" type="password" show-password placeholder="请设置新的强密码" />
         </el-form-item>
 
         <!-- 确认新密码 -->
         <el-form-item label="确认新密码" prop="confirm_password">
-          <el-input
-            v-model="form.confirm_password"
-            type="password"
-            show-password
-            placeholder="请再次输入新密码"
-          />
+          <el-input v-model="form.confirm_password" type="password" show-password placeholder="请再次输入新密码" />
         </el-form-item>
 
         <!-- 操作按钮 -->
@@ -52,6 +26,7 @@
             确认修改
           </el-button>
           <el-button @click="handleReset">重置表单</el-button>
+          <el-button @click="cancelReset">取消</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -63,8 +38,10 @@ import { ref, reactive } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import axios from 'axios' // 假设使用 axios 进行通信
 import http from '../../../api/http'
-import myRouter from '../../router/myindex'
+// import myRouter from '../../router/myindex'
+import { useRouter } from 'vue-router';
 
+const router = useRouter();
 const passwordFormRef = ref(null)
 const submitLoading = ref(false)
 
@@ -121,14 +98,13 @@ const handleSubmit = () => {
       try {
         // 调用后端 FastAPI 接口
         const response = await http.post('/api/auth/password/update', form)
-        
+
         ElMessageBox.alert(response.data.message || '修改成功', '操作成功', {
-          confirmButtonText: '重新登录',
-          callback: () => {
+          confirmButtonText: '重新登录', callback: () => {
             // 这里清除本地 Token (例如 localStorage.clear())
             // 并通过路由跳转重定向回登录页
             localStorage.clear()
-            myRouter.push('/login')
+            router.push('/login')
             console.log('清除Token，跳转至登录页')
           }
         })
@@ -152,6 +128,13 @@ const handleReset = () => {
     passwordFormRef.value.resetFields()
   }
 }
+
+const cancelReset = () => {
+  router.back()
+
+}
+
+
 </script>
 
 <style scoped>
@@ -163,6 +146,7 @@ const handleReset = () => {
   background-color: #f5f7fa;
   min-height: 80vh;
 }
+
 .password-card {
   width: 100%;
   max-width: 550px;
