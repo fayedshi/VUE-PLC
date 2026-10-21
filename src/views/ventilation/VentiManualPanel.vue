@@ -226,7 +226,7 @@ const executeSingleAction = async (device, actionType) => {
         alert(result.data.message)
         // console.log('result ', result)
     } catch (err) {
-        alert('操作失败，请检查 PLC 连接');
+        alert('操作失败: '+err);
     } finally {
         console.log('finished')
     }
