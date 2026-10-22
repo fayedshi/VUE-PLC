@@ -1,8 +1,9 @@
 import axios from 'axios';
 import { ElMessage } from 'element-plus';
+import myRouter from '../src/router/myindex';
 
 const http = axios.create({
-//   baseURL: 'http://localhost:8000', // 后端 FastAPI 地址
+  //   baseURL: 'http://localhost:8000', // 后端 FastAPI 地址
   baseURL: 'http-api', // 后端 FastAPI 地址
   timeout: 5000
 });
@@ -32,6 +33,11 @@ http.interceptors.response.use(response => response, error => {
     //   ElMessage.error(error.response.data.detail || '服务器开小差了');
     // }
     ElMessage.error(error.response.data.detail || '服务器开小差了')
+    if (error.response.status === 401) {
+      //   ElMessage.error('登录失效，请重新登录');
+      localStorage.clear();
+      myRouter.push('/login');
+    }
   }
   return Promise.reject(error);
 });
