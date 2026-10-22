@@ -126,12 +126,12 @@ let routes = [
             component: () => import('../views/SiloAccess/SiloEntryLogs.vue'),
             meta: { title: '查粮门禁模块' }
           },
-          {
-            path: 'hvac',
-            name: 'Hvac', // HVAC 是加热通风与空调系统的国际标准通用缩写
-            component: () => import('../views/3DModelDemo.vue'),
-            meta: { title: '空调系统' }
-          },
+          // {
+          //   path: 'hvac',
+          //   name: 'Hvac', // HVAC 是加热通风与空调系统的国际标准通用缩写
+          //   component: () => import('../components/WindowScene.vue'),
+          //   meta: { title: '3D系统' }
+          // },
           {
             path: 'power',
             name: 'Power',

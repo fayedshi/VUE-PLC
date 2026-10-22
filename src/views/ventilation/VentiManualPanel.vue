@@ -52,6 +52,8 @@
                     <div class="device-actions">
                         <!-- 针对：通风窗、门控制、排风扇 (开/关/停 或 开/停) -->
                         <template v-if="['windows', 'dampers', 'exhaustFans'].includes(cat.type)">
+                            <!-- <button @click="changeStatus(4)" class="active-btn">💨 开启窗户 (状态 4)</button> -->
+
                             <button class="action-single btn-open-text" @click="executeSingleAction(dev, 1)">开</button>
                             <button v-if="cat.type !== 'exhaust'" class="action-single btn-close-text"
                                 @click="executeSingleAction(dev, 2)">关</button>
@@ -82,8 +84,12 @@
                 </button>
             </div>
             <!-- 如果没有全局按钮，占位保持间距 -->
-            <div class="action-bar-empty" v-else></div>
+            <div class="action-bar-empty" v-else>
+                
+
+            </div>
         </div>
+        
     </div>
 </template>
 
@@ -93,6 +99,10 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import axios from 'axios';
 import HouseSelect from '../../components/HouseSelect.vue';
 import http from '../../../api/http';
+import { ElMessage, ElMessageBox } from 'element-plus';
+
+
+// const currentStatus = ref()
 // const house_code = '001'
 const devStatesObj = ref({
     'switch': [], 'windows': [], 'dampers': [], 'blowers': [], 'exhaustFans': [], 'airConditioners': []
@@ -220,13 +230,14 @@ const executeSingleAction = async (device, actionType) => {
             dev_id: device.id,
             action_type: actionType
         });
-        if (result.data.status == 'success')
+        if (result.data.status == 'success') {
             console.log(result.data.status)
-        // else
-        alert(result.data.message)
+            
+        }
+        ElMessageBox.alert(result.data.message)
         // console.log('result ', result)
     } catch (err) {
-        alert('操作失败: '+err);
+        // alert('操作失败: '+err);
     } finally {
         console.log('finished')
     }

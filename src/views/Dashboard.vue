@@ -71,7 +71,7 @@
         </div>
       </div>
     </div>
-
+    <WindowScene :windowStatus="currentStatus" />
   </div>
 </template>
 
@@ -79,6 +79,7 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import axios from 'axios'
+import WindowScene from '../components/WindowScene.vue' // 引入你的 3D 子组件
 // 1. 定义响应式变量
 const isConnected = ref(false);
 const liveData = ref(['--', '--', '--', '--', '--', '--']);
@@ -86,7 +87,7 @@ const liveData = ref(['--', '--', '--', '--', '--', '--']);
 const currentGranaryCode = ref(''); // 当前选中的仓房编号
 const granaryList = ref([]);        // 下拉列表所有仓房数据
 const activeGranary = ref({});      // 当前选中仓房的详细静态字段
-
+const currentStatus = ref(0)
 // const plcData = ref({ temperature: 0.0, pressure: 0.0, status: 'UNKNOWN' });
 let socket = null;
 let isExplicitlyClosed = false
@@ -130,6 +131,14 @@ const handleGranaryChange = async () => {
   isExplicitlyClosed = true;
   // console.log('plc_code', activeGranary.value.plc_code)
   initWebSocket()
+  // mock for testing 
+  console.log('acti gran ',currentGranaryCode.value)
+  if (currentGranaryCode.value == '001') {
+    currentStatus.value = 1
+  }else{
+    currentStatus.value = 2
+  }
+  // mock for testing
 };
 
 // 2. 建立 WebSocket 连接函数
@@ -164,13 +173,13 @@ const initWebSocket = async () => {
   // 连接关闭事件
   socket.onclose = () => {
     isConnected.value = false;
-    console.log('【前端提示】home连接已断开 granCode:',granCode);
+    console.log('【前端提示】home连接已断开 granCode:', granCode);
     // no reconnect if manually closed
     if (!isExplicitlyClosed) {
       console.log('3秒后尝试自动重连...');
       setTimeout(initWebSocket, 3000); // 掉线自动重连机制
     }
-    liveData.value=['--', '--', '--', '--', '--', '--'];
+    liveData.value = ['--', '--', '--', '--', '--', '--'];
   };
 
   // 发生错误事件
@@ -184,7 +193,7 @@ onMounted(async () => {
   try {
     // 步骤1：先拉取所有的仓房列表
     const list = await fetchGranaryList();
-    console.log('list ',list)
+    console.log('list ', list)
     granaryList.value = list;
     if (list.length > 0) {
       // 步骤2：默认选中第一个仓房
@@ -204,9 +213,9 @@ onBeforeUnmount(() => {
     socket.close();
     // 切换tab时，没必要保持连接，当成手动关闭
     console.log('manually closed websocket')
-    isExplicitlyClosed=true
+    isExplicitlyClosed = true
   }
-  
+
 });
 </script>
 

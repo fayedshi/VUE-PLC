@@ -49,11 +49,11 @@
                 <el-form-item label="用户名">
                     <el-input v-model="userForm.username" />
                 </el-form-item>
-                <el-form-item label="密码">
+                <!-- <el-form-item label="密码">
                     <el-input v-model="userForm.password" type="password" show-password />
-                </el-form-item>
-                <el-form-item label="系统角色">
-                    <el-select v-model="userForm.role" style="width: 100%">
+                </el-form-item> -->
+                <el-form-item label="角色">
+                    <el-select v-model="userForm.role" style="width: 100%" placeholder="请选择">
                         <el-option v-for="role in roleList" :key="role.name" :label="role.desc" :value="role.name" />
                     </el-select>
                 </el-form-item>
@@ -102,6 +102,7 @@ const fetchRoles = async () => {
     try {
         const res = await http.get('/api/roles');
         roleList.value = res.data;
+        console.log(roleList.value)
     } catch (err) {
         console.error(err);
     } finally {
@@ -150,16 +151,29 @@ const openAddDialog = () => {
 
 // 提交新用户
 const submitAddUser = async () => {
-    if (!userForm.value.username || !userForm.value.password) {
+    if (!userForm.value.username || !userForm.value.role) {
         return ElMessage.warning('请填写完整信息');
     }
     try {
-        await http.post('/api/users', userForm.value);
-        ElMessage.success('用户创建成功');
+        const response = await http.post('/api/users', userForm.value);
+        // ElMessage.success('用户创建成功,'response);
+        const initialPassword = response.data.data.initial_password
+
+        // 成功弹窗，并提供一键复制初始密码的提示
+        ElMessageBox.alert(
+            `创建用户成功！<br/>初始随机密码为：<b style="color: #f56c6c; font-size: 16px;">${initialPassword}</b><br/><br/>请将此密码告知该用户`,
+            // `该职工密码已重置成功！<br/>初始随机密码为：<b style="color: #f56c6c; font-size: 16px;">${initialPassword}</b><br/><br/>请将此密码告知该职工，其下次登录时系统将强制要求其修改密码。`,
+            '创建成功',
+            {
+                dangerouslyUseHTMLString: true,
+                confirmButtonText: '我知道了'
+            }
+        )
         dialogVisible.value = false;
         fetchUsers();
     } catch (err) {
-        console.error(err);
+        ElMessage.error(err)
+        // console.error(err);
     }
 };
 

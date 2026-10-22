@@ -38,7 +38,7 @@ import { ElMessage } from 'element-plus'
 import http from '../../../api/http'
 
 // --- 响应式变量 ---
-const dimension = ref('day') // 当前维度：hour, day, month, year
+const dimension = ref('Day') // 当前维度：hour, day, month, year
 const dimensionMap = {
   Hour: '小时',
   Day: '日',
@@ -50,7 +50,7 @@ const chartRef = ref(null) // 图表 DOM 引用
 let myChart = null // ECharts 实例
 
 const stationList = ref([])
-const activePlant = ref('')
+const activePlant = ref()
 // --- 计算属性：根据维度动态改变 ElementPlus 选择器属性 ---
 // const datePickerType = computed(() => {
 //   if (dimension.value === 'hour') return 'date'
@@ -72,7 +72,8 @@ const handlePlantChange = async () => {
     console.log('power stations:', res)
     stationList.value = res.data;
   } catch (err) {
-    console.error(err);
+    // console.error(err);
+    // ElMessage.error(err.response.data.detail)
   } finally {
     // loading.value = false;
   }
@@ -81,34 +82,6 @@ const handlePlantChange = async () => {
 const generateXAxiskData = (pvData) => {
   let xAxisData = []
   let seriesData = []
-  const dim = dimension.value
-
-  // if (dim === 'Hour') {
-  //   // 24小时，白天有发电量，夜晚为0
-  //   for (let i = 0; i < dataLen; i++) {
-  //     xAxisData.push(`${i}:00`)
-  //     seriesData.push((i > 5 && i < 19) ? Math.floor(Math.random() * 50 + 20) : 0)
-  //   }
-  // } else if (dim === 'Day') {
-  //   // 按日：显示某月30天
-  //   for (let i = 1; i <= dataLen; i++) {
-  //     xAxisData.push(`${i}日`)
-  //     seriesData.push(Math.floor(Math.random() * 300 + 150))
-  //   }
-  // } else if (dim === 'Month') {
-  //   // 按月：显示1-12月
-  //   for (let i = 1; i <= dataLen; i++) {
-  //     xAxisData.push(`${i}月`)
-  //     seriesData.push(Math.floor(Math.random() * 5000 + 3000))
-  //   }
-  // } else if (dim === 'Year') {
-  //   // 按年：显示近年生命周期
-  //   const currentYear = new Date().getFullYear()
-  //   for (let i = currentYear - 5; i <= currentYear; i++) {
-  //     xAxisData.push(`${i}年`)
-  //     seriesData.push(Math.floor(Math.random() * 50000 + 40000))
-  //   }
-  // }
 
   for (let i = 0; i < pvData.length; i++) {
     xAxisData.push(pvData[i]['time'])
@@ -195,9 +168,10 @@ const fetchChartData = async () => {
     const { xAxisData, seriesData } = generateXAxiskData(response.data)
     initChart(xAxisData, seriesData)
 
-  } catch (error) {
-    console.error('获取趋势图数据失败:', error)
-    alert('网络异常，获取能耗趋势失败')
+  } catch (err) {
+    console.error('获取趋势图数据失败:', err)
+    // alert('网络异常，获取能耗趋势失败 '+ error)
+    // ElMessage.error(err.response.data.detail)
   } finally {
     // isLoading.value = false
   }
@@ -208,6 +182,10 @@ const fetchChartData = async () => {
 // 维度改变的回调
 const handleDimensionChange = () => {
   // selectedDate.value = new Date() // 切换维度重置为当前时间
+  if (!activePlant.value) {
+    ElMessage.error('未选择电站')
+    return
+  }
   fetchChartData()
 }
 
@@ -225,17 +203,20 @@ const fetchStationList = async () => {
     stationList.value = res.data;
     activePlant.value = stationList.value[0].code
   } catch (err) {
-    console.error(err);
+    // console.error('err:',err.response.data.detail);
+    // ElMessage.error(err.response.data.detail)
   } finally {
     // loading.value = false;
   }
 };
 
-// --- 生命周期钩子 ---
-onMounted(() => {
-  // fetchChartData()
+onMounted(async () => {
   fetchStationList();
-  // window.addEventListener('resize', handleResize)
+  window.addEventListener('resize', handleResize)
+  console.log('activePlant.value:',activePlant.value)
+  if (activePlant.value) {
+    fetchChartData()
+  }
 })
 
 onUnmounted(() => {

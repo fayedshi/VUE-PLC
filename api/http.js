@@ -21,15 +21,17 @@ http.interceptors.request.use(config => {
 // 响应拦截：处理 401 和 403 权限报错
 http.interceptors.response.use(response => response, error => {
   if (error.response) {
-    if (error.response.status === 401) {
-      ElMessage.error('登录失效，请重新登录');
-      localStorage.clear();
-      window.location.href = '#/login';
-    } else if (error.response.status === 403) {
-      ElMessage.error('权限不足，无法操作');
-    } else {
-      ElMessage.error(error.response.data.detail || '服务器开小差了');
-    }
+    // if (error.response.status === 401) {
+    //   ElMessage.error('登录失效，请重新登录');
+    //   localStorage.clear();
+    //   window.location.href = '#/login';
+    // } else if (error.response.status === 403) {
+    //   ElMessage.error('权限不足，无法操作');
+    // } 
+    // else {
+    //   ElMessage.error(error.response.data.detail || '服务器开小差了');
+    // }
+    ElMessage.error(error.response.data.detail || '服务器开小差了')
   }
   return Promise.reject(error);
 });

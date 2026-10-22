@@ -280,6 +280,7 @@ const handleHouseChange = async () => {
 import SummerInternalCirculation from '../../components/SummerInternalCirculation.vue';
 // import ConditionWholeSilo from '../../components/ConditionWholeSilo.vue'
 import ConditionUpperSilo from '../../components/ConditionUpperSilo.vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
 
 // 当前选中的模式
 const selectedMode = ref(0)
@@ -488,31 +489,35 @@ const startJob = async (jobType: string) => {
     mode_name: modeList.value[selectedMode.value].name,
     duration: durationControl.mins * 60
   }
-  let isConfirmed = null
   let apiUrl = null
   if (jobType == 'adhoc') {
     if (selectedMode.value > 0) {
-      alert('请取消选择通风模式')
+      ElMessage.warning('请取消选择通风模式')
       return
     }
-    apiUrl = '/api/venti/adhoc/start'
-    isConfirmed = confirm(`确定开始仓房${selectedHouseCode.value}的即时作业吗？`);
+    // apiUrl = '/api/venti/adhoc/start'
   } else {
     if (selectedMode.value == 0) {
-      alert('请选择通风模式')
+      ElMessage.error('请选择通风模式')
       return
     }
-    isConfirmed = confirm(`确定开始仓房${selectedHouseCode.value}的智能作业吗？`);
-    apiUrl = '/api/venti/sched/start'
+  
+    // apiUrl = '/api/venti/sched/start'
     payload.start_condition = parentStart.value ?? '';
     payload.end_condition = parentEnd.value ?? '';
   }
-
-  if (!isConfirmed) {
-    return
-  }
+  await ElMessageBox.confirm(
+    `确定开始仓房 ${selectedHouseCode.value}的作业吗？`,
+    '提示',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    }
+  )
   try {
     //todo: device address hardcoded, will modify later
+    apiUrl = `/api/venti/${jobType}/start`
     const result = await http.post(apiUrl,
       payload
     );
@@ -528,7 +533,7 @@ const startJob = async (jobType: string) => {
     console.log('result ', result)
     alert(result.data.message)
   } catch (err) {
-    alert('操作失败，请检查 PLC 连接');
+    // alert('操作失败，请检查 PLC 连接');
   }
 }
 

@@ -1,13 +1,13 @@
 <template>
     <div class="login-container">
         <el-card class="login-card">
-            <h2>🌾 储粮上位机系统</h2>
+            <h2>🌾 智慧粮库管理系统</h2>
             <el-form :model="loginForm" label-width="0">
                 <el-form-item>
-                    <el-input v-model="loginForm.username" placeholder="请输入用户名" prefix-icon="User" />
+                    <el-input v-model="loginForm.username" placeholder="请输入用户名" prefix-icon="User" @keyup.enter="handleLogin"/>
                 </el-form-item>
                 <el-form-item>
-                    <el-input v-model="loginForm.password" type="password" placeholder="请输入密码" prefix-icon="Lock"
+                    <el-input v-model="loginForm.password" type="password" placeholder="请输入密码" prefix-icon="Lock" @keyup.enter="handleLogin"
                         show-password />
                 </el-form-item>
                 <el-form-item>

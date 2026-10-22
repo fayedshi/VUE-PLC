@@ -21,7 +21,7 @@
         </el-menu-item>
         <el-menu-item index="/system">
 
-          <span>系统主页</span>
+          <span>功能主页</span>
         </el-menu-item>
         <el-menu-item index="/settings">
 
