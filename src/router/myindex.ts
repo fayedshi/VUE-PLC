@@ -16,7 +16,7 @@ let routes = [
     path: '/changePass',
     name: 'ChangePass',
     component: () => import('../views/user/PassChange.vue'),
-    meta: { title: '修改密码' }
+    meta: { title: '修改密码', requiresAuth: true }
     // redirect: 'curveChart'
     // },
   },
@@ -177,7 +177,7 @@ let routes = [
             component: () => import('../views/solar/PowerSupply.vue'),
             meta: { title: '太阳能供电' }
           }
-          
+
         ]
       },
 
