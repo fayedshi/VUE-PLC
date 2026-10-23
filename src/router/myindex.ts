@@ -54,7 +54,7 @@ let routes = [
             redirect: '/system/temperature',
             children: [
               {
-                path: 'curveChart', // 留空代表默认子路由，访问 / 时默认渲染此组件
+                path: 'curveChart', 
                 name: 'CurveChart',
                 component: () => import('../views/temperature/TempCurveChart.vue'),
                 meta: { title: '温湿度变化曲线', requiresAuth: true }
@@ -106,16 +106,22 @@ let routes = [
             redirect: '/system/ventilation',
             children: [
               {
-                path: '', // 留空代表默认子路由，访问 / 时默认渲染此组件
+                path: '', 
                 name: 'VentiTaskPanel',
                 component: () => import('../views/ventilation/VentiTaskPanel.vue'),
                 meta: { title: '作业控制面板' }
               },
               {
-                path: 'ventiManual', // 留空代表默认子路由，访问 / 时默认渲染此组件
+                path: 'ventiManual', 
                 name: 'VentiMnaual',
                 component: () => import('../views/ventilation/VentiManualPanel.vue'),
                 meta: { title: '手动控制面板' }
+              },
+              {
+                path: 'ventiManual3D', 
+                name: 'VentiManual3D',
+                component: () => import('../views/ventilation/ManualPanel3D.vue'),
+                meta: { title: '控制面板3D' }
               }
 
             ]
@@ -146,19 +152,19 @@ let routes = [
             redirect: '/system/ca',
             children: [
               {
-                path: '', // 留空代表默认子路由，访问 / 时默认渲染此组件
+                path: '', 
                 name: 'GasMonitor',
                 component: () => import('../views/CA/GasMonitor.vue'),
                 meta: { title: '气体检测' }
               },
               // {
-              //   path: 'gasHistory', // 留空代表默认子路由，访问 / 时默认渲染此组件
+              //   path: 'gasHistory', 
               //   name: 'GasHistory',
               //   component: () => import('../views/CA/GasHistory.vue'),
               //   meta: { title: '历史气体' }
               // },
               {
-                path: 'caJobConsole', // 留空代表默认子路由，访问 / 时默认渲染此组件
+                path: 'caJobConsole', 
                 name: 'CAJobConsole',
                 component: () => import('../views/CA/CAJobConsole.vue'),
                 meta: { title: '气调作业控制面板' }
@@ -188,7 +194,7 @@ let routes = [
         meta: { title: '系统设置' },
         children: [
           {
-            path: '', // 留空代表默认子路由，访问 / 时默认渲染此组件
+            path: '', 
             name: 'GranaryData',
             component: () => import('../views/settings/GranaryDataEntry.vue'),
             meta: { title: '熬间信息录入' }
@@ -210,8 +216,8 @@ let routes = [
       {
         path: 'tasks',
         name: 'Tasks',
-        component: () => import('../views/TasksView.vue'),
-        meta: { title: '任务计划' }
+        component: () => import('../views/TaskBoard.vue'),
+        meta: { title: '作业信息查询' }
       },
       {
         path: 'alarms',

@@ -4,15 +4,9 @@
 
     <!-- 1. 模式选择区域 -->
     <div class="section mode-section">
-      <!-- <label class="section-label"> 选择仓房：</label> -->
-      <!-- <select v-model="selectedHouseCode" class="native-select" @change="handleHouseChange">
-        <option :value="null">-- 请选择 --</option>
-        <option v-for="houseCode in houseCodeList" :key="houseCode" :value="houseCode">
-          {{ houseCode }}
-        </option>
-      </select> -->
+
       <HouseSelect v-model="selectedHouseCode" @change="handleHouseChange" />
-      <!-- <button >{{ selectedHouseCode }}</button> -->
+
 
 
       <label class="section-label">选择通风模式：</label>
@@ -271,10 +265,17 @@ const handleDurationChange = () => {
 };
 
 const handleHouseChange = async () => {
-  console.log(`切换至模式: ${selectedMode.value}`)
-  loadGranConfig()
+  console.log('house ', selectedHouseCode.value)
+  if (!selectedHouseCode.value) {
+    return
+  }
+  await Promise.all([
+      fetchRunningJobs(selectedHouseCode.value),
+      loadGranConfig()
+      // axios.get('http-api/api/houses/codes')
+    ])
+  // console.log(`切换至模式: ${selectedMode.value}`)
   initDevices()
-  await fetchRunningJobs(selectedHouseCode.value)
 }
 
 import SummerInternalCirculation from '../../components/SummerInternalCirculation.vue';
@@ -284,8 +285,6 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 
 // 当前选中的模式
 const selectedMode = ref(0)
-
-
 
 // 核心：模式与组件的映射表 (使用 shallowRef 优化组件对象性能)
 const componentMap = {
@@ -324,7 +323,9 @@ onMounted(async () => {
 
   // await fetchRunningJobs(houseCode)
   console.log('onMounted active job:', activeJob.value)
-  // todo: load running jobs when switching house
+  if (!selectedHouseCode.value) {
+    return
+  }
   try {
     await Promise.all([
       fetchRunningJobs(selectedHouseCode.value),
@@ -353,7 +354,7 @@ const fetchRunningJobs = (async (houseCode) => {
     console.log('in fetchRunningJobs jobs,', jobs.data)
     // console.log('result ', result)
   } catch (err) {
-    alert('操作失败，请检查PLC连接');
+    // alert('操作失败，请检查PLC连接');
   } finally {
     console.log('jobs fetched')
   }
@@ -370,7 +371,7 @@ const modeList = ref([
 
 // const houseCodeList = ref([])
 
-const selectedHouseCode = ref('001');
+const selectedHouseCode = ref('');
 const granConfig = ref({})
 
 // 设备选择响应式数据
@@ -415,12 +416,13 @@ const loadGranConfig = async () => {
   console.log('in fetchGranaryList')
   try {
     // 💡 动态将前端的输入框内容拼接到 URL 的参数中 (Query Parameters)
-    const response = await axios.get(`http-api/api/dev-address/${selectedHouseCode.value}`)
+    const response = await http.get(`/api/dev-address/${selectedHouseCode.value}`)
+    console.log('fetched gran config:', response)
     // 将后端返回的 MySQL 字典列表直接赋给组件变量
     granConfig.value = response.data
   } catch (error) {
-    console.error('❌ 请求后端接口失败:', error)
-    alert('数据加载失败，请检查后端服务是否启动！')
+    // console.error('❌ 请求后端接口失败:', error)
+    // alert('数据加载失败，请检查后端服务是否启动！')
   } finally {
 
   }
@@ -501,7 +503,7 @@ const startJob = async (jobType: string) => {
       ElMessage.error('请选择通风模式')
       return
     }
-  
+
     // apiUrl = '/api/venti/sched/start'
     payload.start_condition = parentStart.value ?? '';
     payload.end_condition = parentEnd.value ?? '';
@@ -631,6 +633,7 @@ const handleStopJob = async () => {
 }
 
 .section-label {
+  margin-left: 10px;
   font-size: 14px;
   font-weight: 600;
   color: #475569;

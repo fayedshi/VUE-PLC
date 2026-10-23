@@ -12,20 +12,20 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="last_login" label="最后登录时间" />
+        <!-- <el-table-column prop="last_login" label="最后登录时间" /> -->
         
         <!-- 操作栏 -->
         <el-table-column label="操作" width="180" fixed="right">
           <template #default="scope">
             <!-- 如果是普通保管员，允许重置 -->
-            <el-button 
+            <!-- <el-button 
               type="danger" 
               size="small" 
               plain
               @click="handleResetPassword(scope.row)"
             >
               重置密码
-            </el-button>
+            </el-button> -->
           </template>
         </el-table-column>
       </el-table>

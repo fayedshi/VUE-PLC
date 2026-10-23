@@ -1,14 +1,13 @@
 <template>
     <div class="house-select-container">
         <label class="section-label">选择仓房：</label>
-        <!-- 将 v-model 直接绑定到 defineModel 声明的变量上 -->
-        <select v-model="modelValue" class="native-select" @change="handleHouseChange">
-            <option :value="null">-- 请选择 --</option>
-            <option v-for="houseCode in houseCodeList" :key="houseCode" :value="houseCode">
-                {{ houseCode }}
-            </option>
-        </select>
+
+        <el-select clearable v-model="modelValue" placeholder="请选择"  style="width: 100px" @change="handleHouseChange">
+            <!-- 循环渲染 el-option -->
+            <el-option v-for="houseCode in houseCodeList" :key="houseCode" :label="houseCode" :value="houseCode" />
+        </el-select>
     </div>
+
 </template>
 
 <script setup>
@@ -16,7 +15,7 @@ import { ref, onMounted, computed, } from 'vue'
 import axios from 'axios'
 
 // 1. 声明 v-model，父组件传入的值会绑定到 modelValue，默认值为 '001'
-const modelValue = defineModel({ type: [String, null], default: '001' })
+const modelValue = defineModel({ type: [String, null], default: '' })
 
 // 2. 如果您的 Vue 版本低于 3.4，请解开下方注释，并把 template 里的 modelValue 改为 localValue
 

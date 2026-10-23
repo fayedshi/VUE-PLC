@@ -38,7 +38,8 @@ const initThree = () => {
 
   // 加载 3D 窗户模型
   const loader = new GLTFLoader()
-  loader.load('/asset/Window_slide.glb', (gltf) => {
+  // loader.load('/asset/Window_slide.glb', (gltf) => {
+  loader.load('/asset/Door.glb', (gltf) => {
     scene.add(gltf.scene)
 
     // 🎯 核心：找出模型里的“窗扇”网格（假设在建模软件里命名为 "Flap"）
@@ -125,7 +126,7 @@ onMounted(() => {
 
 <style scoped>
 .canvas-container {
-  width: 100%;
-  height: 500px;
+  width: 500;
+  height: 400px;
 }
 </style>

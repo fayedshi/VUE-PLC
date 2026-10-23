@@ -234,7 +234,7 @@ const executeSingleAction = async (device, actionType) => {
             console.log(result.data.status)
             
         }
-        ElMessageBox.alert(result.data.message)
+        ElMessage.success(result.data.message)
         // console.log('result ', result)
     } catch (err) {
         // alert('操作失败: '+err);

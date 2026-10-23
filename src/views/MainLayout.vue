@@ -23,6 +23,10 @@
 
           <span>功能主页</span>
         </el-menu-item>
+        <el-menu-item index="/tasks">
+
+          <span>作业信息</span>
+        </el-menu-item>
         <el-menu-item index="/settings">
 
           <span>系统设置</span>
