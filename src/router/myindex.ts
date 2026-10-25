@@ -120,8 +120,14 @@ let routes = [
               {
                 path: 'ventiManual3D', 
                 name: 'VentiManual3D',
-                component: () => import('../views/ventilation/ManualPanel3D.vue'),
+                component: () => import('../views/ventilation/Door3DDemo_fbx.vue'),
                 meta: { title: '控制面板3D' }
+              },
+              {
+                path: 'door3DDemo', 
+                name: 'door3DDemo',
+                component: () => import('../views/ventilation/Door3DDemo_glb.vue'),
+                meta: { title: '门板3D' }
               }
 
             ]

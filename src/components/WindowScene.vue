@@ -39,7 +39,7 @@ const initThree = () => {
   // 加载 3D 窗户模型
   const loader = new GLTFLoader()
   // loader.load('/asset/Window_slide.glb', (gltf) => {
-  loader.load('/asset/Door.glb', (gltf) => {
+  loader.load('/asset/Window_slide.glb', (gltf) => {
     scene.add(gltf.scene)
 
     // 🎯 核心：找出模型里的“窗扇”网格（假设在建模软件里命名为 "Flap"）
@@ -62,7 +62,7 @@ const animate = () => {
   animationFrameId = requestAnimationFrame(animate)
 
   // 速度系数：数值越大，开关门速度越快（0.05 约等于平滑滑动）
-  const speed = 0.01;
+  const speed = 0.005;
   // 假设开门时，门和把手需要整体向 X 轴正方向平移 1.2 米
   const slideDistance = 1.2;
 
@@ -127,6 +127,6 @@ onMounted(() => {
 <style scoped>
 .canvas-container {
   width: 500;
-  height: 400px;
+  height: 300px;
 }
 </style>

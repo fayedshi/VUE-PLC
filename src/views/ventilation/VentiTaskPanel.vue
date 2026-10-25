@@ -119,59 +119,66 @@
     <!-- <div class="section-title">设备选择控制</div> -->
 
     <!-- 通风窗 (10个) -->
+    <!-- 通风窗 -->
     <div class="device-row" v-if="windowsLen">
       <span class="device-label">通风窗：</span>
       <div class="device-list">
-        <label v-for="i in windowsLen" :key="'window-' + i" class="checkbox-label">
-          <input type="checkbox" :value="i" v-model="devices.windows" /> 窗#{{ i }}
-        </label>
+        <el-checkbox-group v-model="devices.windows">
+          <el-checkbox v-for="i in windowsLen" :key="'window-' + i" :value="i">
+            窗#{{ i }}
+          </el-checkbox>
+        </el-checkbox-group>
       </div>
     </div>
 
-    <!-- 风门 (8个) -->
+    <!-- 风门 -->
     <div class="device-row" v-if="dampersLen">
       <span class="device-label">风门：</span>
       <div class="device-list">
-        <label v-for="i in dampersLen" :key="'damper-' + i" class="checkbox-label">
-          <input type="checkbox" :value="i" v-model="devices.dampers" /> 门#{{ i }}
-        </label>
+        <el-checkbox-group v-model="devices.dampers">
+          <el-checkbox v-for="i in dampersLen" :key="'damper-' + i" :value="i">
+            门#{{ i }}
+          </el-checkbox>
+        </el-checkbox-group>
       </div>
     </div>
-    <!-- 风机 (8个，正/反单选，支持取消选中) -->
+
+    <!-- 风机 (正/反单选，支持取消选中) -->
     <div class="device-row" v-if="blowersLen">
       <span class="device-label">风机：</span>
       <div class="device-list inline-grid">
         <div v-for="i in blowersLen" :key="'blower-' + i" class="blower-group">
-
-          <label class="radio-label">
-            <span class="blower-name">风机#{{ i }}:</span>
-            <input type="radio" :name="'blower-dir-' + i" value="正" :checked="devices.blowers[i] === 1"
-              @click="toggleBlower(i, 1)" />正
-            <!-- </label> -->
-            <!-- <label class="radio-label"> -->
-            <input type="radio" :name="'blower-dir-' + i" value="反" :checked="devices.blowers[i] === 2"
-              @click="toggleBlower(i, 2)" />反
-          </label>
+          <span class="blower-name">风机#{{ i }}:</span>
+          <!-- 注意：这里不绑定 v-model，而是通过 :model-value 配合自定义点击事件来实现“可取消选中” -->
+          <el-radio-group :model-value="devices.blowers[i]">
+            <el-radio :value="1" @click.prevent="toggleBlower(i, 1)">正</el-radio>
+            <el-radio :value="2" @click.prevent="toggleBlower(i, 2)">反</el-radio>
+          </el-radio-group>
         </div>
       </div>
     </div>
-    <!-- 排风扇 (4个) -->
+
+    <!-- 排风扇 -->
     <div class="device-row" v-if="exhaustFansLen">
       <span class="device-label">排风扇：</span>
       <div class="device-list">
-        <label v-for="i in exhaustFansLen" :key="'fan-' + i" class="checkbox-label">
-          <input type="checkbox" :value="i" v-model="devices.exhaustFans" /> 扇#{{ i }}
-        </label>
+        <el-checkbox-group v-model="devices.exhaustFans">
+          <el-checkbox v-for="i in exhaustFansLen" :key="'fan-' + i" :value="i">
+            扇#{{ i }}
+          </el-checkbox>
+        </el-checkbox-group>
       </div>
     </div>
 
-    <!-- 空调 (2个) -->
+    <!-- 空调 -->
     <div class="device-row" v-if="airConditionersLen">
       <span class="device-label">空调：</span>
       <div class="device-list">
-        <label v-for="i in airConditionersLen" :key="'ac-' + i" class="checkbox-label">
-          <input type="checkbox" :value="i" v-model="devices.airConditioners" /> 空调#{{ i }}
-        </label>
+        <el-checkbox-group v-model="devices.airConditioners">
+          <el-checkbox v-for="i in airConditionersLen" :key="'ac-' + i" :value="i">
+            空调#{{ i }}
+          </el-checkbox>
+        </el-checkbox-group>
       </div>
     </div>
 
@@ -181,15 +188,23 @@
     <!-- 4. 运行时长设置区域 -->
     <div class="section duration-section">
       <div class="duration-wrapper">
-        <input type="checkbox" v-model="durationControl.enabled" id="duration-toggle" @change="handleDurationChange" />
-        <label for="duration-toggle" class="duration-label font-bold">运行最大时长限制：</label>
+        <!-- 勾选框与文字标签合二为一，更加语义化 -->
+        <el-checkbox v-model="durationControl.enabled" @change="handleDurationChange" class="duration-checkbox">
+          <span class="duration-label">运行最大时长限制：</span>
+        </el-checkbox>
 
-        <div class="input-group" :class="{ 'disabled-element': !durationControl.enabled }">
-          <!-- <span class="ml-4 text-sm">运行时间：</span> -->
-          <input type="number" v-model.number="durationControl.mins" :disabled="!durationControl.enabled" min="1"
-            placeholder="30" class="native-input duration-input" @input="validateDuration" />
-          <span class="unit">分钟 </span>
-          <span v-if="!durationControl.enabled" class="unit-tip">默认最长执行{{ durationControl.mins }}分钟，勾选后可修改最大时长</span>
+        <div class="input-group">
+          <!-- 使用 el-input-number，自带步进器和数值限制 -->
+          <el-input-number v-model="durationControl.mins" :disabled="!durationControl.enabled" :min="1"
+            :controls="false" placeholder="30" class="duration-input" @input="validateDuration">
+            <!-- 通过 append 插槽将“分钟”单位完美嵌入输入框内部 -->
+            <!-- <template #append>分钟</template> -->
+          </el-input-number>
+
+          <!-- 提示文字，仅在未勾选时显示 -->
+          <span v-if="!durationControl.enabled" class="unit-tip">
+            默认最长执行 {{ durationControl.mins }} 分钟，勾选后可修改最大时长
+          </span>
         </div>
       </div>
     </div>
@@ -270,10 +285,10 @@ const handleHouseChange = async () => {
     return
   }
   await Promise.all([
-      fetchRunningJobs(selectedHouseCode.value),
-      loadGranConfig()
-      // axios.get('http-api/api/houses/codes')
-    ])
+    fetchRunningJobs(selectedHouseCode.value),
+    loadGranConfig()
+    // axios.get('http-api/api/houses/codes')
+  ])
   // console.log(`切换至模式: ${selectedMode.value}`)
   initDevices()
 }
@@ -767,84 +782,77 @@ const handleStopJob = async () => {
 }
 
 
-/* 3. 设备列表排版 */
 .device-row {
   display: flex;
-  padding: 10px 0;
-  border-bottom: 1px dashed #f1f5f9;
-  align-items: baseline;
+  align-items: flex-start;
+  /* 改为 flex-start，防止组件多行时布局错乱 */
+  padding: 16px 8px;
+  /* 适当增加内边距，呼吸感更强 */
+  border-bottom: 1px solid #f1f5f9;
+  /* 虚线改实线，颜色极淡，减少视觉噪音 */
+  transition: background-color 0.2s ease;
+  /* 增加鼠标悬浮过渡 */
 }
 
-.device-row:last-child {
-  border-bottom: none;
+/* 鼠标悬浮整行时，背景微微变亮，增加交互感 */
+.device-row:hover {
+  background-color: #f8fafc;
 }
 
+/* 左侧标签美化 */
 .device-label {
   width: 90px;
-  font-size: 16px;
+  /* 固定宽度，让所有设备名的冒号完美对齐 */
+  flex-shrink: 0;
+  /* 防止标签被压缩 */
+  font-size: 14px;
   font-weight: 600;
-  color: #475569;
-  padding-top: 2px;
+  /* 加粗文字 */
+  color: #334155;
+  /* 深灰蓝色，比纯黑更高级 */
+  line-height: 32px;
+  /* 让文字高度与 Element Plus 组件（默认32px）完美居中对齐 */
 }
 
+/* 右侧组件容器 */
 .device-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
   flex: 1;
-}
-
-.checkbox-label {
-  font-size: 15px;
+  /* 撑满剩余空间 */
   display: flex;
-  height: 35px;
-  /* width: 100px; */
   align-items: center;
-  padding: 0px 10px;
-  margin-right: 10px;
-  /* gap: 40px; */
-  cursor: pointer;
-  border-radius: 6px;
-  border: 1px solid #e4e7ed;
-  /* background: #f8fafc; */
+  flex-wrap: wrap;
+  /* 超出自动换行 */
+  gap: 12px 24px;
+  /* 行间距 12px，列间距 24px */
+  min-height: 32px;
+  /* 保证和 Element 组件高度一致 */
 }
 
-.radio-label {
-  font-size: 15px;
-  display: flex;
-  height: 50px;
-  padding: 0px 2px;
-  /* width: 130px; */
-  align-items: center;
-  gap: 4px;
-  cursor: pointer;
-  border-radius: 6px;
-  border: 1px solid #e4e7ed;
-}
-
-/* 风机网格排版 */
+/* 风机网格专属优化 */
 .inline-grid {
   display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  /* gap: 14px 20px; */
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  /* 响应式网格，自动平铺 */
+  gap: 16px;
+  width: 100%;
 }
 
 .blower-group {
   display: flex;
   align-items: center;
-  /* width: 200px; */
-  /* background: #f8fafc; */
-  /* border-radius: 4px; */
-  /* border: 1px solid #f1f5f9; */
+  background: #f1f5f9;
+  /* 给风机组加一个极淡的底色包裹 */
+  padding: 2px 12px;
+  border-radius: 6px;
+  /* 圆角 */
 }
 
 .blower-name {
-  /* width: 160px; */
   font-size: 13px;
-  font-weight: 500;
-  color: #334155;
-  margin-right: 4px;
+  color: #64748b;
+  margin-right: 8px;
 }
+
 
 /* 4. 运行时长 */
 .duration-wrapper {

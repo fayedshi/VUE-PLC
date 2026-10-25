@@ -4,6 +4,7 @@
 
     <!-- 1. 时间范围查询工具栏 -->
     <div class="search-bar">
+      <HouseSelect v-model="selectedHouseCode" @change="handleHouseChange" />
       <div class="search-item">
         <label>开始时间：</label>
         <input type="datetime-local" v-model="timeRange.startTime" class="input-date" />
@@ -16,7 +17,7 @@
       <div class="search-item">
         <button class="btn-reset" @click="resetTimeRange">重置7天</button>
         <label>显示粒度：</label>
-        <select v-model="timeRange.timeUnit" class="select-unit" @change="handleSearch"> 
+        <select v-model="timeRange.timeUnit" class="select-unit" @change="handleSearch">
           <option value="1 hour">按小时</option>
           <option value="1 day">按天</option>
           <option value="1 month">按月</option>
@@ -25,7 +26,7 @@
       <button class="btn-search" :disabled="isLoading" @click="handleSearch">
         {{ isLoading ? '分析中...' : '📊 生成趋势图' }}
       </button>
-      
+
     </div>
 
     <!-- 2. 图表渲染区域 -->
@@ -46,16 +47,19 @@ import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import axios from 'axios'
 // 💡 请确保项目已安装 echarts: npm install echarts
 import * as echarts from 'echarts'
+import HouseSelect from '../../components/HouseSelect.vue';
+import http from '../../../api/http';
 
 const chartRef = ref(null)
 let myChart = null
 const isLoading = ref(false)
+const selectedHouseCode = ref('001');
 
 // 1. 初始化时间范围：默认展示最近3天的数据
 const timeRange = ref({
   startTime: '',
   endTime: '',
-  timeUnit:'1 day'
+  timeUnit: '1 day'
 })
 
 const initDefaultTime = () => {
@@ -83,11 +87,11 @@ const initChart = () => {
   }
 }
 
-const http = axios.create({
-  // baseURL: 'http://192.168.0.16:8000',
-  baseURL: 'http-api',
-  timeout: 5000
-});
+// const http = axios.create({
+//   // baseURL: 'http://192.168.0.16:8000',
+//   baseURL: 'http-api',
+//   timeout: 5000
+// });
 
 // 3. 核心请求逻辑：从后端获取聚合后的三条曲线数据
 const fetchTrendData = async () => {
@@ -114,6 +118,7 @@ const fetchTrendData = async () => {
     const url = '/api/power-trend'
     const response = await http.get(url, {
       params: {
+        house_code: selectedHouseCode.value,
         start_time: timeRange.value.startTime,
         end_time: timeRange.value.endTime,
         interval: timeRange.value.timeUnit
@@ -137,7 +142,7 @@ const fetchTrendData = async () => {
     const timelines = result.map(item => item.time)
     const avgPower = result.map(item => item.avg_power)
     const engeryConsumption = result.map(item => item.engery_consumption)
-    
+
     // 更新图表
     myChart.setOption(getBaselineOption(timelines, avgPower, engeryConsumption))
 
@@ -201,45 +206,45 @@ const getBaselineOption = (timeline, avgPower, engComsmp) => {
 
     ],
     series: [
-  {
-    name: '平均功率',
-    type: 'line',
-    data: avgPower,
-    symbol: 'circle', // 改为小圆点，但默认隐藏，鼠标悬浮时显示
-    showSymbol: false, 
-    symbolSize: 6,
-    smooth: true,
-    yAxisIndex: 0,
-    itemStyle: { color: '#10b981' }, // 经典电力绿
-    lineStyle: { width: 3, type: 'solid' }, // 实线作为主视觉
-    areaStyle: {
-      // 功率绿色的轻量渐变
-      color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-        { offset: 0, color: 'rgba(16, 185, 129, 0.25)' },
-        { offset: 1, color: 'rgba(16, 185, 129, 0.00)' }
-      ])
-    }
-  },
-  {
-    name: '能耗',
-    type: 'line',
-    data: engComsmp,
-    symbol: 'circle',
-    showSymbol: false,
-    symbolSize: 6,
-    smooth: true,
-    yAxisIndex: 1,
-    itemStyle: { color: '#0284c7' }, // 替换为代表电能/科技感的深天蓝
-    lineStyle: { width: 3, type: 'solid' }, // 同样使用实线，靠颜色和双 Y 轴区分
-    areaStyle: {
-      // 能耗蓝色的轻量渐变（修复了你原本代码里能耗用绿色阴影的 Bug）
-      color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-        { offset: 0, color: 'rgba(2, 132, 199, 0.20)' },
-        { offset: 1, color: 'rgba(2, 132, 199, 0.00)' }
-      ])
-    }
-  }
-]
+      {
+        name: '平均功率',
+        type: 'line',
+        data: avgPower,
+        symbol: 'circle', // 改为小圆点，但默认隐藏，鼠标悬浮时显示
+        showSymbol: false,
+        symbolSize: 6,
+        smooth: true,
+        yAxisIndex: 0,
+        itemStyle: { color: '#10b981' }, // 经典电力绿
+        lineStyle: { width: 3, type: 'solid' }, // 实线作为主视觉
+        areaStyle: {
+          // 功率绿色的轻量渐变
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: 'rgba(16, 185, 129, 0.25)' },
+            { offset: 1, color: 'rgba(16, 185, 129, 0.00)' }
+          ])
+        }
+      },
+      {
+        name: '能耗',
+        type: 'line',
+        data: engComsmp,
+        symbol: 'circle',
+        showSymbol: false,
+        symbolSize: 6,
+        smooth: true,
+        yAxisIndex: 1,
+        itemStyle: { color: '#0284c7' }, // 替换为代表电能/科技感的深天蓝
+        lineStyle: { width: 3, type: 'solid' }, // 同样使用实线，靠颜色和双 Y 轴区分
+        areaStyle: {
+          // 能耗蓝色的轻量渐变（修复了你原本代码里能耗用绿色阴影的 Bug）
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: 'rgba(2, 132, 199, 0.20)' },
+            { offset: 1, color: 'rgba(2, 132, 199, 0.00)' }
+          ])
+        }
+      }
+    ]
 
   }
 }
@@ -406,11 +411,13 @@ h2 {
   background-color: #fff;
   outline: none;
   cursor: pointer;
-  height: 32px; /* 根据你原本输入框的高度微调 */
+  height: 32px;
+  /* 根据你原本输入框的高度微调 */
 }
 
 .select-unit:focus {
-  border-color: #40a9ff; /* 聚焦时的蓝色边框 */
+  border-color: #40a9ff;
+  /* 聚焦时的蓝色边框 */
 }
 
 @keyframes spin {
