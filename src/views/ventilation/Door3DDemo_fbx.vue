@@ -79,6 +79,8 @@ const loadWindowModel = () => {
   loader.load('/asset/chuang.fbx', (fbxObject) => {
     const size = 0.2
     fbxObject.scale.set(size, size, size)
+    // 自转90度
+    // fbxObject.rotation.y =  Math.PI /2
     scene.add(fbxObject)
 
     const movingParts = []
