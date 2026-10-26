@@ -4,7 +4,8 @@
 
     <RouterLink to="/system/ventilation/" exact-active-class="active">作业控制面板</RouterLink>
     <RouterLink to="/system/ventilation/ventiManual" active-class="active">手动控制面板</RouterLink>
-    <RouterLink to="/system/ventilation/ventiManual3D" active-class="active">3Dfbx</RouterLink>
+    <RouterLink to="/system/ventilation/ventiManual3D" active-class="active">SingleDoor3D</RouterLink>
+    <RouterLink to="/system/ventilation/doorGroup" active-class="active">Door Group</RouterLink>
     <RouterLink to="/system/ventilation/door3DDemo" active-class="active">3Dglb</RouterLink>
   </div>
 

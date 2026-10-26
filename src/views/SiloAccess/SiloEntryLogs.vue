@@ -71,6 +71,7 @@ import { reactive, onMounted } from 'vue'
 import axios from 'axios'
 // 💡 如果你的项目中使用了 Element Plus 的独立消息提示，可以引入它
 import { ElMessage } from 'element-plus'
+import http from '../../../api/http'
 
 // 1. 定义响应式的开仓记录状态
 const entryLogs = reactive({
@@ -98,21 +99,17 @@ const fetchEntryLogs = async () => {
 
     try {
         // 步骤 B: 携带 Token 请求开仓记录数据
-        const logsResponse = await axios.get('http-api/api/granary-entry-logs', {
+        const logsResponse = await http.get('/api/granary-entry-logs', {
             params: { page: pagination.current ? pagination.current : 1, page_size: pagination.pageSize }
         })
-
         entryLogs.list = logsResponse.data.items || []
         Object.assign(pagination, logsResponse.data.pagination)
         console.log('pagination:', pagination)
-
-
     } catch (error) {
         console.error("❌ 获取开仓记录失败:", error)
-        entryLogs.errorMsg = error.response?.data?.detail || error.message || "网络连接异常"
-
+        // entryLogs.errorMsg = error.response?.data?.detail || error.message || "网络连接异常"
         // 弹出 Element 优雅的红牌报错提示
-        ElMessage.error(`⚠️ 🛠️ 粮库系统错误: ${entryLogs.errorMsg}`)
+        // ElMessage.error(`⚠️ 🛠️ 粮库系统错误: ${entryLogs.errorMsg}`)
 
         // 发生异常时清空残留数据
         entryLogs.list = []

@@ -128,6 +128,12 @@ let routes = [
                 name: 'door3DDemo',
                 component: () => import('../views/ventilation/Door3DDemo_glb.vue'),
                 meta: { title: '门板3D' }
+              },
+              {
+                path: 'doorGroup', 
+                name: 'DoorGroup',
+                component: () => import('../views/ventilation/DoorGroup.vue'),
+                meta: { title: '门板3D' }
               }
 
             ]

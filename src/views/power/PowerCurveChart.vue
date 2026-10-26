@@ -148,7 +148,7 @@ const fetchTrendData = async () => {
 
   } catch (error) {
     console.error('获取趋势图数据失败:', error)
-    alert('网络异常，获取能耗趋势失败')
+    // alert('网络异常，获取能耗趋势失败')
   } finally {
     isLoading.value = false
   }
