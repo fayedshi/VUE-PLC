@@ -118,6 +118,12 @@ let routes = [
                 meta: { title: '手动控制面板' }
               },
               {
+                path: 'ventiMan', 
+                name: 'VentiMna',
+                component: () => import('../views/ventilation/WindowGrid.vue'),
+                meta: { title: '手动控制面板corrected' }
+              },
+              {
                 path: 'ventiManual3D', 
                 name: 'VentiManual3D',
                 component: () => import('../views/ventilation/Door3DDemo_fbx.vue'),

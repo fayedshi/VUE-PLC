@@ -62,9 +62,9 @@ const initThree = () => {
 
   controls = new OrbitControls(camera, renderer.domElement)
   controls.enableDamping = true
-  controls.enableZoom = false;     // 禁用滚轮缩放
-  controls.enablePan = false;      // 禁用右键平移
-  controls.enableRotate=false
+  // controls.enableZoom = false;     // 禁用滚轮缩放
+  // controls.enablePan = false;      // 禁用右键平移
+  // controls.enableRotate=false
 
   loadWindowModel()
   animate()
@@ -76,7 +76,7 @@ const loadWindowModel = () => {
   windowGroup = new THREE.Group()
   scene.add(windowGroup)
 
-  loader.load('/asset/chuang.fbx', (fbxObject) => {
+  loader.load('/asset/frontwall.fbx', (fbxObject) => {
     const size = 0.2
     fbxObject.scale.set(size, size, size)
     // 自转90度
