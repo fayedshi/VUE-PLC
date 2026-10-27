@@ -7,6 +7,7 @@
     <RouterLink to="/system/ventilation/ventiManual3D" active-class="active">SingleDoor3D</RouterLink>
     <RouterLink to="/system/ventilation/doorGroup" active-class="active">Door Group</RouterLink>
     <RouterLink to="/system/ventilation/door3DDemo" active-class="active">3Dglb</RouterLink>
+    <RouterLink to="/system/ventilation/deviceGroup" active-class="active">Device Group</RouterLink>
   </div>
 
   <div>

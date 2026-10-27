@@ -134,6 +134,12 @@ let routes = [
                 name: 'DoorGroup',
                 component: () => import('../views/ventilation/DoorGroup.vue'),
                 meta: { title: '门板3D' }
+              },
+              {
+                path: 'deviceGroup', 
+                name: 'DeviceGroup',
+                component: () => import('../views/ventilation/DeviceGroup.vue'),
+                meta: { title: '多3D设备tab' }
               }
 
             ]

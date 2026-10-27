@@ -106,7 +106,7 @@ const loadMultipleWindows = () => {
     windowsList.value.push(windowData)
     scene.add(windowData.group)
 
-    loader.load('/asset/chuang.fbx', (fbxObject) => {
+    loader.load('/asset/windows.fbx', (fbxObject) => {
       const size = 0.14
       fbxObject.scale.set(size, size, size)
       fbxObject.rotation.y = Math.PI / 2
@@ -160,8 +160,6 @@ const loadMultipleWindows = () => {
         // controls.target.set(sceneCenter.x, sceneCenter.y - modelHeight * 0.8 , sceneCenter.z)
         // controls.target.copy(sceneCenter)
         camera.position.set(sceneCenter.x, sceneCenter.y - modelHeight * 0.8, sceneCenter.z + 120)
-        // camera.position.set(sceneCenter.x-60, sceneCenter.y , sceneCenter.z )
-        // camera.position.set(sceneCenter.x, sceneCenter.y, sceneCenter.z + 120)
         controls.update()
       }
 
