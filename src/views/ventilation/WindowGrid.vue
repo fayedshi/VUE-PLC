@@ -14,10 +14,10 @@
             </div>
             <!-- 第一组：远程 / 本地 -->
             <div class="btn-group">
-                <button :class="{ active: store.controlMode === 1 }" @click="switchControlMode(1, 2, '远程')">
+                <button :class="{ active: controlMode === 1 }" @click="switchControlMode(1, 2, '远程')">
                     远程
                 </button>
-                <button :class="{ active: store.controlMode === 0 }" @click="switchControlMode(1, 1, '本地')">
+                <button :class="{ active: controlMode === 0 }" @click="switchControlMode(1, 1, '本地')">
                     本地
                 </button>
             </div>
@@ -49,11 +49,11 @@
 import { useWindowControlStore } from '../../store/WindowControl.ts' // 沿用上一轮回答的 Pinia Store
 import WindowCard from '../../components/WindowCard.vue'
 import HouseSelect from '../../components/HouseSelect.vue';
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, ref, computed, onBeforeUnmount } from 'vue'
 
 const store = useWindowControlStore()
 const selectedHouseCode = ref('001');
-
+const controlMode = ref()
 const nonBlowerWindowList = computed(() => {
     return store.windowList.filter(window => !window.blower)
 })
@@ -62,15 +62,66 @@ const blowerWindowList = computed(() => {
     return store.windowList.filter(window => window.blower)
 })
 
+const devStatesObj = ref({
+})
+
+const handleHouseChange = async () => {
+    await store.initDeviceConfig()
+}
+
+let isExplicitlyClosed = false
+let socket = null
+const initWebSocket = () => {
+    // todo: need granary switch control in ui, hardcode 001 for now
+
+    socket = new WebSocket(`ws-api/ws/dev-state/001`);
+    // socket = new WebSocket(`ws://${backendAdd}/ws/dev-state`);`
+
+    // 连接成功事件
+    socket.onopen = () => {
+        console.log('成功连接到 Python 后端 WebSocket！');
+    };
+
+    // 接收到后端实时数据事件
+    socket.onmessage = (event) => {
+        // 解析后端传过来的 JSON 字符串
+        devStatesObj.value = JSON.parse(event.data);
+
+        console.log('devstate', event.data)
+        // devStatesObj.value= {"switch":[1],"windows":[6,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5],"blowers":[0,0,0,0,0,0,0,0],"fans":[0,0,0,0],"ac":[0,0]}
+        controlMode.value = devStatesObj.value?.['switch'][0]
+        store.updateStatus(devStatesObj.value)
+    };
+
+    // 连接关闭事件
+    socket.onclose = () => {
+        // console.log('【前端提示】连接已断开，3秒后尝试自动重连...');
+        if (!isExplicitlyClosed)
+            setTimeout(initWebSocket, 3000); // 掉线自动重连机制
+    };
+
+    // 发生错误事件
+    socket.onerror = (error) => {
+        console.error('【前端提示】WebSocket 发生错误:', error);
+    };
+};
 
 onMounted(async () => {
     await store.initDeviceConfig()
-    store.initWebSocket()
+    initWebSocket()
 })
 // 拦截子组件动作并调用 Store
-const handleDeviceAction = ({ type, id, action }) => {
-    store.controlDevice(type, id, action)
+const handleDeviceAction = async ({ type, id, action }) => {
+    await store.controlDevice(selectedHouseCode.value, type, id, action)
 }
+
+onBeforeUnmount(() => {
+    if (socket) {
+        console.log('venti manual panel destroyed')
+        socket.close();
+        isExplicitlyClosed = true
+    }
+});
 </script>
 
 <style scoped>
@@ -110,6 +161,7 @@ const handleDeviceAction = ({ type, id, action }) => {
     color: #ffffff;
     border-color: #409eff;
 }
+
 .page-header {
     margin-bottom: 24px;
 }

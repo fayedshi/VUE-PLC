@@ -1,40 +1,62 @@
 import { reactive, computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import http from '../../api/http';
+import { ElMessage } from 'element-plus';
+
+export enum WindowActionEnum {
+    OPEN = 1,
+    CLOSE = 2,
+    STOP = 3,
+}
+
+export enum FanActionEnum {
+    OPEN = 1,
+    CLOSE = 2,
+    STOP = 3,
+}
+
+export enum BlowerActionEnum {
+    FORWARD = 1,
+    REVERSE = 2,
+    STOP = 3
+}
+
+export enum AcActionEnum {
+    START = 1,
+    STOP = 2
+}
 
 // 1. 基础状态定义
 interface WindowState {
     id: number;
     index: number;
-    action: 'open' | 'close' | 'stop' | null;
+    action: WindowActionEnum | null;
     status: number; // 比如：'opened', 'closed', 'moving'
 }
 
 interface FanState {
     id: number;
     index: number;
-    action: 'open' | 'close' | 'stop' | null;
+    action: WindowActionEnum | null;
     status: number;
 }
 
 interface BlowerState {
     id: number;
     index: number;
-    action: 'forward' | 'reverse' | 'stop' | null;
+    action: WindowActionEnum | null;
     status: number;
 }
 interface AcState {
     id: number;
     index: number;
-    action: 'open' | 'stop' | null;
+    action: WindowActionEnum | null;
     status: number;
 }
 const fanMap = ref<Map<number, number>>(new Map())
 const blowerMap = ref<Map<number, number>>(new Map())
-const devStatesObj = ref({
-    // 'switch': [], 'windows': [], 'blowers': [], 'fans': [], 'ac': []
-})
-const controlMode = ref()
+
+
 export const useWindowControlStore = defineStore('windowControl', () => {
     // --- 模拟解析 YAML 配置 ---
     let config = {
@@ -49,26 +71,27 @@ export const useWindowControlStore = defineStore('windowControl', () => {
         loading.value = true
         try {
             // 1. 从后端获取配置 (后端可以直接返回 JSON 化的 YAML 配置以及当前设备状态)
-            const response = await http.get('http-api/api/dev-address/001')
+            const response = await http.get('/api/dev-address/001')
             console.log('config:', response)
             config = response.data
 
             // 2. 动态解析映射规则
             const fMap = new Map<number, number>()
-            if (config.fanWindow) {
-                config.fanWindow.src.forEach((winId: number, index: number) => {
-                    fMap.set(winId, config.fanWindow.target_start + index)
-                })
-                fanMap.value = fMap
-            }
-            console.log('fanMap', fanMap)
+            // if (config.fanWindow) {
+            //     config.fanWindow.src.forEach((winId: number, index: number) => {
+            //         fMap.set(winId, config.fanWindow.target_start + index)
+            //     })
+            //     fanMap.value = fMap
+            // }
+            fanMap.value = getDataMap('fanWindow')
+            console.log('fanMap', fanMap.value)
 
-            const bMap = new Map<number, number>()
-            for (let winId = config.blowerWindow.src_start; winId <= config.blowerWindow.src_end; winId++) {
-                const index = winId - config.blowerWindow.src_start
-                bMap.set(winId, config.blowerWindow.target_start + index)
-            }
-            blowerMap.value = bMap
+            // const bMap = new Map<number, number>()
+            // for (let winId = config.blowerWindow.src_start; winId <= config.blowerWindow.src_end; winId++) {
+            //     const index = winId - config.blowerWindow.src_start
+            //     bMap.set(winId, config.blowerWindow.target_start + index)
+            // }
+            blowerMap.value = getDataMap('blowerWindow')
 
             // 3. 灌入后端返回的实时状态 (status)
             // 假设后端返回的 currentStatus 结构为 { windows: {...}, fans: {...}, blowers: {...} }
@@ -95,10 +118,11 @@ export const useWindowControlStore = defineStore('windowControl', () => {
                     const blowerId = blowerMap.value.get(i)!
                     blowers[blowerId] = { id: blowerId, index: blowerIndex++, action: null, status: -1 }
                 }
+                // todo: 这里可以加一个windowDisplayIndex
                 windows[i] = { id: i, index: windowIndex++, action: null, status: -1 }
             }
 
-            let j=1;
+            let j = 1;
             for (let i = config.ac[0]; i <= config.ac[1]; i++) {
                 acs[i] = { id: i, index: j++, action: null, status: -1 }
             }
@@ -110,44 +134,23 @@ export const useWindowControlStore = defineStore('windowControl', () => {
         }
     }
 
-    const initWebSocket = () => {
-        // todo: need granary switch control in ui, hardcode 001 for now
-        let isExplicitlyClosed = false
-        let socket = new WebSocket(`ws-api/ws/dev-state/001`);
-        // socket = new WebSocket(`ws://${backendAdd}/ws/dev-state`);
-
-        // 连接成功事件
-        socket.onopen = () => {
-            console.log('成功连接到 Python 后端 WebSocket！');
-        };
-
-        // 接收到后端实时数据事件
-        socket.onmessage = (event: any) => {
-            // 解析后端传过来的 JSON 字符串
-            devStatesObj.value = JSON.parse(event.data);
-            // console.log('3. 解析后的类型:', Array.isArray(allStates) ? '数组' : typeof allStates)
-            // devStatesObj.value = allStates.splice(2);
-            // controlStates.value = allStates.splice(0, 2);
-            console.log('devstate', event.data)
-            controlMode.value = devStatesObj.value['switch'][0]
-            updateStatus()
-            // runMode.value = devStatesObj.value.control[1]
-            
-            // console.log('controlStates', controlStates.value)
-        };
-
-        // 连接关闭事件
-        socket.onclose = () => {
-            // console.log('【前端提示】连接已断开，3秒后尝试自动重连...');
-            if (!isExplicitlyClosed)
-                setTimeout(initWebSocket, 3000); // 掉线自动重连机制
-        };
-
-        // 发生错误事件
-        socket.onerror = (error) => {
-            console.error('【前端提示】WebSocket 发生错误:', error);
-        };
-    };
+    const getDataMap = (key) => {
+        const idMap = new Map<number, number>()
+        let subConfig = config?.[key]
+        if (subConfig.src) {
+            console.log('in src')
+            subConfig.src.forEach((winId: number, index: number) => {
+                idMap.set(winId, subConfig.target_start + index)
+            })
+        } else if (subConfig.src_start) {
+            console.log('to src_start')
+            for (let winId = subConfig.src_start; winId <= subConfig.src_end; winId++) {
+                const index = winId - subConfig.src_start
+                idMap.set(winId, subConfig.target_start + index)
+            }
+        }
+        return idMap
+    }
 
 
 
@@ -158,25 +161,26 @@ export const useWindowControlStore = defineStore('windowControl', () => {
     const acs = reactive<Record<number, AcState>>({})
 
 
-    const updateStatus = () => {
+    const updateStatus = (devStatesObj) => {
+        console.log('in updatestatus: ', devStatesObj)
         Object.keys(windows).map(Number).map(winId => {
             const fanId = fanMap.value.get(winId) as number
             const blowerId = blowerMap.value.get(winId) as number
-            if (Object.keys(devStatesObj.value).length > 0) {
+            if (Object.keys(devStatesObj).length > 0) {
                 // 必须注意，这个winId一定要从1开始，否则跟index对不上
-                windows[winId].status = devStatesObj.value.windows[winId - 1]
+                windows[winId].status = devStatesObj.windows[winId - 1]
                 // console.log('insde windowlist', windows[winId].status, 'fan ', fans[fanId])
                 if (fans[fanId]) {
-                    fans[fanId].status = devStatesObj.value.fans[fans[fanId].index - 1]
+                    fans[fanId].status = devStatesObj.fans[fans[fanId].index - 1]
                 }
                 if (blowers[blowerId]) {
-                    blowers[blowerId].status = devStatesObj.value.blowers[blowers[blowerId].index - 1]
+                    blowers[blowerId].status = devStatesObj.blowers[blowers[blowerId].index - 1]
                 }
             }
         })
         Object.keys(acs).map(Number).map(acId => {
-            if (Object.keys(devStatesObj.value).length > 0) {
-                acs[acId].status = devStatesObj.value.ac[acs[acId].index - 1]
+            if (Object.keys(devStatesObj).length > 0) {
+                acs[acId].status = devStatesObj.ac[acs[acId].index - 1]
             }
         })
     }
@@ -191,7 +195,7 @@ export const useWindowControlStore = defineStore('windowControl', () => {
                 window: windows[winId],
                 fan: fanId ? fans[fanId] : null,
                 blower: blowerId ? blowers[blowerId] : null,
-                label: blowerId ? '门' : '窗' 
+                label: blowerId ? '门' : '窗'
             }
         })
 
@@ -211,11 +215,23 @@ export const useWindowControlStore = defineStore('windowControl', () => {
 
 
     // --- 控制动作 (对接后端 API / Mqtt) ---
-    const controlDevice = async (type: 'window' | 'fan' | 'blower', id: number, action: string) => {
-        console.log(`发送指令: 设备类型[${type}], 设备ID[${id}], 动作[${action}]`)
-        // 发送网络请求...
-        // axios.post('/api/control', { type, id, action })
+    const controlDevice = async (houseCode: string, type: 'window' | 'fan' | 'blower' | 'ac', id: number, action: string) => {
+        console.log(`发送指令: housecode-${houseCode} 设备类型[${type}], 设备ID[${id}], 动作[${action}]`)
+        try {
+            let result = await http.post('/api/dev/control', {
+                house_code: houseCode,
+                dev_id: id,
+                action_type: action
+            });
+            ElMessage.success(result.data.message)
+            // console.log('result ', result)
+        } catch (err) {
+            // alert('操作失败: '+err);
+        } finally {
+            console.log('finished')
+        }
+
     }
 
-    return { loading, windowList, acList, controlMode, initDeviceConfig, initWebSocket, controlDevice }
+    return { loading, windowList, acList, initDeviceConfig, updateStatus, controlDevice }
 })

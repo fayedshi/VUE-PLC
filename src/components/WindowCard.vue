@@ -18,9 +18,10 @@
         <div class="control-row" v-if="data.window">
             <!-- <span class="label">窗体动作:</span> -->
             <el-button-group size="small">
-                <el-button @click="onControl('window', data.window.id, 'open')">开窗</el-button>
-                <el-button @click="onControl('window', data.window.id, 'close')">关窗</el-button>
-                <el-button @click="onControl('window', data.window.id, 'stop')">停止</el-button>
+                <el-button :disabled="[1, 4].includes(data.window.status)"
+                    @click="onControl('window', data.window.id, WindowActionEnum.OPEN)">开窗</el-button>
+                <el-button @click="onControl('window', data.window.id, WindowActionEnum.CLOSE)">关窗</el-button>
+                <el-button @click="onControl('window', data.window.id, WindowActionEnum.STOP)">停止</el-button>
             </el-button-group>
         </div>
 
@@ -33,9 +34,11 @@
                 </el-tag>
             </div>
             <el-button-group size="small" class="w-full">
-                <el-button type="success" plain @click="onControl('fan', data.fan.id, 'open')">开启</el-button>
-                <el-button type="warning" plain @click="onControl('fan', data.fan.id, 'close')">关闭</el-button>
-                <el-button type="info" plain @click="onControl('fan', data.fan.id, 'stop')">停止</el-button>
+                <el-button type="success" :disabled="data.fan.status == 1" plain
+                    @click="onControl('fan', data.fan.id, FanActionEnum.OPEN)">开启</el-button>
+                <el-button type="warning" plain
+                    @click="onControl('fan', data.fan.id, FanActionEnum.CLOSE)">关闭</el-button>
+                <el-button type="info" plain @click="onControl('fan', data.fan.id, FanActionEnum.STOP)">停止</el-button>
             </el-button-group>
         </div>
 
@@ -47,21 +50,26 @@
                     {{ formatStatus('blower', data.blower.status) }}
                 </el-tag>
             </div>
+
             <el-button-group size="small">
-                <el-button type="primary" plain @click="onControl('blower', data.blower.id, 'forward')">正转</el-button>
-                <el-button type="success" plain @click="onControl('blower', data.blower.id, 'reverse')">反转</el-button>
-                <el-button type="info" plain @click="onControl('blower', data.blower.id, 'stop')">停止</el-button>
+                <el-button type="primary" :disabled="data.blower.status == 1" plain
+                    @click="onControl('blower', data.blower.id, BlowerActionEnum.FORWARD)">正转</el-button>
+                <el-button type="success" :disabled="data.blower.status == 2" plain
+                    @click="onControl('blower', data.blower.id, BlowerActionEnum.REVERSE)">反转</el-button>
+                <el-button type="info" plain
+                    @click="onControl('blower', data.blower.id, BlowerActionEnum.STOP)">停止</el-button>
             </el-button-group>
         </div>
 
         <!-- 3. 空调控制 (条件渲染) -->
         <div v-if="data.ac" class="sub-device-section blower-section">
             <div class="sub-header">
-                <span class="sub-title">🌀 空调 #{{ data.ac.index }}</span>
+                <span class="sub-title">❄️ 空调 #{{ data.ac.index }}</span>
                 <el-tag :type="getBlowerTagType(data.ac.status)" size="small">
                     {{ formatStatus('ac', data.ac.status) }}
                 </el-tag>
             </div>
+
             <el-button-group size="small">
                 <el-button type="primary" plain @click="onControl('ac', data.ac.id, 'forward')">开启</el-button>
                 <el-button type="info" plain @click="onControl('ac', data.ac.id, 'stop')">停止</el-button>
@@ -72,6 +80,8 @@
 
 <script setup>
 import { Compass } from '@element-plus/icons-vue'
+import { useWindowControlStore, WindowActionEnum, FanActionEnum, BlowerActionEnum, AcActionEnum } from '../store/WindowControl.ts' // 沿用上一轮回答的 Pinia Store
+// import {  Comm, BlowerActionEnum } from '@/stores/windowControl'
 
 defineProps({
     data: { type: Object, required: true }
@@ -83,6 +93,7 @@ const onControl = (type, id, action) => {
     emit('action', { type, id, action })
 }
 
+// const store = useWindowControlStore()
 // 状态文字格式化
 //  winDoorStatusMap = { 0: '初始化', 1: '正在打开', 2: '正在关闭', 3: '停', 4: '开到位', 5: '关到位', 6: '故障' }
 //  fanStatusMap = { 0: '初始化', 1: '正转', 2: '反转', 3: '停', 6: '故障' }
