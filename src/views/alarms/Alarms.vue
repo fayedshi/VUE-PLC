@@ -300,11 +300,11 @@ const fetchHistoryAlarms = async () => {
         }
 
         // 拼接查询参数
-        const url = new URL('http://localhost:8000/api/alarms/history')
+        const url = new URL('http-api/api/alarms/history')
         url.searchParams.append('page', historyQuery.page)
         url.searchParams.append('size', historyQuery.size)
         if (historyQuery.houseCode) {
-            url.searchParams.append('house_code', historyQuery.houseCode)
+            url.searchParams.append('house_code', '001')
         }
         if (historyQuery.startTime) {
             url.searchParams.append('start_time', historyQuery.startTime)

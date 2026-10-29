@@ -248,9 +248,9 @@ const initJSMpegPlayer = (playbackTime: string | null = null) => {
     if (!canvasRef.value || !activeChannelId.value) return
 
     // 💡 根据状态动态决定走哪个 WebSocket 协议
-    let socketUrl = `ws://localhost:8000/stream/live/${activeChannelId.value}`
+    let socketUrl = `ws-api/stream/live/${activeChannelId.value}`
     if (!isLive.value && playbackTime) {
-        socketUrl = `ws://localhost:8000/stream/playback/${activeChannelId.value}?start_time=${playbackTime}`
+        socketUrl = `ws-api/stream/playback/${activeChannelId.value}?start_time=${playbackTime}`
     }
 
     const JSMpeg = (window as any).JSMpeg
