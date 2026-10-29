@@ -67,7 +67,7 @@ export const useWindowControlStore = defineStore('windowControl', () => {
     const switchAddress = ref()
     // 初始化/获取后端配置与数据的核心方法
     const initDeviceConfig = async (houseCode: string) => {
-        // resetData()
+        resetData()
         loading.value = true
         try {
             // 1. 从后端获取配置 (后端可以直接返回 JSON 化的 YAML 配置以及当前设备状态)
@@ -120,14 +120,14 @@ export const useWindowControlStore = defineStore('windowControl', () => {
                     blowers[blowerId] = { id: blowerId, index: blowerIndex++, action: null, status: -1 }
                 }
                 // todo: 这里可以加一个windowDisplayIndex
-                windows[i] = { id: i, index: windowIndex++, action: null, status: -1 }
+                windows.value[i] = { id: i, index: windowIndex++, action: null, status: -1 }
             }
 
             let j = 1;
             for (let i = config.ac[0]; i <= config.ac[1]; i++) {
-                acs[i] = { id: i, index: j++, action: null, status: -1 }
+                acs.value[i] = { id: i, index: j++, action: null, status: -1 }
             }
-            console.log('acs', acs)
+            console.log('acs', acs.value)
         } catch (error) {
             console.error('加载窗控配置失败:', error)
             ElMessage.error(`当前房屋[${houseCode}]配置解析错误，请前往后台检查！`)
@@ -157,27 +157,27 @@ export const useWindowControlStore = defineStore('windowControl', () => {
 
 
     // --- 响应式状态定义 ---, key, value键值对类型
-    let windows = reactive<Record<number, WindowState>>({})
+    const windows = ref<Record<number, WindowState>>({})
     let fans = reactive<Record<number, FanState>>({})
     let blowers = reactive<Record<number, BlowerState>>({})
-    let acs = reactive<Record<number, AcState>>({})
+    const acs = ref<Record<number, AcState>>({})
 
     const resetData = () => {
-        windows = {}
-        fans = {}
-        blowers = {}
-        acs = {}
+        windows.value = {}
+        // fans = {}
+        // blowers = {}
+        acs.value = {}
         console.log('已成功清空上一个房屋的数据缓存')
     }
 
     const updateStatus = (devStatesObj) => {
         // console.log('in updatestatus: ', devStatesObj)
-        Object.keys(windows).map(Number).map(winId => {
+        Object.keys(windows.value).map(Number).map(winId => {
             const fanId = fanMap.value.get(winId) as number
             const blowerId = blowerMap.value.get(winId) as number
             if (Object.keys(devStatesObj).length > 0) {
                 // 必须注意，这个winId一定要从1开始，否则跟index对不上
-                windows[winId].status = devStatesObj.windows[winId - 1]
+                windows.value[winId].status = devStatesObj.windows[winId - 1]
                 // console.log('insde windowlist', windows[winId].status, 'fan ', fans[fanId])
                 if (fans[fanId]) {
                     fans[fanId].status = devStatesObj.fans[fans[fanId].index - 1]
@@ -187,21 +187,21 @@ export const useWindowControlStore = defineStore('windowControl', () => {
                 }
             }
         })
-        Object.keys(acs).map(Number).map(acId => {
+        Object.keys(acs.value).map(Number).map(acId => {
             if (Object.keys(devStatesObj).length > 0) {
-                acs[acId].status = devStatesObj.ac[acs[acId].index - 1]
+                acs.value[acId].status = devStatesObj.ac[acs.value[acId].index - 1]
             }
         })
     }
 
     // --- 聚合的计算属性：供页面循环渲染使用 ---
     const windowList = computed(() => {
-        let list = Object.keys(windows).map(Number).map(winId => {
+        let list = Object.keys(windows.value).map(Number).map(winId => {
             const fanId = fanMap.value.get(winId) as number
             const blowerId = blowerMap.value.get(winId) as number
             return {
                 id: winId,
-                window: windows[winId],
+                window: windows.value[winId],
                 fan: fanId ? fans[fanId] : null,
                 blower: blowerId ? blowers[blowerId] : null,
                 // label: blowerId ? '门' : '窗'
@@ -214,10 +214,10 @@ export const useWindowControlStore = defineStore('windowControl', () => {
     })
 
     const acList = computed(() => {
-        return Object.keys(acs).map(Number).map(acId => {
+        return Object.keys(acs.value).map(Number).map(acId => {
             return {
                 id: acId,
-                ac: acs[acId],
+                ac: acs.value[acId],
                 label: '空调'
             }
         })

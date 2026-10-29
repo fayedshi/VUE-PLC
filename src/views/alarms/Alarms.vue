@@ -55,23 +55,22 @@
 
             <!-- 原生查询工具栏 -->
             <div class="filter-bar">
-                <select v-model="historyQuery.houseCode" class="native-select">
+                <select v-model="queryParams.houseCode" class="native-select">
                     <option value="">全部仓房</option>
-                    <option value="CH-01">1号平房仓</option>
-                    <option value="CH-02">2号平房仓</option>
-                    <option value="CH-03">3号高架仓</option>
+                    <option value="001">1号平房仓</option>
+                    <option value="002">2号平房仓</option>
                 </select>
 
                 <!-- 💡 核心新增：开始时间 -->
                 <div class="filter-item">
                     <label class="filter-label">开始时间：</label>
-                    <input type="datetime-local" v-model="historyQuery.startTime" class="native-datetime-input" />
+                    <input type="datetime-local" v-model="queryParams.startTime" class="native-datetime-input" />
                 </div>
 
                 <!-- 💡 核心新增：结束时间 -->
                 <div class="filter-item">
                     <label class="filter-label">结束时间：</label>
-                    <input type="datetime-local" v-model="historyQuery.endTime" class="native-datetime-input" />
+                    <input type="datetime-local" v-model="queryParams.endTime" class="native-datetime-input" />
                 </div>
 
                 <button class="btn-search" @click="fetchHistoryAlarms">🔍 查询历史</button>
@@ -94,18 +93,18 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="(log, index) in historyLog" :key="index">
+                        <tr v-for="(item, index) in alarmList" :key="index">
                             <td>{{ index + 1 }}</td>
-                            <td>{{ log.trigger_time }}</td>
-                            <td>{{ log.house_code }}</td>
-                            <td>{{ warningLabelMap[log.type] }}</td>
+                            <td>{{ item.trigger_time }}</td>
+                            <td>{{ item.house_code }}</td>
+                            <td>{{ warningLabelMap[item.type] }}</td>
                             <!-- <td>{{ log.type }}</td>  -->
-                            <td>{{ log.custom_key }}</td>
-                            <td>{{ log.message }}</td>
-                            <td>{{ log.ack ? '是' : '否' }}</td>
-                            <td>{{ log.ack_time }}</td>
-                            <td><span class="badge badge-success">{{ log.cleared ? '已恢复' : '未清除' }}</span></td>
-                            <td>{{ log.clear_time }}</td>
+                            <td>{{ item.custom_key }}</td>
+                            <td>{{ item.message }}</td>
+                            <td>{{ item.ack ? '是' : '否' }}</td>
+                            <td>{{ item.ack_time }}</td>
+                            <td><span class="badge badge-success">{{ item.cleared ? '已恢复' : '未清除' }}</span></td>
+                            <td>{{ item.clear_time }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -113,10 +112,10 @@
 
             <!-- 原生简易分页器 -->
             <div class="pagination">
-                <button :disabled="historyQuery.page === 1" @click="changePage(-1)">上一页</button>
-                <span class="page-info">第 {{ historyQuery.page }} 页 / 共 {{ Math.ceil(historyTotal / historyQuery.size)
+                <button :disabled="queryParams.page === 1" @click="changePage(-1)">上一页</button>
+                <span class="page-info">第 {{ queryParams.page }} 页 / 共 {{ Math.ceil(alarmTotal / queryParams.size)
                     || 1 }} 页</span>
-                <button :disabled="historyQuery.page * historyQuery.size >= historyTotal"
+                <button :disabled="queryParams.page * queryParams.size >= alarmTotal"
                     @click="changePage(1)">下一页</button>
             </div>
         </div>
@@ -136,6 +135,7 @@
 <script setup>
 import { ref, reactive, onMounted, onBeforeUnmount } from 'vue'
 import axios from 'axios'
+import http from '../../../api/http'
 
 // --- 实时报警状态 ---
 const activeAlarmsMap = ref({})
@@ -151,9 +151,9 @@ const warningLabelMap = {
 }
 
 // --- 历史报警状态 ---
-const historyLog = ref([])
-const historyTotal = ref(0)
-const historyQuery = reactive({
+const alarmList = ref([])
+const alarmTotal = ref(0)
+const queryParams = reactive({
     page: 1,
     size: 10,
     houseCode: '',
@@ -255,14 +255,6 @@ const cleanupDeadWs = (ws) => {
 
 
 onMounted(() => {
-    //todo: fetch house count from backend
-    // for (let i = 0; i < houseCount; i++) {
-    //     try {
-    //         initWebSocket(i + 1)
-    //     } catch (err) {
-    //         console.error('initWebSocket发生错误:', err)
-    //     }
-    // }
     initWebSocket()
     fetchHistoryAlarms()
 })
@@ -273,23 +265,14 @@ onBeforeUnmount(() => {
         ws.close(); // 循环关闭
     }
     console.log('in onBeforeUnmount alarms, lenth')
-    // wsClients.forEach((ws) => {
-    //     if (ws) {
-    //         console.log(' to close socket')
-    //         ws.close(); // 循环关闭
-    //     }
-    // });
-    // wsClients = []
 })
 
 
-// 🌐 纯原生 Fetch 请求：获取历史报警数据
 const fetchHistoryAlarms = async () => {
     try {
-
-        if (historyQuery.startTime && historyQuery.endTime) {
-            const startTimestamp = new Date(historyQuery.startTime).getTime();
-            const endTimestamp = new Date(historyQuery.endTime).getTime();
+        if (queryParams.startTime && queryParams.endTime) {
+            const startTimestamp = new Date(queryParams.startTime).getTime();
+            const endTimestamp = new Date(queryParams.endTime).getTime();
             // const nowTimestamp = Date.now();
 
             // 2. 校验：开始时间不能大于结束时间
@@ -300,33 +283,48 @@ const fetchHistoryAlarms = async () => {
         }
 
         // 拼接查询参数
-        const url = new URL('http-api/api/alarms/history')
-        url.searchParams.append('page', historyQuery.page)
-        url.searchParams.append('size', historyQuery.size)
-        if (historyQuery.houseCode) {
-            url.searchParams.append('house_code', '001')
-        }
-        if (historyQuery.startTime) {
-            url.searchParams.append('start_time', historyQuery.startTime)
-        }
-        if (historyQuery.endTime) {
-            url.searchParams.append('end_time', historyQuery.endTime)
-        }
+        // const url = new URL('http-api/api/alarms/history')
+        // url.searchParams.append('page', queryParams.page)
+        // url.searchParams.append('size', queryParams.size)
+        // if (queryParams.houseCode) {
+        //     url.searchParams.append('house_code', '001')
+        // }
+        // if (queryParams.startTime) {
+        //     url.searchParams.append('start_time', queryParams.startTime)
+        // }
+        // if (queryParams.endTime) {
+        //     url.searchParams.append('end_time', queryParams.endTime)
+        // }
 
-        const response = await fetch(url)
-        const resData = await response.json()
-        console.log('returned resData: ', resData)
-        historyLog.value = resData.items
-        historyTotal.value = resData.historyTotal
-        console.log('historyTotal: ', historyTotal.value)
-
+        // const response = await fetch(url)
+        console.log('parms ', queryParams)
+        const response = await http.get('/api/alarms/history', {
+            params: {
+                house_code: queryParams.houseCode,
+                page: queryParams.page,
+                size: queryParams.size,
+                start_time: formatTime(queryParams.startTime),
+                end_time: formatTime(queryParams.endTime)
+            }})
+            
+        // const resData = await response.json()
+        console.log('returned alarm Data: ', response.data, 'historyTotal: ', alarmTotal.value)
+        alarmList.value = response.data.items
+        alarmTotal.value = response.data.historyTotal
+        // 解构
+        // const { items, historyTotal } = response.data;
     } catch (err) {
         console.error('获取历史报警失败:', err)
     }
 }
 
+const formatTime = (timeStr) => {
+    if (!timeStr) return undefined; // 如果没选时间，不传或传 undefined
+    return timeStr.replace('T', ' ') + ':00';
+};
+
 const changePage = (step) => {
-    historyQuery.page += step
+    queryParams.page += step
     fetchHistoryAlarms()
 }
 

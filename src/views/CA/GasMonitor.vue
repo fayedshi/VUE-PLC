@@ -315,10 +315,10 @@ const initWebSocket = async () => {
 
 onBeforeUnmount(() => {
   if (socket) {
+    isExplicitlyClosed = true
     socket.close();
     // 切换tab时，没必要保持连接，当成手动关闭
     console.log('manually closed websocket')
-    isExplicitlyClosed = true
   }
 
 })
