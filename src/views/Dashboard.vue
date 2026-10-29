@@ -71,7 +71,7 @@
         </div>
       </div>
     </div>
-    <WindowScene :windowStatus="currentStatus" />
+    <!-- <WindowScene :windowStatus="currentStatus" /> -->
   </div>
 </template>
 
@@ -80,6 +80,7 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import axios from 'axios'
 import WindowScene from '../components/WindowScene.vue' // 引入你的 3D 子组件
+import http from '../../api/http.js';
 // 1. 定义响应式变量
 const isConnected = ref(false);
 const liveData = ref(['--', '--', '--', '--', '--', '--']);
@@ -99,7 +100,7 @@ const fetchGranaryList = async () => {
   console.log('in fetchGranaryList')
   try {
     // 💡 动态将前端的输入框内容拼接到 URL 的参数中 (Query Parameters)
-    const response = await axios.get("http-api/api/granary", {
+    const response = await http.get("http-api/api/granary", {
       params: {
         name: '',
         grain_type: '',
@@ -111,7 +112,7 @@ const fetchGranaryList = async () => {
     return response.data
   } catch (error) {
     console.error('❌ 请求后端接口失败:', error)
-    alert('数据加载失败，请检查后端服务是否启动！')
+    // alert('数据加载失败，请检查后端服务是否启动！')
   } finally {
     // loading.value = false
   }

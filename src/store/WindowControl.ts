@@ -11,7 +11,6 @@ export enum WindowActionEnum {
 
 export enum FanActionEnum {
     OPEN = 1,
-    CLOSE = 2,
     STOP = 3,
 }
 
@@ -65,18 +64,20 @@ export const useWindowControlStore = defineStore('windowControl', () => {
         // blowerWindow: { src_start: 11, src_end: 18, target_start: 19 }
     }
     const loading = ref(false)
-
+    const switchAddress = ref()
     // 初始化/获取后端配置与数据的核心方法
-    const initDeviceConfig = async () => {
+    const initDeviceConfig = async (houseCode: string) => {
+        // resetData()
         loading.value = true
         try {
             // 1. 从后端获取配置 (后端可以直接返回 JSON 化的 YAML 配置以及当前设备状态)
-            const response = await http.get('/api/dev-address/001')
+            const response = await http.get(`/api/dev-address/${houseCode}`)
             console.log('config:', response)
             config = response.data
-
+            switchAddress.value = config?.['switch'][0]
+            // console.log('switchadd ',switchAddress.value)
             // 2. 动态解析映射规则
-            const fMap = new Map<number, number>()
+            // const fMap = new Map<number, number>()
             // if (config.fanWindow) {
             //     config.fanWindow.src.forEach((winId: number, index: number) => {
             //         fMap.set(winId, config.fanWindow.target_start + index)
@@ -112,7 +113,7 @@ export const useWindowControlStore = defineStore('windowControl', () => {
 
                 if (blowerMap.value.has(i)) {
                     if (!damperStart) {
-                        windowIndex = 1
+                        // windowIndex = 1
                         damperStart = true
                     }
                     const blowerId = blowerMap.value.get(i)!
@@ -129,6 +130,7 @@ export const useWindowControlStore = defineStore('windowControl', () => {
             console.log('acs', acs)
         } catch (error) {
             console.error('加载窗控配置失败:', error)
+            ElMessage.error(`当前房屋[${houseCode}]配置解析错误，请前往后台检查！`)
         } finally {
             loading.value = false
         }
@@ -155,14 +157,21 @@ export const useWindowControlStore = defineStore('windowControl', () => {
 
 
     // --- 响应式状态定义 ---, key, value键值对类型
-    const windows = reactive<Record<number, WindowState>>({})
-    const fans = reactive<Record<number, FanState>>({})
-    const blowers = reactive<Record<number, BlowerState>>({})
-    const acs = reactive<Record<number, AcState>>({})
+    let windows = reactive<Record<number, WindowState>>({})
+    let fans = reactive<Record<number, FanState>>({})
+    let blowers = reactive<Record<number, BlowerState>>({})
+    let acs = reactive<Record<number, AcState>>({})
 
+    const resetData = () => {
+        windows = {}
+        fans = {}
+        blowers = {}
+        acs = {}
+        console.log('已成功清空上一个房屋的数据缓存')
+    }
 
     const updateStatus = (devStatesObj) => {
-        console.log('in updatestatus: ', devStatesObj)
+        // console.log('in updatestatus: ', devStatesObj)
         Object.keys(windows).map(Number).map(winId => {
             const fanId = fanMap.value.get(winId) as number
             const blowerId = blowerMap.value.get(winId) as number
@@ -195,7 +204,8 @@ export const useWindowControlStore = defineStore('windowControl', () => {
                 window: windows[winId],
                 fan: fanId ? fans[fanId] : null,
                 blower: blowerId ? blowers[blowerId] : null,
-                label: blowerId ? '门' : '窗'
+                // label: blowerId ? '门' : '窗'
+                label: '窗'
             }
         })
 
@@ -215,13 +225,13 @@ export const useWindowControlStore = defineStore('windowControl', () => {
 
 
     // --- 控制动作 (对接后端 API / Mqtt) ---
-    const controlDevice = async (houseCode: string, type: 'window' | 'fan' | 'blower' | 'ac', id: number, action: string) => {
+    const controlDevice = async (houseCode: string, type: 'window' | 'fan' | 'blower' | 'ac' | 'switch', id: number, action: number) => {
         console.log(`发送指令: housecode-${houseCode} 设备类型[${type}], 设备ID[${id}], 动作[${action}]`)
         try {
             let result = await http.post('/api/dev/control', {
                 house_code: houseCode,
                 dev_id: id,
-                action_type: action
+                action: action
             });
             ElMessage.success(result.data.message)
             // console.log('result ', result)
@@ -233,5 +243,5 @@ export const useWindowControlStore = defineStore('windowControl', () => {
 
     }
 
-    return { loading, windowList, acList, initDeviceConfig, updateStatus, controlDevice }
+    return { loading, switchAddress, windowList, acList, initDeviceConfig, updateStatus, controlDevice }
 })

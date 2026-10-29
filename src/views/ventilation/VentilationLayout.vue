@@ -3,12 +3,12 @@
     <!-- 二级子菜单导航 -->
 
     <RouterLink to="/system/ventilation/" exact-active-class="active">作业控制面板</RouterLink>
-    <RouterLink to="/system/ventilation/ventiManual" active-class="active">手动控制面板</RouterLink>
-    <RouterLink to="/system/ventilation/ventiMan" active-class="active">手动控制面板（修正）</RouterLink>
-    <RouterLink to="/system/ventilation/ventiManual3D" active-class="active">SingleDoor3D</RouterLink>
-    <RouterLink to="/system/ventilation/doorGroup" active-class="active">Door Group</RouterLink>
-    <RouterLink to="/system/ventilation/door3DDemo" active-class="active">3Dglb</RouterLink>
-    <RouterLink to="/system/ventilation/deviceGroup" active-class="active">Device Group</RouterLink>
+    <!-- <RouterLink to="/system/ventilation/ventiManual" active-class="active">手动控制面板(old)</RouterLink> -->
+    <RouterLink to="/system/ventilation/ventiMan" active-class="active">手动控制面板</RouterLink>
+    <RouterLink to="/system/ventilation/ventiManual3D" active-class="active">南面墙(测试)</RouterLink>
+    <!-- <RouterLink to="/system/ventilation/doorGroup" active-class="active">Door Group(测试)</RouterLink> -->
+    <!-- <RouterLink to="/system/ventilation/door3DDemo" active-class="active">3Dglb</RouterLink> -->
+    <RouterLink to="/system/ventilation/deviceGroup" active-class="active">设备组织(测试)</RouterLink>
   </div>
 
   <div>

@@ -19,7 +19,7 @@
     </div>
     <!-- 🎯 2. 新增：层级切换选项卡（极致简洁扁平设计） -->
     <div class="layer-selector">
-      <h2>粮仓温湿度趋势分析（每10分钟抽样）</h2>
+      <h2>粮仓温湿度趋势分析（每5分钟抽样）</h2>
       <!-- 💡 新增：数据指标复选框群组 -->
       <div class="options">
         <div class="metric-checkboxes options">

@@ -14,10 +14,10 @@
             </div>
             <!-- 第一组：远程 / 本地 -->
             <div class="btn-group">
-                <button :class="{ active: controlMode === 1 }" @click="switchControlMode(1, 2, '远程')">
+                <button :class="{ active: controlMode === 1 }" @click="switchMode('switch', store.switchAddress, 2)">
                     远程
                 </button>
-                <button :class="{ active: controlMode === 0 }" @click="switchControlMode(1, 1, '本地')">
+                <button :class="{ active: controlMode === 0 }" @click="switchMode('switch', store.switchAddress, 1)">
                     本地
                 </button>
             </div>
@@ -46,9 +46,9 @@
 </template>
 
 <script setup>
+import HouseSelect from '../../components/HouseSelect.vue';
 import { useWindowControlStore } from '../../store/WindowControl.ts' // 沿用上一轮回答的 Pinia Store
 import WindowCard from '../../components/WindowCard.vue'
-import HouseSelect from '../../components/HouseSelect.vue';
 import { onMounted, ref, computed, onBeforeUnmount } from 'vue'
 
 const store = useWindowControlStore()
@@ -66,7 +66,23 @@ const devStatesObj = ref({
 })
 
 const handleHouseChange = async () => {
-    await store.initDeviceConfig()
+    await store.initDeviceConfig(selectedHouseCode.value)
+    console.log('after house change: ',store.windowList)
+}
+
+// 2. 远程 / 本地 切换点击事件
+const switchMode = async (type, id, action) => {
+
+    try {
+        await store.controlDevice(selectedHouseCode.value, type, id, action)
+        // console.log('result ', result)
+        console.log(`控制模式已成功切换`)
+
+    } catch (err) {
+        alert('操作失败，请检查 PLC 连接');
+    } finally {
+        console.log('finished mode switch')
+    }
 }
 
 let isExplicitlyClosed = false
@@ -74,7 +90,7 @@ let socket = null
 const initWebSocket = () => {
     // todo: need granary switch control in ui, hardcode 001 for now
 
-    socket = new WebSocket(`ws-api/ws/dev-state/001`);
+    socket = new WebSocket(`ws-api/ws/dev-state/${selectedHouseCode.value}`);
     // socket = new WebSocket(`ws://${backendAdd}/ws/dev-state`);`
 
     // 连接成功事件
@@ -87,7 +103,7 @@ const initWebSocket = () => {
         // 解析后端传过来的 JSON 字符串
         devStatesObj.value = JSON.parse(event.data);
 
-        console.log('devstate', event.data)
+        // console.log('devstate', event.data)
         // devStatesObj.value= {"switch":[1],"windows":[6,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5],"blowers":[0,0,0,0,0,0,0,0],"fans":[0,0,0,0],"ac":[0,0]}
         controlMode.value = devStatesObj.value?.['switch'][0]
         store.updateStatus(devStatesObj.value)
@@ -107,7 +123,13 @@ const initWebSocket = () => {
 };
 
 onMounted(async () => {
-    await store.initDeviceConfig()
+    console.log('selected house',selectedHouseCode.value)
+    try{
+        const result= await store.initDeviceConfig(selectedHouseCode.value)
+    }
+    catch(err){
+        console.log('initDeviceConfig 发生错误')
+    }
     initWebSocket()
 })
 // 拦截子组件动作并调用 Store
@@ -133,13 +155,15 @@ onBeforeUnmount(() => {
 
 /* 顶部按钮栏容器 */
 .panel-header {
-    /* position: absolute; */
-    top: 15px;
-    left: 20px;
     display: flex;
-    gap: 20px;
-    /* 两组按钮之间的间距 */
-    z-index: 10;
+    align-items: center;
+    justify-content: left;
+    padding: 12px 20px;
+    background: #ffffff;
+    border-radius: 8px;
+    /* box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05); */
+    border: 1px solid #ebeef5;
+    gap: 16px;
 }
 
 /* 按钮组包裹盒 */
@@ -157,7 +181,6 @@ onBeforeUnmount(() => {
 
 .btn-group button.active {
     background-color: #409eff;
-    /* 经典科技蓝，可根据您项目的主题色调整 */
     color: #ffffff;
     border-color: #409eff;
 }

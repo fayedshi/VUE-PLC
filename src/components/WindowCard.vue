@@ -18,9 +18,10 @@
         <div class="control-row" v-if="data.window">
             <!-- <span class="label">窗体动作:</span> -->
             <el-button-group size="small">
-                <el-button :disabled="[1, 4].includes(data.window.status)"
+                <el-button :type="data.blower ? 'primary' : 'success'" :disabled="[1, 4].includes(data.window.status)"
                     @click="onControl('window', data.window.id, WindowActionEnum.OPEN)">开窗</el-button>
-                <el-button @click="onControl('window', data.window.id, WindowActionEnum.CLOSE)">关窗</el-button>
+                <el-button :disabled="checkDevState"
+                    @click="onControl('window', data.window.id, WindowActionEnum.CLOSE)">关窗</el-button>
                 <el-button @click="onControl('window', data.window.id, WindowActionEnum.STOP)">停止</el-button>
             </el-button-group>
         </div>
@@ -34,10 +35,10 @@
                 </el-tag>
             </div>
             <el-button-group size="small" class="w-full">
-                <el-button type="success" :disabled="data.fan.status == 1" plain
+                <el-button type="success" :disabled="data.fan.status == 1 || data.window.status != 4" plain
                     @click="onControl('fan', data.fan.id, FanActionEnum.OPEN)">开启</el-button>
-                <el-button type="warning" plain
-                    @click="onControl('fan', data.fan.id, FanActionEnum.CLOSE)">关闭</el-button>
+                <!-- <el-button type="warning" plain
+                    @click="onControl('fan', data.fan.id, FanActionEnum.CLOSE)">关闭</el-button> -->
                 <el-button type="info" plain @click="onControl('fan', data.fan.id, FanActionEnum.STOP)">停止</el-button>
             </el-button-group>
         </div>
@@ -52,38 +53,38 @@
             </div>
 
             <el-button-group size="small">
-                <el-button type="primary" :disabled="data.blower.status == 1" plain
+                <el-button type="primary" :disabled="data.blower.status == 1 || data.window.status != 4" plain
                     @click="onControl('blower', data.blower.id, BlowerActionEnum.FORWARD)">正转</el-button>
-                <el-button type="success" :disabled="data.blower.status == 2" plain
+                <el-button type="success" :disabled="data.blower.status == 2 || data.window.status != 4" plain
                     @click="onControl('blower', data.blower.id, BlowerActionEnum.REVERSE)">反转</el-button>
                 <el-button type="info" plain
                     @click="onControl('blower', data.blower.id, BlowerActionEnum.STOP)">停止</el-button>
             </el-button-group>
         </div>
 
-        <!-- 3. 空调控制 (条件渲染) -->
-        <div v-if="data.ac" class="sub-device-section blower-section">
-            <div class="sub-header">
-                <span class="sub-title">❄️ 空调 #{{ data.ac.index }}</span>
-                <el-tag :type="getBlowerTagType(data.ac.status)" size="small">
-                    {{ formatStatus('ac', data.ac.status) }}
-                </el-tag>
-            </div>
+        <!-- 3. 空调控制 -->
+        <div v-if="data.ac" class="sub-device-section ac-section"">
+            <div class=" sub-header">
+            <span class="sub-title">❄️ 空调 #{{ data.ac.index }}</span>
+            <el-tag :type="getBlowerTagType(data.ac.status)" size="small">
+                {{ formatStatus('ac', data.ac.status) }}
+            </el-tag>
+        </div>
 
-            <el-button-group size="small">
-                <el-button type="primary" plain @click="onControl('ac', data.ac.id, 'forward')">开启</el-button>
-                <el-button type="info" plain @click="onControl('ac', data.ac.id, 'stop')">停止</el-button>
-            </el-button-group>
+        <el-button-group size="small">
+            <el-button type="warning" :disabled="data.ac.status == 1" plain @click="onControl('ac', data.ac.id, AcActionEnum.START)">开启</el-button>
+            <el-button type="info" plain @click="onControl('ac', data.ac.id, 'stop')">停止</el-button>
+        </el-button-group>
         </div>
     </el-card>
 </template>
 
 <script setup>
 import { Compass } from '@element-plus/icons-vue'
-import { useWindowControlStore, WindowActionEnum, FanActionEnum, BlowerActionEnum, AcActionEnum } from '../store/WindowControl.ts' // 沿用上一轮回答的 Pinia Store
-// import {  Comm, BlowerActionEnum } from '@/stores/windowControl'
+import { useWindowControlStore, WindowActionEnum, FanActionEnum, BlowerActionEnum, AcActionEnum } from '../store/WindowControl.ts' 
+import { computed } from 'vue';
 
-defineProps({
+const props = defineProps({
     data: { type: Object, required: true }
 })
 
@@ -109,6 +110,21 @@ const formatStatus = (type, status) => {
     // console.log('status val:', statusVal)
     return statusVal
 }
+
+// check if window can shut
+const checkDevState = computed(() => {
+    // console.log('check dev state:', props.data)
+    let dev = props.data
+    let result = [2, 5].includes(dev.window.status)
+    if (dev.fan) {
+        result ||= dev.fan.status == 1
+    }
+    if (dev.blower) {
+        result ||= [1, 2].includes(dev.blower.status)
+    }
+    return result
+})
+
 
 // 动态计算 Element Plus 标签颜色
 const getWindowTagType = (status) => {
