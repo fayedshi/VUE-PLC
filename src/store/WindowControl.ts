@@ -10,7 +10,7 @@ export enum WindowActionEnum {
 }
 
 export enum FanActionEnum {
-    OPEN = 1,
+    START = 1,
     STOP = 3,
 }
 
@@ -31,6 +31,11 @@ interface WindowState {
     index: number;
     action: WindowActionEnum | null;
     status: number; // 比如：'opened', 'closed', 'moving'
+}
+
+interface WindowTask extends WindowState {
+    start: WindowActionEnum | null;
+    stop: WindowActionEnum; 
 }
 
 interface FanState {
