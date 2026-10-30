@@ -158,7 +158,7 @@ onBeforeUnmount(() => {
     display: flex;
     align-items: center;
     justify-content: left;
-    padding: 12px 20px;
+    /* padding: 12px 20px; */
     background: #ffffff;
     border-radius: 8px;
     /* box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05); */

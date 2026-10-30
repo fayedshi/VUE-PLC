@@ -1,4 +1,5 @@
 import axios from 'axios';
+import http from './http';
 
 export interface VentilationMode {
     id?: number;
@@ -14,15 +15,15 @@ export interface PageResult {
     items: VentilationMode[];
 }
 
-const api = axios.create({ baseURL: 'http-api' });
+// const http = axios.create({ baseURL: 'http-api' });
 
 export const ventiApi = {
     getPage: (page: number, size: number) =>
-        api.get<PageResult>('/api/ventilation-modes', { params: { page, size } }).then(res => res.data),
+        http.get<PageResult>('/api/ventilation-modes', { params: { page, size } }).then(res => res.data),
     create: (data: VentilationMode) =>
-        api.post<VentilationMode>('/api/ventilation-mode', data).then(res => res.data),
+        http.post<VentilationMode>('/api/ventilation-mode', data).then(res => res.data),
     update: (id: number, data: Partial<VentilationMode>) =>
-        api.patch<VentilationMode>(`/api/ventilation-mode/${id}`, data).then(res => res.data),
+        http.patch<VentilationMode>(`/api/ventilation-mode/${id}`, data).then(res => res.data),
     delete: (id: number) =>
-        api.delete(`/api/ventilation-mode/${id}`).then(res => res.data)
+        http.delete(`/api/ventilation-mode/${id}`).then(res => res.data)
 };

@@ -1,0 +1,6 @@
+{
+  "compilerOptions": {
+    "allowJs": true,     // 允许编译器编译 JavaScript 文件
+    "checkJs": false     // 【可选】如果你不想让 TS 去检查 JS 文件里的语法错误，设为 false 
+  }
+}

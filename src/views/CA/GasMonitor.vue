@@ -11,6 +11,13 @@
           <el-button type="primary" :loading="isLoading" :disabled="!controls.start_time" @click="handleSearch">
             查询
           </el-button>
+          <span v-if="!isLive" style="margin: 0 10px;">
+            <!-- 使用 type="info" 保持中性的灰色标签 -->
+            <el-text type="info" class="mr-2">检测时间：</el-text>
+            <!-- 时间主体用稍深一点的颜色，并加粗 -->
+            <el-text size="large" font-weight="bold">{{ localTime }}</el-text>
+          </span>
+
           <!-- 可选：重置按钮（日常开发中通常成对出现，体验更好） -->
           <el-button :disabled="isLoading" @click="handleReset">
             重置
@@ -98,10 +105,10 @@ let socket = null
 let isExplicitlyClosed = false
 
 const switchToLive = () => {
-    isLive.value = true
-    handleReset()
-    initWebSocket()
-    ElMessage.info('已切回实时预览状态')
+  isLive.value = true
+  handleReset()
+  initWebSocket()
+  ElMessage.info('已切回实时预览状态')
 }
 
 
@@ -185,6 +192,7 @@ const getAlarmClass = (value: number, type: string): string => {
 }
 
 
+const localTime= ref('')
 const controls = reactive({
   house_code: '',
   start_time: ''
@@ -207,10 +215,10 @@ const handleSearch = async () => {
   console.log('发起历史时间点查询：', isoStartTime)
 
   try {
-    if(socket){
-      isExplicitlyClosed=true
+    if (socket) {
+      isExplicitlyClosed = true
       socket.close();
-      
+
     }
     // console.log('formattedTime', formattedTime)
     const response = await axios.get('http-api/api/gas/querygas', {
@@ -227,6 +235,13 @@ const handleSearch = async () => {
     ElMessage.success('数据查询成功')
     console.log('数据查询成功 backend response', response.data)
     channelData.value = response.data
+    // temp_cache.value = response.data
+    console.log('time', channelData.value[channelData.value.length-1])
+    // localTime.value = new Date(channelData.value[channelData.value.length-1].replace(/\.\d+/, '') + 'Z').toLocaleString('zh-CN', {
+    //   timeZone: 'Asia/Shanghai',
+    //   hour12: false
+    // });
+    localTime.value = new Date(channelData.value[channelData.value.length-1]).toLocaleString('zh-CN', { hour12: false })
     detectionItems.forEach(item => {
       item.channels = populateChannels(channelData.value.splice(0, 16))
     })

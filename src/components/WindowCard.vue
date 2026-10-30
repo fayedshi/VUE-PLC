@@ -36,7 +36,7 @@
             </div>
             <el-button-group size="small" class="w-full">
                 <el-button type="success" :disabled="data.fan.status == 1 || data.window.status != 4" plain
-                    @click="onControl('fan', data.fan.id, FanActionEnum.OPEN)">开启</el-button>
+                    @click="onControl('fan', data.fan.id, FanActionEnum.START)">开启</el-button>
                 <!-- <el-button type="warning" plain
                     @click="onControl('fan', data.fan.id, FanActionEnum.CLOSE)">关闭</el-button> -->
                 <el-button type="info" plain @click="onControl('fan', data.fan.id, FanActionEnum.STOP)">停止</el-button>
@@ -63,25 +63,26 @@
         </div>
 
         <!-- 3. 空调控制 -->
-        <div v-if="data.ac" class="sub-device-section ac-section"">
+        <div v-if="data.ac" class="sub-device-section ac-section">
             <div class=" sub-header">
-            <span class="sub-title">❄️ 空调 #{{ data.ac.index }}</span>
-            <el-tag :type="getBlowerTagType(data.ac.status)" size="small">
-                {{ formatStatus('ac', data.ac.status) }}
-            </el-tag>
-        </div>
+                <span class="sub-title">❄️ 空调 #{{ data.ac.index }}</span>
+                <el-tag :type="getBlowerTagType(data.ac.status)" size="small">
+                    {{ formatStatus('ac', data.ac.status) }}
+                </el-tag>
+            </div>
 
-        <el-button-group size="small">
-            <el-button type="warning" :disabled="data.ac.status == 1" plain @click="onControl('ac', data.ac.id, AcActionEnum.START)">开启</el-button>
-            <el-button type="info" plain @click="onControl('ac', data.ac.id, 'stop')">停止</el-button>
-        </el-button-group>
+            <el-button-group size="small">
+                <el-button type="warning" :disabled="data.ac.status == 1" plain
+                    @click="onControl('ac', data.ac.id, AcActionEnum.START)">开启</el-button>
+                <el-button type="info" plain @click="onControl('ac', data.ac.id, 'stop')">停止</el-button>
+            </el-button-group>
         </div>
     </el-card>
 </template>
 
 <script setup>
 import { Compass } from '@element-plus/icons-vue'
-import { useWindowControlStore, WindowActionEnum, FanActionEnum, BlowerActionEnum, AcActionEnum } from '../store/WindowControl.ts' 
+import { useWindowControlStore, WindowActionEnum, FanActionEnum, BlowerActionEnum, AcActionEnum } from '../store/WindowControl.ts'
 import { computed } from 'vue';
 
 const props = defineProps({
