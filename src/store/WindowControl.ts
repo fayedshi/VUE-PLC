@@ -25,38 +25,55 @@ export enum AcActionEnum {
     STOP = 2
 }
 
+abstract class DeviceState {
+    id: number = 0;
+    index: number = 0;
+    status: number = -1;
+}
+
 // 1. 基础状态定义
-interface WindowState {
-    id: number;
-    index: number;
-    action: WindowActionEnum | null;
-    status: number; // 比如：'opened', 'closed', 'moving'
+class WindowState extends DeviceState {
+    fan: FanState | null = null
+    blower: BlowerState | null = null
 }
 
-interface WindowTask extends WindowState {
-    start: WindowActionEnum | null;
-    stop: WindowActionEnum; 
+class FanState extends DeviceState {
+    // id: number;
+    // index: number;
+    // action: WindowActionEnum | null;
+    // status: number;
 }
 
-interface FanState {
-    id: number;
-    index: number;
-    action: WindowActionEnum | null;
-    status: number;
+class BlowerState extends DeviceState {
+
 }
 
-interface BlowerState {
-    id: number;
-    index: number;
-    action: WindowActionEnum | null;
-    status: number;
+export class AcState extends DeviceState {
+
 }
-interface AcState {
-    id: number;
-    index: number;
-    action: WindowActionEnum | null;
-    status: number;
+
+// interface TaskState extends DeviceState
+
+abstract class DeviceTask extends DeviceState {
+    start: number = 0;
+    stop: number = 0
+    selected: boolean = false
 }
+
+class WindowTask extends DeviceTask {
+    fan: FanTask | null = null
+    blower: BlowerTask | null = null
+}
+
+class FanTask extends DeviceTask {
+}
+
+class BlowerTask extends DeviceTask {
+}
+
+class AcTask extends DeviceTask {
+}
+
 const fanMap = ref<Map<number, number>>(new Map())
 const blowerMap = ref<Map<number, number>>(new Map())
 
@@ -111,9 +128,14 @@ export const useWindowControlStore = defineStore('windowControl', () => {
             let windowIndex = 1
             let damperStart = false
             for (let i = config.windows[0]; i <= config.windows[1]; i++) {
+
+                const winState: WindowState = { id: i, index: windowIndex++, status: -1, fan: null, blower: null }
+
                 if (fanMap.value.has(i)) {
                     const fanId = fanMap.value.get(i)!
-                    fans[fanId] = { id: fanId, index: fanIndex++, action: null, status: -1 }
+                    // fans[fanId] = { id: fanId, index: fanIndex++, status: -1 }
+                    const fan: FanState = { id: fanId, index: fanIndex++, status: -1 }
+                    winState.fan = fan
                 }
 
                 if (blowerMap.value.has(i)) {
@@ -122,17 +144,58 @@ export const useWindowControlStore = defineStore('windowControl', () => {
                         damperStart = true
                     }
                     const blowerId = blowerMap.value.get(i)!
-                    blowers[blowerId] = { id: blowerId, index: blowerIndex++, action: null, status: -1 }
+                    // blowers[blowerId] = { id: blowerId, index: blowerIndex++, status: -1 }
+                    const blower: BlowerState = { id: blowerId, index: blowerIndex, status: -1 }
+                    blowerIndex++
+                    winState.blower = blower
                 }
                 // todo: 这里可以加一个windowDisplayIndex
-                windows.value[i] = { id: i, index: windowIndex++, action: null, status: -1 }
+                windowStateList.value.push(winState)
+                // windows.value[i] = { id: i, index: windowIndex++, status: -1 }
             }
 
             let j = 1;
             for (let i = config.ac[0]; i <= config.ac[1]; i++) {
-                acs.value[i] = { id: i, index: j++, action: null, status: -1 }
+                // acs.value[i] = { id: i, index: j++, status: -1 }
+                const ac: AcState = { id: i, index: j++, status: -1 }
+                acStateList.value.push(ac)
             }
-            console.log('acs', acs.value)
+            // console.log('acs', acStateList.value, 'windowList:', windowStateList.value)
+            // 不用computed， 因为task list有status字段，一旦status更新，tasklist会重新计算，这样selected, start值都会被清空
+            windowTaskList.value = windowStateList.value.map(state => {
+                // 1. 實例化一個全新的 WindowTask 物件（自帶 start, stop, selected 的預設值）
+                const task = new WindowTask();
+
+                // 2. 將基底狀態 (id, index, status) 複製過去
+                Object.assign(task, {
+                    id: state.id,
+                    index: state.index,
+                    status: state.status
+                });
+
+                // 3. 處理內部的子狀態轉換（注意：State 要轉成 Task 的實例）
+                if (state.fan) {
+                    task.fan = new FanTask();
+                    Object.assign(task.fan, state.fan);
+                }
+                if (state.blower) {
+                    task.blower = new BlowerTask();
+                    Object.assign(task.blower, state.blower);
+                }
+
+                return task;
+            });
+            acTaskList.value = acStateList.value.map(state => {
+                const task = new AcTask();
+                Object.assign(task, {
+                    id: state.id,
+                    index: state.index,
+                    status: state.status
+                });
+                return task
+            })
+            console.log('windowtask list:', windowTaskList.value)
+
         } catch (error) {
             console.error('加载窗控配置失败:', error)
             ElMessage.error(`当前房屋[${houseCode}]配置解析错误，请前往后台检查！`)
@@ -163,70 +226,103 @@ export const useWindowControlStore = defineStore('windowControl', () => {
 
     // --- 响应式状态定义 ---, key, value键值对类型
     const windows = ref<Record<number, WindowState>>({})
+    const windowStateList = ref<WindowState[]>([])
+
     let fans = reactive<Record<number, FanState>>({})
     let blowers = reactive<Record<number, BlowerState>>({})
     const acs = ref<Record<number, AcState>>({})
+    const acStateList = ref<AcState[]>([])
+    // 作业设备列表
+    const windowTaskList = ref<WindowTask[]>([])
+    const acTaskList = ref<AcTask[]>([])
 
     const resetData = () => {
         windows.value = {}
-        // fans = {}
-        // blowers = {}
-        acs.value = {}
+        windowStateList.value = []
+        // acs.value = {}
+        acStateList.value = []
+        windowTaskList.value = []
+        acTaskList.value = []
         console.log('已成功清空上一个房屋的数据缓存')
     }
 
     const updateStatus = (devStatesObj) => {
         // console.log('in updatestatus: ', devStatesObj)
-        Object.keys(windows.value).map(Number).map(winId => {
-            const fanId = fanMap.value.get(winId) as number
-            const blowerId = blowerMap.value.get(winId) as number
-            if (Object.keys(devStatesObj).length > 0) {
-                // 必须注意，这个winId一定要从1开始，否则跟index对不上
-                windows.value[winId].status = devStatesObj.windows[winId - 1]
-                // console.log('insde windowlist', windows[winId].status, 'fan ', fans[fanId])
-                if (fans[fanId]) {
-                    fans[fanId].status = devStatesObj.fans[fans[fanId].index - 1]
-                }
-                if (blowers[blowerId]) {
-                    blowers[blowerId].status = devStatesObj.blowers[blowers[blowerId].index - 1]
-                }
+        // Object.keys(windows.value).map(Number).map(winId => {
+        //     const fanId = fanMap.value.get(winId) as number
+        //     const blowerId = blowerMap.value.get(winId) as number
+        //     if (Object.keys(devStatesObj).length > 0) {
+        //         // 必须注意，这个winId一定要从1开始，否则跟index对不上
+        //         windows.value[winId].status = devStatesObj.windows[winId - 1]
+        //         // console.log('insde windowlist', windows[winId].status, 'fan ', fans[fanId])
+        //         if (fans[fanId]) {
+        //             fans[fanId].status = devStatesObj.fans[fans[fanId].index - 1]
+        //         }
+        //         if (blowers[blowerId]) {
+        //             blowers[blowerId].status = devStatesObj.blowers[blowers[blowerId].index - 1]
+        //         }
+        //     }
+        // })
+        windowStateList.value.forEach((winState) => {
+            winState.status = devStatesObj.windows[winState.id - 1]
+            if (winState.fan) {
+                // if (winState.child instanceof FanState) {
+                winState.fan.status = devStatesObj.fans[winState.fan.index - 1]
+            } else if (winState.blower) {
+                winState.blower.status = devStatesObj.blower[winState.blower.index - 1]
             }
         })
-        Object.keys(acs.value).map(Number).map(acId => {
-            if (Object.keys(devStatesObj).length > 0) {
-                acs.value[acId].status = devStatesObj.ac[acs.value[acId].index - 1]
-            }
+
+
+        // Object.keys(acs.value).map(Number).map(acId => {
+        //     if (Object.keys(devStatesObj).length > 0) {
+        //         acs.value[acId].status = devStatesObj.ac[acs.value[acId].index - 1]
+        //     }
+        // })
+        acStateList.value.forEach((acState) => {
+            acState.status = devStatesObj.ac[acState.index - 1]
         })
     }
 
     // --- 聚合的计算属性：供页面循环渲染使用 ---
-    const windowList = computed(() => {
-        let list = Object.keys(windows.value).map(Number).map(winId => {
-            const fanId = fanMap.value.get(winId) as number
-            const blowerId = blowerMap.value.get(winId) as number
-            return {
-                id: winId,
-                window: windows.value[winId],
-                fan: fanId ? fans[fanId] : null,
-                blower: blowerId ? blowers[blowerId] : null,
-                // label: blowerId ? '门' : '窗'
-                label: '窗'
-            }
-        })
+    // const windowList = computed(() => {
+    //     let list = Object.keys(windows.value).map(Number).map(winId => {
+    //         const fanId = fanMap.value.get(winId) as number
+    //         const blowerId = blowerMap.value.get(winId) as number
+    //         return {
+    //             id: winId,
+    //             window: windows.value[winId],
+    //             fan: fanId ? fans[fanId] : null,
+    //             blower: blowerId ? blowers[blowerId] : null,
+    //             // label: blowerId ? '门' : '窗'
+    //             label: '窗'
+    //         }
+    //     })
 
-        console.log('windowList', list)
-        return list
-    })
+    //     console.log('windowList', list)
+    //     return list
+    // })
 
-    const acList = computed(() => {
-        return Object.keys(acs.value).map(Number).map(acId => {
-            return {
-                id: acId,
-                ac: acs.value[acId],
-                label: '空调'
-            }
-        })
-    })
+    // const acList = computed(() => {
+    //     return Object.keys(acs.value).map(Number).map(acId => {
+    //         return {
+    //             id: acId,
+    //             ac: acs.value[acId],
+    //             label: '空调'
+    //         }
+    //     })
+    // })
+    const selectedAcList = computed(() =>
+        acTaskList.value.filter(acTask => acTask.selected
+        )
+    )
+
+    const selectedWindowTaskList = computed(() =>
+        windowTaskList.value.filter(winTask => winTask.selected
+            || winTask?.fan?.selected || winTask?.blower?.selected
+        )
+    )
+
 
 
     // --- 控制动作 (对接后端 API / Mqtt) ---
@@ -245,8 +341,13 @@ export const useWindowControlStore = defineStore('windowControl', () => {
         } finally {
             console.log('finished')
         }
-
     }
 
-    return { loading, switchAddress, windowList, acList, initDeviceConfig, updateStatus, controlDevice }
+    return {
+        loading, switchAddress,
+        windowStateList, acStateList,
+        windowTaskList, acTaskList,
+        selectedAcList, selectedWindowTaskList,
+        initDeviceConfig, updateStatus, controlDevice
+    }
 })

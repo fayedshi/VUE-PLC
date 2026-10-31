@@ -1,44 +1,194 @@
 <template>
-  <span>❄️ 夏季内循环 - 触发条件设置（AND 条件）</span>
-  <div class="condition-box">
+  <div class="cooling-settings-container">
+    
+    <!-- 區塊一：夏季內循環 - 觸發條件設置（AND 條件） -->
+    <el-card class="condition-card" shadow="hover">
+      <template #header>
+        <div class="card-header">
+          <span class="icon">❄️</span>
+          <span class="title">夏季內循環 - 觸發條件設置（AND 條件）</span>
+        </div>
+      </template>
+      
+      <div class="condition-flex-row">
+        <!-- 條件 1 -->
+        <div class="form-item-inline">
+          <span class="form-label">表層糧溫 - 底層平均糧溫 ≥</span>
+          <el-input-number 
+            v-model="startCondition.minTotalTempDiff" 
+            :step="0.1" 
+            :precision="1"
+            controls-position="right"
+            placeholder="請輸入"
+          />
+          <span class="unit-text">℃</span>
+        </div>
 
-    <div class="form-item">
-      <label>表层粮温 - 底层平均粮温 >= </label>
-      <input type="number" v-model="startCondition.minTotalTempDiff" step="0.1" /> ℃
-    </div>
-    <span class="join">同时</span>
-    <div class="form-item">
-      <label>仓内湿度 < </label>
-          <input type="number" v-model="startCondition.maxMoisture" step="0.1" /> %
-    </div>
-    <!-- <div class="form-item">
-      <label>策略运行模式:</label>
-      <select v-model="startCondition.economyMode">
-        <option value="economy">经济优先 (限谷电/绿电)</option>
-        <option value="performance">时效优先 (全天候触发)</option>
-      </select>
-    </div> -->
-  </div>
+        <!-- 連接標籤 -->
+        <el-tag type="info" effect="plain" class="join-tag">同時</el-tag>
 
-  <span>❄️ 夏季内循环 - 结束条件设置（OR 条件）</span>
-  <div class="condition-box">
+        <!-- 條件 2 -->
+        <div class="form-item-inline">
+          <span class="form-label">倉內濕度 &lt;</span>
+          <el-input-number 
+            v-model="startCondition.maxMoisture" 
+            :step="0.1" 
+            :precision="1"
+            controls-position="right"
+            placeholder="請輸入"
+          />
+          <span class="unit-text">%</span>
+        </div>
+      </div>
+    </el-card>
 
-    <div class="form-item">
-      <label>表层粮温 - 底层平均粮温 < </label>
-          <input type="number" v-model="endCondition.minTotalTempDiff" step="0.1" /> ℃
-    </div>
-    <span class="join">OR</span>
-    <div class="form-item">
-      <label>仓内湿度 > </label>
-      <input type="number" v-model="endCondition.maxMoisture" step="0.1" /> %
-    </div>
-    <span class="join">OR</span>
-    <div class="form-item">
-      <label>底层平均粮温 >= </label>
-      <input type="number" v-model="endCondition.bottomGrainAvgTemp" step="0.1" /> %
-    </div>
+    <!-- 區塊二：夏季內循環 - 結束條件設置（OR 條件） -->
+    <el-card class="condition-card" shadow="hover">
+      <template #header>
+        <div class="card-header">
+          <span class="icon">❄️</span>
+          <span class="title">夏季內循環 - 結束條件設置（OR 條件）</span>
+        </div>
+      </template>
+      
+      <div class="condition-flex-row wrap">
+        <!-- 條件 1 -->
+        <div class="form-item-inline">
+          <span class="form-label">表層糧溫 - 底層糧溫 &lt;</span>
+          <el-input-number 
+            v-model="endCondition.minTotalTempDiff" 
+            :step="0.1" 
+            :precision="1"
+            controls-position="right"
+            placeholder="請輸入"
+          />
+          <span class="unit-text">℃</span>
+        </div>
+
+        <!-- 連接標籤 1 -->
+        <el-tag type="danger" effect="plain" class="join-tag">或是 (OR)</el-tag>
+
+        <!-- 條件 2 -->
+        <div class="form-item-inline">
+          <span class="form-label">倉內濕度 &gt;</span>
+          <el-input-number 
+            v-model="endCondition.maxMoisture" 
+            :step="0.1" 
+            :precision="1"
+            controls-position="right"
+            placeholder="請輸入"
+          />
+          <span class="unit-text">%</span>
+        </div>
+
+        <!-- 連接標籤 2 -->
+        <el-tag type="danger" effect="plain" class="join-tag">或是 (OR)</el-tag>
+
+        <!-- 條件 3 -->
+        <div class="form-item-inline">
+          <span class="form-label">底層平均糧溫 ≥</span>
+          <el-input-number 
+            v-model="endCondition.bottomGrainAvgTemp" 
+            :step="0.1" 
+            :precision="1"
+            controls-position="right"
+            placeholder="請輸入"
+          />
+          <span class="unit-text">℃</span>
+        </div>
+      </div>
+    </el-card>
+
   </div>
 </template>
+
+<style scoped>
+/* 最外層容器 */
+.cooling-settings-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
+
+/* 卡片標題對齊 */
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-header .title {
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--el-text-color-primary);
+}
+
+/* 核心：Flex 行佈局，拋棄網格系統與大框線，改為行內流式排版 */
+.condition-flex-row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+}
+
+/* 當 OR 條件太多時，允許在小螢幕自動換行，保持舒適度 */
+.condition-flex-row.wrap {
+  flex-wrap: wrap;
+}
+
+/* 單個輸入項目的行內排版 */
+.form-item-inline {
+  display: flex;
+  align-items: center;
+}
+
+/* 文字標籤樣式 */
+.form-label {
+  font-size: 14px;
+  color: var(--el-text-color-regular);
+  white-space: nowrap;
+  margin-right: 8px;
+}
+
+/* 單位樣式 */
+.unit-text {
+  font-size: 14px;
+  color: var(--el-text-color-regular);
+  margin-left: 6px;
+}
+
+/* 數字輸入框固定寬度 */
+:deep(.el-input-number) {
+  width: 120px;
+}
+
+/* 同時 / OR 標籤的全新行內樣式，移除背景裝飾線，純文字與標籤點綴 */
+.join-tag {
+  height: 28px;
+  line-height: 26px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+/* 手機板響應式 (RWD) 最佳化 */
+@media (max-width: 992px) {
+  .condition-flex-row {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .form-item-inline {
+    width: 100%; /* 手機板時單個項目撐滿，自動換行 */
+    justify-content: flex-start;
+  }
+  .join-tag {
+    margin: 4px 0;
+  }
+}
+</style>
 
 <script setup>
 import { onMounted, reactive, watch } from 'vue'
@@ -97,7 +247,7 @@ onMounted(() => {
   emit('update:end', endCondition)
 })
 </script>
-
+<!-- 
 <style scoped>
 .condition-box {
   display: flex;
@@ -115,4 +265,4 @@ onMounted(() => {
 .form-item {
   margin-bottom: 12px;
 }
-</style>
+</style> -->

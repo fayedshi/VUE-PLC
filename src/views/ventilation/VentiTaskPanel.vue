@@ -30,13 +30,13 @@
 
   <!-- 3. 设备选择区域 -->
   <div class="section device-section">
-    <el-row :gutter="20" v-if="store.windowList.length > 0">
-      <el-col v-for="item in store.windowList" :key="item.id" :xs="24" :sm="12" :md="8" :lg="3">
+    <el-row :gutter="20" v-if="store.windowTaskList.length > 0">
+      <el-col v-for="item in store.windowTaskList" :key="item.id" :xs="24" :sm="12" :md="8" :lg="3">
         <WindowBox :data="item" @device-select="onDeviceSelect" />
       </el-col>
     </el-row>
-    <el-row :gutter="20" v-if="store.acList.length > 0">
-      <el-col v-for="item in store.acList" :key="item.id" :xs="24" :sm="12" :md="8" :lg="4">
+    <el-row :gutter="20" v-if="store.acTaskList.length > 0">
+      <el-col v-for="item in store.acTaskList" :key="item.id" :xs="24" :sm="12" :md="8" :lg="3">
         <WindowBox :data="item" />
       </el-col>
     </el-row>
@@ -103,16 +103,16 @@
   </div>
 </template>
 
-<script lang="ts" setup>
+<script setup>
 import { ref, computed, reactive, onMounted } from 'vue';
 // import axios from 'axios';
-import HouseSelect from '@/components/HouseSelect.vue'
-import SummerInternalCirculation from '@/components/SummerInternalCirculation.vue';
+import HouseSelect from '../../components/HouseSelect.vue'
+import SummerInternalCirculation from '../../components/SummerInternalCirculation.vue';
 // import ConditionWholeSilo from '@//components/ConditionWholeSilo.vue'
-import ConditionUpperSilo from '@/components/ConditionUpperSilo.vue';
+import ConditionUpperSilo from '../../components/ConditionUpperSilo.vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import WindowBox from '@/components/WindowBox.vue';
-import { useWindowControlStore } from '@/store/WindowControl' // 沿用上一轮回答的 Pinia Store
+import WindowBox from '../../components/WindowBox.vue';
+import { useWindowControlStore } from '../..//store/WindowControl' // 沿用上一轮回答的 Pinia Store
 import http from '../../../api/http';
 
 const store = useWindowControlStore()
@@ -252,12 +252,12 @@ const granConfig = ref({})
 
 // 设备选择响应式数据
 const devices = reactive({
-  windows: [] as number[],
-  dampers: [] as number[],
-  exhaustFans: [] as number[],
-  airConditioners: [] as number[],
+  windows: [],
+  dampers: [],
+  exhaustFans: [],
+  airConditioners: [],
   // 8个风机，用 Record<键, 值> 存储。值可以是 '正' | '反' | null
-  blowers: reactive<Record<number, 1 | 2 | null>>({
+  blowers: reactive({
     1: null, 2: null, 3: null, 4: null, 5: null, 6: null, 7: null, 8: null
   })
 });
@@ -383,7 +383,7 @@ const durationControl = reactive({
 // };
 
 // 风机正反单选框逻辑：点击已选中的则“取消选中”
-const toggleBlower = (index: number, direction: 1 | 2) => {
+const toggleBlower = (index, direction) => {
   if (devices.blowers[index] === direction) {
     devices.blowers[index] = null; // 取消选中
   } else {
@@ -405,13 +405,14 @@ let isStartJobClicked = ref(false)
 let isStopJobClicked = ref(false)
 
 
-const startJob = async (jobType: string) => {
+const startJob = async (jobType) => {
 
   // console.log(selectedHouseCode.value)
 
   let payload = {
     house_code: selectedHouseCode.value,
-    devices: devices,
+    windows: store.selectedWindowTaskList,
+    acs: store.selectedAcList,
     mode_id: selectedMode.value,
     mode_name: modeList.value[selectedMode.value].name,
     duration: durationControl.mins * 60

@@ -1,47 +1,158 @@
 <template>
-  <span>❄️ 降低表层粮温 - 触发条件设置</span>
-  <div class="condition-box">
+  <div class="cooling-settings-container">
 
-    <div class="form-item">
-      <label>表层平均 - 仓外 >= </label>
-      <input type="number" v-model="localStart.minTotalTempDiff" step="0.1" /> ℃
-    </div>
-    <span class="join">同时</span>
-    <div class="form-item">
-      <label>仓内湿度 >= </label>
-      <input type="number" v-model="localStart.maxMoisture" step="0.1" /> %
-    </div>
-    <!-- <div class="form-item">
-      <label>策略运行模式:</label>
-      <select v-model="startCondition.economyMode">
-        <option value="economy">经济优先 (限谷电/绿电)</option>
-        <option value="performance">时效优先 (全天候触发)</option>
-      </select>
-    </div> -->
-  </div>
+    <!-- 區塊一：觸發條件 -->
+    <el-card class="condition-card" shadow="hover">
+      <template #header>
+        <div class="card-header">
+          <span class="icon">❄️</span>
+          <span class="title">降低表層糧溫 - 觸發條件設置</span>
+        </div>
+      </template>
 
+      <!-- 改用 Flex 行佈局，拋棄網格系統與大框線，改為行內流式排版 -->
+      <div class="condition-flex-row">
+        <!-- 條件 1 -->
+        <div class="form-item-inline">
+          <span class="form-label">表層平均 - 倉外 ≥</span>
+          <el-input-number v-model="localStart.minTotalTempDiff" :step="0.1" :precision="1" controls-position="right"
+            placeholder="請輸入" />
+          <span class="unit-text">℃</span>
+        </div>
 
-  <span>❄️ 降低表层粮温 - 结束条件设置</span>
-  <div class="condition-box">
+        <!-- 連接標籤（純文字點綴，移除背景橫線） -->
+        <el-tag type="info" effect="plain" class="join-tag">同時</el-tag>
 
-    <div class="form-item">
-      <label>表层平均 - 仓外 < </label>
-          <input type="number" v-model="localEnd.minTotalTempDiff" step="0.1" /> ℃
-    </div>
-    <span class="join">同时</span>
-    <div class="form-item">
-      <label>仓内湿度 < </label>
-          <input type="number" v-model="localEnd.maxMoisture" step="0.1" /> %
-    </div>
-    <!-- <div class="form-item">
-      <label>策略运行模式:</label>
-      <select v-model="endCondition.economyMode">
-        <option value="economy">经济优先 (限谷电/绿电)</option>
-        <option value="performance">时效优先 (全天候触发)</option>
-      </select>
-    </div> -->
+        <!-- 條件 2 -->
+        <div class="form-item-inline">
+          <span class="form-label">倉內濕度 ≥</span>
+          <el-input-number v-model="localStart.maxMoisture" :step="0.1" :precision="1" controls-position="right"
+            placeholder="請輸入" />
+          <span class="unit-text">%</span>
+        </div>
+      </div>
+    </el-card>
+
+    <!-- 區塊二：結束條件 -->
+    <el-card class="condition-card" shadow="hover">
+      <template #header>
+        <div class="card-header">
+          <span class="icon">❄️</span>
+          <span class="title">降低表層糧溫 - 結束條件設置</span>
+        </div>
+      </template>
+
+      <div class="condition-flex-row">
+        <!-- 條件 1 -->
+        <div class="form-item-inline">
+          <span class="form-label">表層平均 - 倉外 &lt;</span>
+          <el-input-number v-model="localEnd.minTotalTempDiff" :step="0.1" :precision="1" controls-position="right"
+            placeholder="請輸入" />
+          <span class="unit-text">℃</span>
+        </div>
+
+        <!-- 連接標籤 -->
+        <el-tag type="info" effect="plain" class="join-tag">同時</el-tag>
+
+        <!-- 條件 2 -->
+        <div class="form-item-inline">
+          <span class="form-label">倉內濕度 &lt;</span>
+          <el-input-number v-model="localEnd.maxMoisture" :step="0.1" :precision="1" controls-position="right"
+            placeholder="請輸入" />
+          <span class="unit-text">%</span>
+        </div>
+      </div>
+    </el-card>
+
   </div>
 </template>
+
+<style scoped>
+/* 最外層容器 */
+.cooling-settings-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
+
+/* 卡片標題對齊 */
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-header .title {
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--el-text-color-primary);
+}
+
+/* 核心：Flex 行佈局，拋棄網格與框線 */
+.condition-flex-row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+}
+
+/* 單個輸入項目的行內排版 */
+.form-item-inline {
+  display: flex;
+  align-items: center;
+}
+
+/* 文字標籤樣式 */
+.form-label {
+  font-size: 14px;
+  color: var(--el-text-color-regular);
+  white-space: nowrap;
+  margin-right: 8px;
+}
+
+/* 單位樣式（移出 input 內部以符合夏季內循環質感） */
+.unit-text {
+  font-size: 14px;
+  color: var(--el-text-color-regular);
+  margin-left: 6px;
+}
+
+/* 數字輸入框固定寬度 */
+:deep(.el-input-number) {
+  width: 120px;
+}
+
+/* 「同時」標籤改為純粹的行內樣式，移除偽元素橫線 */
+.join-tag {
+  height: 28px;
+  line-height: 26px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+/* 手機板響應式 (RWD) 最佳化 */
+@media (max-width: 768px) {
+  .condition-flex-row {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .form-item-inline {
+    width: 100%;
+    /* 手機板時單個項目撐滿自動換行 */
+    justify-content: flex-start;
+  }
+
+  .join-tag {
+    margin: 4px 0;
+  }
+}
+</style>
+
 
 <script setup>
 import { onMounted, reactive, watch } from 'vue'
@@ -84,7 +195,7 @@ watch(localEnd, (newVal) => {
 
 // 深度监听开启条件，变化时直接赋值给 store 的对应属性
 watch(localStart, (newVal) => {
-  console.log('localstart',newVal)
+  console.log('localstart', newVal)
   store.startCondition = { ...newVal }
 }, { deep: true })
 
@@ -94,13 +205,13 @@ watch(localEnd, (newVal) => {
 }, { deep: true })
 
 
-onMounted(()=>{
+onMounted(() => {
   emit('update:start', localStart)
   emit('update:end', localEnd)
 })
 </script>
 
-<style scoped>
+<!-- <style scoped>
 .condition-box {
   display: flex;
   border: 1px solid #2196f3;
@@ -117,4 +228,4 @@ onMounted(()=>{
 .form-item {
   margin-bottom: 12px;
 }
-</style>
+</style> -->

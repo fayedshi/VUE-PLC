@@ -35,8 +35,8 @@
             </el-col>
         </el-row>
 
-        <el-row :gutter="20" v-if="store.acList.length > 0">
-            <el-col v-for="item in store.acList" :key="item.id" :xs="24" :sm="12" :md="8" :lg="4">
+        <el-row :gutter="20" v-if="store.acStateList.length > 0">
+            <el-col v-for="item in store.acStateList" :key="item.id" :xs="24" :sm="12" :md="8" :lg="4">
                 <WindowCard :data="item" @action="handleDeviceAction" />
             </el-col>
         </el-row>
@@ -47,19 +47,19 @@
 
 <script setup>
 import HouseSelect from '../../components/HouseSelect.vue';
-import { useWindowControlStore } from '../../store/WindowControl.ts' // 沿用上一轮回答的 Pinia Store
+import { AcActionEnum, useWindowControlStore } from '../../store/WindowControl.ts' // 沿用上一轮回答的 Pinia Store
 import WindowCard from '../../components/WindowCard.vue'
 import { onMounted, ref, computed, onBeforeUnmount } from 'vue'
 
 const store = useWindowControlStore()
 const selectedHouseCode = ref('001');
-const controlMode = ref()
+const controlMode = ref(0)
 const nonBlowerWindowList = computed(() => {
-    return store.windowList.filter(window => !window.blower)
+    return store.windowStateList.filter(window => !window.blower)
 })
 
 const blowerWindowList = computed(() => {
-    return store.windowList.filter(window => window.blower)
+    return store.windowStateList.filter(window => window.blower)
 })
 
 const devStatesObj = ref({
@@ -67,7 +67,7 @@ const devStatesObj = ref({
 
 const handleHouseChange = async () => {
     await store.initDeviceConfig(selectedHouseCode.value)
-    console.log('after house change: ',store.windowList)
+    console.log('after house change: ', store.windowStateList)
 }
 
 // 2. 远程 / 本地 切换点击事件
@@ -123,11 +123,11 @@ const initWebSocket = () => {
 };
 
 onMounted(async () => {
-    console.log('selected house',selectedHouseCode.value)
-    try{
-        const result= await store.initDeviceConfig(selectedHouseCode.value)
+    console.log('selected house', selectedHouseCode.value)
+    try {
+        const result = await store.initDeviceConfig(selectedHouseCode.value)
     }
-    catch(err){
+    catch (err) {
         console.log('initDeviceConfig 发生错误')
     }
     initWebSocket()
