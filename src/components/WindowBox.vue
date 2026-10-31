@@ -15,7 +15,8 @@
         </template> -->
         <template #header v-if="'fan' in data">
             <div class="card-header-compact">
-                <span class="title-compact">
+                <!-- <span class="title-compact"> -->
+                <span class="sub-title-compact">
                     <el-icon>
                         <Compass />
                     </el-icon> 窗 #{{ data.index }}
@@ -25,7 +26,7 @@
             </div>
         </template>
         <template v-else #default>
-            <div class="device-row-compact">
+            <div class="device-row-compact" >
                 <span class="sub-title-compact">❄️ 空调 #{{ data.index }}</span>
                 <el-checkbox v-model="isSelected.ac" size="small" @change="handleSelect('ac', 1, 2)" />
             </div>
@@ -151,7 +152,7 @@ const handleSelect = (type, start, stop) => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    width: 100%;
+    width: 112px;
 }
 
 .title-compact {
@@ -168,7 +169,8 @@ const handleSelect = (type, start, stop) => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 2px 0;
+    /* padding: 2px 0; */
+    width: 100px;
 }
 
 .sub-title-compact {
@@ -188,5 +190,14 @@ const handleSelect = (type, start, stop) => {
     display: flex;
     min-width: 40px;
     /* gap: 2px; */
+}
+
+.window-card :deep(.el-card__body) {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    height: 48px;
+    width: 120px;
+    padding: 2px 5px;
 }
 </style>
