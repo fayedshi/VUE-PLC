@@ -14,7 +14,7 @@
             </div>
         </template> -->
         <template #header v-if="'fan' in data">
-            <div class="card-header-compact">
+            <div class="fan-style">
                 <!-- <span class="title-compact"> -->
                 <span class="sub-title-compact">
                     <el-icon>
@@ -26,14 +26,14 @@
             </div>
         </template>
         <template v-else #default>
-            <div class="device-row-compact" >
+            <div class="fan-style">
                 <span class="sub-title-compact">❄️ 空调 #{{ data.index }}</span>
                 <el-checkbox v-model="isSelected.ac" size="small" @change="handleSelect('ac', 1, 2)" />
             </div>
         </template>
 
         <!-- 2. 排风扇控制 -->
-        <div v-if="data.fan" class="device-row-compact">
+        <div v-if="data.fan" class="fan-style">
             <span class="sub-title-compact">💨 排风扇 #{{ data.fan.index }}</span>
             <el-checkbox v-model="isSelected.fan" size="small"
                 @change="handleSelect('fan', FanActionEnum.START, FanActionEnum.STOP)" />
@@ -41,7 +41,7 @@
 
 
         <!-- 3. 风机控制 (保持你原有的结构) -->
-        <div v-else-if="data.blower" class="device-row-compact">
+        <div v-else-if="data.blower" class="fan-style">
             <span class="sub-title-compact">🌀 风机 #{{ data.blower.index }}</span>
             <el-radio-group v-model="blowerValue" size="small" class="radio-group-compact">
                 <el-radio :value="1" @click.prevent="handleRadioClick(1)">正</el-radio>
@@ -143,8 +143,10 @@ const handleSelect = (type, start, stop) => {
 
 /* 💡 優化 3：利用 Element Plus 的深度選擇器，把 el-card__header 的大間距徹底壓小 */
 :deep(.el-card__header) {
-    padding: 6px 8px !important;
+    /* padding: 6px 8px !important; */
+    padding: 0px 0px;
     border-bottom: 1px solid #e4e7ed;
+    width: 100%;
 }
 
 /* 窗戶 Header 排版 */
@@ -165,12 +167,12 @@ const handleSelect = (type, start, stop) => {
 }
 
 /* 子設備排版：徹底移除肥厚的 margin 和分隔線，改成緊湊的左右並排 */
-.device-row-compact {
+
+.fan-style {
     display: flex;
-    justify-content: space-between;
+    justify-content: space-around;
     align-items: center;
-    /* padding: 2px 0; */
-    width: 100px;
+    width: 100%;
 }
 
 .sub-title-compact {
@@ -186,18 +188,19 @@ const handleSelect = (type, start, stop) => {
 }
 
 .radio-group-compact {
-    margin-left: 10px;
-    display: flex;
-    min-width: 40px;
+    width: 38px;
+    /* display: flex; */
+    /* min-width: 40px; */
+    /* margin-left: 10px; */
     /* gap: 2px; */
 }
 
 .window-card :deep(.el-card__body) {
     display: flex;
     align-items: center;
-    justify-content: flex-start;
+    /* justify-content: flex-start; */
     height: 48px;
-    width: 120px;
-    padding: 2px 5px;
+    /* width: 120px; */
+    padding: 0px 0px;
 }
 </style>

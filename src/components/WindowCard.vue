@@ -117,7 +117,7 @@ const formatStatus = (type, status) => {
         blower: { 0: '初始化', 1: '正转', 2: '反转', 3: '停', 6: '故障' },
         ac: { 0: '停止', 1: '运行' }
     }
-    let statusVal = map[type]?.[status] || status
+    let statusVal = map[type]?.[status] || '未知'
     // console.log('status val:', statusVal)
     return statusVal
 }

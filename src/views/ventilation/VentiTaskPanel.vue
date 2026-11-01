@@ -550,7 +550,7 @@ const handleStopJob = async () => {
 
 .native-select {
   padding: 8px 12px;
-  width: 200px;
+  width: 140px;
   border: 1px solid #cbd5e1;
   border-radius: 4px;
   font-size: 14px;
