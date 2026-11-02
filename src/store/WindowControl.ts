@@ -269,7 +269,7 @@ export const useWindowControlStore = defineStore('windowControl', () => {
                 // if (winState.child instanceof FanState) {
                 winState.fan.status = devStatesObj.fans[winState.fan.index - 1]
             } else if (winState.blower) {
-                winState.blower.status = devStatesObj.blower[winState.blower.index - 1]
+                winState.blower.status = devStatesObj.blowers[winState.blower.index - 1]
             }
         })
 

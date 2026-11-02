@@ -30,6 +30,8 @@
 
   <!-- 3. 设备选择区域 -->
   <div class="section device-section">
+    <span class="title">设备选择区域</span>
+
     <el-row :gutter="20" v-if="store.windowTaskList.length > 0">
       <el-col v-for="item in store.windowTaskList" :key="item.id" :xs="24" :sm="12" :md="8" :lg="3">
         <WindowBox :data="item" @device-select="onDeviceSelect" />
@@ -66,7 +68,7 @@
     </div>
   </div>
   <!--当前运行中的作业  -->
-  <span>运行中的作业：
+  <span class="title">运行中的作业：
     <span v-if=!activeJob?.id>无</span></span>
   <div v-if="activeJob?.id" class="table-wrapper">
     <table class="native-table">
@@ -76,6 +78,7 @@
           <th>模式</th>
           <th>仓房名称</th>
           <th>作业状态</th>
+          <th>设备列表</th>
           <!-- <th>异常详情</th> -->
           <th>开启时间</th>
           <th>更新时间</th>
@@ -87,6 +90,7 @@
           <td>{{ activeJob?.mode_name ? activeJob?.mode_name : '无' }}</td>
           <td>{{ activeJob?.house_code }}</td>
           <td>{{ activeJob?.status_text }}</td>
+          <td>{{ activeJob?.devices }}</td>
           <td>{{ activeJob?.create_time }}</td>
           <td>{{ activeJob?.update_time }}</td>
         </tr>
@@ -223,11 +227,11 @@ onMounted(async () => {
 const fetchRunningJobs = (async (houseCode) => {
   try {
     //todo: device address hardcoded, will modify later
-    let jobs = await http.get(`/api/venti/jobs/${houseCode}`);
-    if (jobs) {
-      activeJob.value = jobs.data[0]
+    let result = await http.get(`/api/venti/jobs/${houseCode}`);
+    if (result) {
+      activeJob.value = result.data
     }
-    console.log('in fetchRunningJobs jobs,', jobs.data)
+    console.log('in fetchRunningJobs jobs,', result.data)
     // console.log('result ', result)
   } catch (err) {
     // alert('操作失败，请检查PLC连接');
@@ -411,12 +415,18 @@ const startJob = async (jobType) => {
 
   let payload = {
     house_code: selectedHouseCode.value,
-    windows: store.selectedWindowTaskList,
-    acs: store.selectedAcList,
+    devices: store.selectedWindowTaskList.concat(store.selectedAcList),
+    // acs: store.selectedAcList,
     mode_id: selectedMode.value,
     mode_name: modeList.value[selectedMode.value].name,
     duration: durationControl.mins * 60
   }
+  console.log('selectedWindowTaskList: ', store.selectedWindowTaskList)
+  if (store.selectedWindowTaskList.length == 0 && store.selectedAcList.length == 0) {
+    ElMessage.warning('未选择任何设备')
+    return
+  }
+
   let apiUrl = null
   if (jobType == 'adhoc') {
     if (selectedMode.value > 0) {
@@ -458,10 +468,13 @@ const startJob = async (jobType) => {
       }, 1000);
     }
     console.log('job started')
-    console.log('result ', result)
+    // console.log('result ', result)
     alert(result.data.message)
   } catch (err) {
     // alert('操作失败，请检查 PLC 连接');
+  } finally {
+    // init all selected devices after job
+    store.initDeviceConfig(selectedHouseCode.value)
   }
 }
 
@@ -477,11 +490,11 @@ const handleStopJob = async () => {
       //todo: device address hardcoded, will modify later
       const result = await http.post("/api/venti/job/stop", {
         house_code: selectedHouseCode.value,
-        devices: devices,
+        // devices: store.selectedWindowTaskList.concat(store.selectedAcList)
       });
-      console.log('clicked stoped job')
+      console.log('clicked stoped  job')
       alert(result.data.message)
-      await fetchRunningJobs(selectedHouseCode.value)
+      // await fetchRunningJobs(selectedHouseCode.value)
     } catch (err) {
       alert('操作失败，err: ' + err);
     } finally {
@@ -507,7 +520,7 @@ const handleStopJob = async () => {
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
-.panel-title {
+/* .panel-title {
   margin-top: 0;
   margin-bottom: 24px;
   font-size: 22px;
@@ -515,7 +528,7 @@ const handleStopJob = async () => {
   text-align: center;
   border-bottom: 2px solid #e2e8f0;
   padding-bottom: 12px;
-}
+} */
 
 /* 模块通用样式 */
 .section {
@@ -525,6 +538,22 @@ const handleStopJob = async () => {
   padding: 16px;
   margin-bottom: 20px;
 }
+
+.device-section .title {
+  display: inline-block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #606266;
+  /* Element Plus 次要文字颜色 */
+  background-color: #f4f4f5;
+  /* 淡淡的灰色背景 */
+  padding: 4px 12px;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  border-left: 3px solid #909399;
+  /* 灰色左边框 */
+}
+
 
 .section-title {
   font-size: 15px;

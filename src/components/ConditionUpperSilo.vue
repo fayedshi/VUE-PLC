@@ -6,63 +6,64 @@
       <template #header>
         <div class="card-header">
           <span class="icon">❄️</span>
-          <span class="title">降低表層糧溫 - 觸發條件設置</span>
+          <span class="title">降低表层粮温 - 触发条件设置</span>
         </div>
       </template>
 
-      <!-- 改用 Flex 行佈局，拋棄網格系統與大框線，改為行內流式排版 -->
+      <!-- 改用 Flex 行布局，抛弃网格系统与大框线，改为行内流式排版 -->
       <div class="condition-flex-row">
-        <!-- 條件 1 -->
+        <!-- 条件 1 -->
         <div class="form-item-inline">
-          <span class="form-label">表層平均 - 倉外 ≥</span>
+          <span class="form-label">表层平均 - 仓外 ≥</span>
           <el-input-number v-model="localStart.minTotalTempDiff" :step="0.1" :precision="1" controls-position="right"
-            placeholder="請輸入" />
+            placeholder="请输入" />
           <span class="unit-text">℃</span>
         </div>
 
-        <!-- 連接標籤（純文字點綴，移除背景橫線） -->
-        <el-tag type="info" effect="plain" class="join-tag">同時</el-tag>
+        <!-- 连接标签（纯文字点缀，移除背景横线） -->
+        <el-tag type="info" effect="plain" class="join-tag">同时</el-tag>
 
-        <!-- 條件 2 -->
+        <!-- 条件 2 -->
         <div class="form-item-inline">
-          <span class="form-label">倉內濕度 ≥</span>
+          <span class="form-label">仓内湿度 ≥</span>
           <el-input-number v-model="localStart.maxMoisture" :step="0.1" :precision="1" controls-position="right"
-            placeholder="請輸入" />
+            placeholder="请输入" />
           <span class="unit-text">%</span>
         </div>
       </div>
     </el-card>
 
-    <!-- 區塊二：結束條件 -->
+    <!-- 区块二：结束条件 -->
     <el-card class="condition-card" shadow="hover">
       <template #header>
         <div class="card-header">
           <span class="icon">❄️</span>
-          <span class="title">降低表層糧溫 - 結束條件設置</span>
+          <span class="title">降低表层粮温 - 结束条件设置</span>
         </div>
       </template>
 
       <div class="condition-flex-row">
-        <!-- 條件 1 -->
+        <!-- 条件 1 -->
         <div class="form-item-inline">
-          <span class="form-label">表層平均 - 倉外 &lt;</span>
+          <span class="form-label">表层平均 - 仓外 &lt;</span>
           <el-input-number v-model="localEnd.minTotalTempDiff" :step="0.1" :precision="1" controls-position="right"
-            placeholder="請輸入" />
+            placeholder="请输入" />
           <span class="unit-text">℃</span>
         </div>
 
-        <!-- 連接標籤 -->
-        <el-tag type="info" effect="plain" class="join-tag">同時</el-tag>
+        <!-- 连接标签 -->
+        <el-tag type="info" effect="plain" class="join-tag">同时</el-tag>
 
-        <!-- 條件 2 -->
+        <!-- 条件 2 -->
         <div class="form-item-inline">
-          <span class="form-label">倉內濕度 &lt;</span>
+          <span class="form-label">仓内湿度 &lt;</span>
           <el-input-number v-model="localEnd.maxMoisture" :step="0.1" :precision="1" controls-position="right"
-            placeholder="請輸入" />
+            placeholder="请输入" />
           <span class="unit-text">%</span>
         </div>
       </div>
     </el-card>
+
 
   </div>
 </template>

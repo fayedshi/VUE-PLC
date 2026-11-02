@@ -1,99 +1,74 @@
 <template>
   <div class="cooling-settings-container">
-    
-    <!-- 區塊一：夏季內循環 - 觸發條件設置（AND 條件） -->
+
+    <!-- 区块一：夏季内循环 - 触发条件设置（AND 条件） -->
     <el-card class="condition-card" shadow="hover">
       <template #header>
         <div class="card-header">
           <span class="icon">❄️</span>
-          <span class="title">夏季內循環 - 觸發條件設置（AND 條件）</span>
+          <span class="title">夏季内循环 - 触发条件设置（AND 条件）</span>
         </div>
       </template>
-      
+
       <div class="condition-flex-row">
-        <!-- 條件 1 -->
+        <!-- 条件 1 -->
         <div class="form-item-inline">
-          <span class="form-label">表層糧溫 - 底層平均糧溫 ≥</span>
-          <el-input-number 
-            v-model="startCondition.minTotalTempDiff" 
-            :step="0.1" 
-            :precision="1"
-            controls-position="right"
-            placeholder="請輸入"
-          />
+          <span class="form-label">表层粮温 - 底层平均粮温 ≥</span>
+          <el-input-number v-model="startCondition.minTotalTempDiff" :step="0.1" :precision="1"
+            controls-position="right" placeholder="请输入" />
           <span class="unit-text">℃</span>
         </div>
 
-        <!-- 連接標籤 -->
-        <el-tag type="info" effect="plain" class="join-tag">同時</el-tag>
+        <!-- 连接标签 -->
+        <el-tag type="info" effect="plain" class="join-tag">同时</el-tag>
 
-        <!-- 條件 2 -->
+        <!-- 条件 2 -->
         <div class="form-item-inline">
-          <span class="form-label">倉內濕度 &lt;</span>
-          <el-input-number 
-            v-model="startCondition.maxMoisture" 
-            :step="0.1" 
-            :precision="1"
-            controls-position="right"
-            placeholder="請輸入"
-          />
+          <span class="form-label">仓内湿度 &lt;</span>
+          <el-input-number v-model="startCondition.maxMoisture" :step="0.1" :precision="1" controls-position="right"
+            placeholder="请输入" />
           <span class="unit-text">%</span>
         </div>
       </div>
     </el-card>
 
-    <!-- 區塊二：夏季內循環 - 結束條件設置（OR 條件） -->
+    <!-- 区块二：夏季内循环 - 结束条件设置（OR 条件） -->
     <el-card class="condition-card" shadow="hover">
       <template #header>
         <div class="card-header">
           <span class="icon">❄️</span>
-          <span class="title">夏季內循環 - 結束條件設置（OR 條件）</span>
+          <span class="title">夏季内循环 - 结束条件设置（OR 条件）</span>
         </div>
       </template>
-      
+
       <div class="condition-flex-row wrap">
-        <!-- 條件 1 -->
+        <!-- 条件 1 -->
         <div class="form-item-inline">
-          <span class="form-label">表層糧溫 - 底層糧溫 &lt;</span>
-          <el-input-number 
-            v-model="endCondition.minTotalTempDiff" 
-            :step="0.1" 
-            :precision="1"
-            controls-position="right"
-            placeholder="請輸入"
-          />
+          <span class="form-label">表层粮温 - 底层粮温 &lt;</span>
+          <el-input-number v-model="endCondition.minTotalTempDiff" :step="0.1" :precision="1" controls-position="right"
+            placeholder="请输入" />
           <span class="unit-text">℃</span>
         </div>
 
-        <!-- 連接標籤 1 -->
+        <!-- 连接标签 1 -->
         <el-tag type="danger" effect="plain" class="join-tag">或是 (OR)</el-tag>
 
-        <!-- 條件 2 -->
+        <!-- 条件 2 -->
         <div class="form-item-inline">
-          <span class="form-label">倉內濕度 &gt;</span>
-          <el-input-number 
-            v-model="endCondition.maxMoisture" 
-            :step="0.1" 
-            :precision="1"
-            controls-position="right"
-            placeholder="請輸入"
-          />
+          <span class="form-label">仓内湿度 &gt;</span>
+          <el-input-number v-model="endCondition.maxMoisture" :step="0.1" :precision="1" controls-position="right"
+            placeholder="请输入" />
           <span class="unit-text">%</span>
         </div>
 
-        <!-- 連接標籤 2 -->
+        <!-- 连接标签 2 -->
         <el-tag type="danger" effect="plain" class="join-tag">或是 (OR)</el-tag>
 
-        <!-- 條件 3 -->
+        <!-- 条件 3 -->
         <div class="form-item-inline">
-          <span class="form-label">底層平均糧溫 ≥</span>
-          <el-input-number 
-            v-model="endCondition.bottomGrainAvgTemp" 
-            :step="0.1" 
-            :precision="1"
-            controls-position="right"
-            placeholder="請輸入"
-          />
+          <span class="form-label">底层平均粮温 ≥</span>
+          <el-input-number v-model="endCondition.bottomGrainAvgTemp" :step="0.1" :precision="1"
+            controls-position="right" placeholder="请输入" />
           <span class="unit-text">℃</span>
         </div>
       </div>
@@ -180,10 +155,13 @@
     flex-wrap: wrap;
     gap: 12px;
   }
+
   .form-item-inline {
-    width: 100%; /* 手機板時單個項目撐滿，自動換行 */
+    width: 100%;
+    /* 手機板時單個項目撐滿，自動換行 */
     justify-content: flex-start;
   }
+
   .join-tag {
     margin: 4px 0;
   }

@@ -18,7 +18,7 @@
                 <!-- <span class="title-compact"> -->
                 <span class="sub-title-compact">
                     <el-icon>
-                        <Compass />
+                        <!-- <Compass /> -->
                     </el-icon> 窗 #{{ data.index }}
                 </span>
                 <el-checkbox v-model="isSelected.window" size="small"
@@ -132,7 +132,7 @@ const handleSelect = (type, start, stop) => {
 <style scoped>
 /* 💡 優化 2：寬度稍微縮小，高度改為自適應(min-height)，避免內容塞不下 */
 .window-card {
-    width: 140px;
+    width: 180px;
     min-height: 45px;
     margin-bottom: 8px;
     background-color: aliceblue;
@@ -199,7 +199,7 @@ const handleSelect = (type, start, stop) => {
     display: flex;
     align-items: center;
     /* justify-content: flex-start; */
-    height: 48px;
+    height: 60px;
     /* width: 120px; */
     padding: 0px 0px;
 }
