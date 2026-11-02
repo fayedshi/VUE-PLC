@@ -111,7 +111,7 @@ const handleSelect = (type, start, stop) => {
         // }
 
     }
-    console.log('after check', props.data)
+    // console.log('after check', props.data)
     // objectassign
     // emit('device-select', {
     //     window: props.data, // 父卡片ID
@@ -132,7 +132,7 @@ const handleSelect = (type, start, stop) => {
 <style scoped>
 /* 💡 優化 2：寬度稍微縮小，高度改為自適應(min-height)，避免內容塞不下 */
 .window-card {
-    width: 180px;
+    width: 100%;
     min-height: 45px;
     margin-bottom: 8px;
     background-color: aliceblue;

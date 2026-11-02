@@ -32,12 +32,12 @@
   <div class="section device-section">
     <span class="title">设备选择区域</span>
 
-    <el-row :gutter="20" v-if="store.windowTaskList.length > 0">
+    <el-row :gutter="20" v-if="selectedHouseCode && store.windowTaskList.length > 0">
       <el-col v-for="item in store.windowTaskList" :key="item.id" :xs="24" :sm="12" :md="8" :lg="3">
         <WindowBox :data="item" @device-select="onDeviceSelect" />
       </el-col>
     </el-row>
-    <el-row :gutter="20" v-if="store.acTaskList.length > 0">
+    <el-row :gutter="20" v-if="selectedHouseCode && store.acTaskList.length > 0">
       <el-col v-for="item in store.acTaskList" :key="item.id" :xs="24" :sm="12" :md="8" :lg="3">
         <WindowBox :data="item" />
       </el-col>
@@ -203,7 +203,7 @@ onMounted(async () => {
   // metricText.value = metricSelRef.value.selectedOptions[0].text
 
   // await fetchRunningJobs(houseCode)
-  console.log('onMounted active job:', activeJob.value)
+  console.log('onMounted selectedHouseCode.value:', selectedHouseCode.value)
   if (!selectedHouseCode.value) {
     return
   }
@@ -248,9 +248,6 @@ const modeList = ref([
   // { id: 2, name: '🔥 仓顶排积热通风' },
   // { id: 3, name: '❄️ 降低整仓粮温通风' }
 ]);
-
-// const houseCodeList = ref([])
-
 const selectedHouseCode = ref('');
 const granConfig = ref({})
 
@@ -406,7 +403,7 @@ const validateDuration = () => {
 };
 
 let isStartJobClicked = ref(false)
-let isStopJobClicked = ref(false)
+let isSttopJobClicked = ref(false)
 
 
 const startJob = async (jobType) => {
@@ -425,6 +422,9 @@ const startJob = async (jobType) => {
   if (store.selectedWindowTaskList.length == 0 && store.selectedAcList.length == 0) {
     ElMessage.warning('未选择任何设备')
     return
+  }
+  if(!selectedHouseCode.value){
+    ElMessage.error('未选择仓房')
   }
 
   let apiUrl = null
@@ -467,14 +467,14 @@ const startJob = async (jobType) => {
         console.log('handleAdhocJob active job,', activeJob.value)
       }, 1000);
     }
-    console.log('job started')
+    // console.log('job started')
     // console.log('result ', result)
     alert(result.data.message)
   } catch (err) {
     // alert('操作失败，请检查 PLC 连接');
   } finally {
     // init all selected devices after job
-    store.initDeviceConfig(selectedHouseCode.value)
+    // store.initDeviceConfig(selectedHouseCode.value)
   }
 }
 

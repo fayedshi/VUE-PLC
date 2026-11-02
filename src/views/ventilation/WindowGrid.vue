@@ -47,13 +47,13 @@
 
 <script setup>
 import HouseSelect from '../../components/HouseSelect.vue';
-import { AcActionEnum, useWindowControlStore } from '../../store/WindowControl.ts' // 沿用上一轮回答的 Pinia Store
+import { useWindowControlStore } from '../../store/WindowControl.ts' // 沿用上一轮回答的 Pinia Store
 import WindowCard from '../../components/WindowCard.vue'
 import { onMounted, ref, computed, onBeforeUnmount } from 'vue'
 
 const store = useWindowControlStore()
-const selectedHouseCode = ref('001');
-const controlMode = ref(0)
+const selectedHouseCode = ref('');
+const controlMode = ref('')
 const nonBlowerWindowList = computed(() => {
     return store.windowStateList.filter(window => !window.blower)
 })
@@ -80,8 +80,6 @@ const switchMode = async (type, id, action) => {
 
     } catch (err) {
         alert('操作失败，请检查 PLC 连接');
-    } finally {
-        console.log('finished mode switch')
     }
 }
 
