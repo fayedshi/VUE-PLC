@@ -2,7 +2,7 @@
     <div class="house-select-container">
         <label class="section-label">选择仓房：</label>
 
-        <el-select clearable v-model="modelValue" placeholder="请选择"  style="width: 100px" @change="handleHouseChange">
+        <el-select clearable v-model="modelValue" placeholder="请选择" style="width: 100px" @change="handleHouseChange">
             <!-- 循环渲染 el-option -->
             <el-option v-for="houseCode in houseCodeList" :key="houseCode" :label="houseCode" :value="houseCode" />
         </el-select>
@@ -13,6 +13,7 @@
 <script setup>
 import { ref, onMounted, computed, } from 'vue'
 import axios from 'axios'
+import http from '../../api/http';
 
 // 1. 声明 v-model，父组件传入的值会绑定到 modelValue，默认值为 '001'
 const modelValue = defineModel({ type: [String, null], default: '' })
@@ -32,9 +33,13 @@ const houseCodeList = ref([])
 
 onMounted(async () => {
     try {
-        const result = await axios.get('http-api/api/houses/codes')
-        houseCodeList.value = result.data
-        console.log(' house cod list', houseCodeList.value)
+        const result = await http.get('/api/houses/codes')
+        if (result.data) {
+            houseCodeList.value = result.data
+            // console.log(' house cod list', houseCodeList.value)
+            modelValue.value = houseCodeList.value[0]
+            handleHouseChange()
+        }
     } catch (error) {
         console.error('获取仓房列表失败:', error)
     }

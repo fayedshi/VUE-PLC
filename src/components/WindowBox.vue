@@ -79,7 +79,7 @@ const handleRadioClick = (value) => {
         // props.data.blower.start = value
         // props.data.blower.stop = BlowerActionEnum.STOP
     }
-    handleSelect('blower', value, BlowerActionEnum.STOP)
+    handleSelect('blower', blowerValue.value, BlowerActionEnum.STOP)
     console.log('entered raido val,', blowerValue.value)
 }
 
@@ -94,11 +94,12 @@ const isSelected = ref({
 const handleSelect = (type, start, stop) => {
     if (type == 'window' || type == 'ac') {
         props.data.selected = !props.data.selected
-        props.data.start = start
-        props.data.stop = stop
+        // props.data.start = start
+        // props.data.stop = stop
     } else {
         if (type == 'blower') {
             props.data[type].selected = (start != null)
+            console.log('stat val: ', start, ' props.data[type].selected:', props.data[type].selected)
         } else {
             props.data[type].selected = !props.data[type].selected
         }
@@ -107,7 +108,7 @@ const handleSelect = (type, start, stop) => {
         // update parent as selected
         // if (props.data[type].selected) {
         //     props.data.selected = true
-        //     isSelected.value.window = true
+        //     isSelected.value.type = true
         // }
 
     }

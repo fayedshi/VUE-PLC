@@ -68,10 +68,14 @@
     </div>
   </div>
   <!--当前运行中的作业  -->
-  <span class="title">运行中的作业：
-    <span v-if=!activeJob?.id>无</span></span>
-  <div v-if="activeJob?.id" class="table-wrapper">
-    <table class="native-table">
+  <div class="section device-section">
+    <span class="title">运行中的作业：{{ activeJob?.id ? '' : '无' }}</span>
+    <!-- </div> -->
+
+    <!-- <span class="title">运行中的作业：
+    <span v-if=!activeJob?.id>无</span></span> -->
+    <!-- <div v-if="activeJob?.id" class="table-wrapper"> -->
+    <table v-if="activeJob?.id" class="native-table">
       <thead>
         <tr>
           <th>作业ID</th>
@@ -226,17 +230,16 @@ onMounted(async () => {
 
 const fetchRunningJobs = (async (houseCode) => {
   try {
-    //todo: device address hardcoded, will modify later
     let result = await http.get(`/api/venti/jobs/${houseCode}`);
     if (result) {
       activeJob.value = result.data
     }
-    console.log('in fetchRunningJobs jobs,', result.data)
+    console.log('fetched jobs,', result.data)
     // console.log('result ', result)
   } catch (err) {
     // alert('操作失败，请检查PLC连接');
   } finally {
-    console.log('jobs fetched')
+    // console.log('jobs fetched')
   }
 })
 
@@ -417,13 +420,14 @@ const startJob = async (jobType) => {
     mode_id: selectedMode.value,
     mode_name: modeList.value[selectedMode.value].name,
     duration: durationControl.mins * 60
+    // duration: durationControl.mins
   }
   console.log('selectedWindowTaskList: ', store.selectedWindowTaskList)
   if (store.selectedWindowTaskList.length == 0 && store.selectedAcList.length == 0) {
     ElMessage.warning('未选择任何设备')
     return
   }
-  if(!selectedHouseCode.value){
+  if (!selectedHouseCode.value) {
     ElMessage.error('未选择仓房')
   }
 
@@ -463,13 +467,13 @@ const startJob = async (jobType) => {
     if (result.data.status != 'busy') {
       setTimeout(async () => {
         // console.log("这行会在 3 秒后才打印");
-        await fetchRunningJobs('001')
+        await fetchRunningJobs(selectedHouseCode.value)
         console.log('handleAdhocJob active job,', activeJob.value)
       }, 1000);
     }
     // console.log('job started')
     // console.log('result ', result)
-    alert(result.data.message)
+    // alert(result.data.message)
   } catch (err) {
     // alert('操作失败，请检查 PLC 连接');
   } finally {

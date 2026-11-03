@@ -68,6 +68,7 @@ const devStatesObj = ref({
 const handleHouseChange = async () => {
     await store.initDeviceConfig(selectedHouseCode.value)
     console.log('after house change: ', store.windowStateList)
+    initWebSocket()
 }
 
 // 2. 远程 / 本地 切换点击事件
@@ -121,14 +122,17 @@ const initWebSocket = () => {
 };
 
 onMounted(async () => {
-    console.log('selected house', selectedHouseCode.value)
-    try {
-        const result = await store.initDeviceConfig(selectedHouseCode.value)
-    }
-    catch (err) {
-        console.log('initDeviceConfig 发生错误')
-    }
-    initWebSocket()
+    // @change这里加载了子组件中返回的housecode,所以让子组件先执行
+    // console.log('selected house', selectedHouseCode.value)
+    // try {
+
+    //     const result = await store.initDeviceConfig(selectedHouseCode.value)
+
+    // }
+    // catch (err) {
+    //     console.log('initDeviceConfig 发生错误')
+    // }
+    // initWebSocket()
 })
 // 拦截子组件动作并调用 Store
 const handleDeviceAction = async ({ type, id, action }) => {

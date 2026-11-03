@@ -61,6 +61,8 @@ abstract class DeviceTask extends DeviceState {
 }
 
 class WindowTask extends DeviceTask {
+    start = WindowActionEnum.OPEN;
+    stop = WindowActionEnum.CLOSE
     fan: FanTask | null = null
     blower: BlowerTask | null = null
 }
@@ -72,6 +74,8 @@ class BlowerTask extends DeviceTask {
 }
 
 class AcTask extends DeviceTask {
+    start = AcActionEnum.START
+    stop = AcActionEnum.STOP
 }
 
 const fanMap = ref<Map<number, number>>(new Map())
@@ -107,7 +111,7 @@ export const useWindowControlStore = defineStore('windowControl', () => {
             //     fanMap.value = fMap
             // }
             fanMap.value = getDataMap('fanWindow')
-            console.log('fanMap', fanMap.value)
+            // console.log('fanMap', fanMap.value)
 
             // const bMap = new Map<number, number>()
             // for (let winId = config.blowerWindow.src_start; winId <= config.blowerWindow.src_end; winId++) {
@@ -208,12 +212,12 @@ export const useWindowControlStore = defineStore('windowControl', () => {
         const idMap = new Map<number, number>()
         let subConfig = config?.[key]
         if (subConfig.src) {
-            console.log('in src')
+            // console.log('in src')
             subConfig.src.forEach((winId: number, index: number) => {
                 idMap.set(winId, subConfig.target_start + index)
             })
         } else if (subConfig.src_start) {
-            console.log('to src_start')
+            // console.log('to src_start')
             for (let winId = subConfig.src_start; winId <= subConfig.src_end; winId++) {
                 const index = winId - subConfig.src_start
                 idMap.set(winId, subConfig.target_start + index)
@@ -338,9 +342,7 @@ export const useWindowControlStore = defineStore('windowControl', () => {
             // console.log('result ', result)
         } catch (err) {
             // alert('操作失败: '+err);
-        } finally {
-            console.log('finished')
-        }
+        } 
     }
 
     return {
