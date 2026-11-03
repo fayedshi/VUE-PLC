@@ -8,12 +8,17 @@
                         <Compass />
                     </el-icon>窗 #{{ data.index }}
                 </span>
-                <!-- <el-tag :type="getWindowTagType(data.status)" effect="dark">
-                    {{ formatStatus('window', data.status) }}
-                </el-tag> -->
-                <el-tag :type="data.status === 1 ? 'success' : 'info'" size="small" effect="dark">
+                <el-tag :class="['status-badge', `status-${data.status}`]" size="small">
                     {{ formatStatus('window', data.status) }}
                 </el-tag>
+
+                <!-- <el-tag :type="data.status === 1 ? 'success' : 'info'" size="small" effect="dark">
+                    {{ formatStatus('window', data.status) }}
+                </el-tag> -->
+                <!-- <span :class="['status-badge', `status-${data.status}`]">
+                    {{ formatStatus('window', data.status) }}
+                </span> -->
+
             </div>
         </template>
         <!-- <template v-else #header>
@@ -56,7 +61,8 @@
         <div v-if="data.fan" class="sub-device-section fan-section">
             <div class="sub-header">
                 <span class="sub-title">💨 排风扇 #{{ data.fan.index }}</span>
-                <el-tag :type="data.fan.status === 1 ? 'success' : 'info'" size="small">
+                <!-- <el-tag :type="data.fan.status === 1 ? 'success' : 'info'" size="small"> -->
+                <el-tag :class="['status-badge', `status-${data.fan.status}`]" size="small">
                     {{ formatStatus('fan', data.fan.status) }}
                 </el-tag>
             </div>
@@ -73,9 +79,13 @@
         <div v-else-if="data.blower" class="sub-device-section blower-section">
             <div class="sub-header">
                 <span class="sub-title">🌀 风机 #{{ data.blower.index }}</span>
-                <el-tag :type="getBlowerTagType(data.blower.status)" size="small">
+                <!-- <el-tag :type="getBlowerTagType(data.blower.status)" size="small"> -->
+                <el-tag :class="['status-badge', `status-${data.blower.status}`]" size="small">
                     {{ formatStatus('blower', data.blower.status) }}
                 </el-tag>
+                <!-- <span :class="['status-badge', `status-${data.blower.status}`]">
+                    {{ formatStatus('blower', data.blower.status) }}
+                </span> -->
             </div>
 
             <el-button-group size="small">
@@ -205,5 +215,57 @@ const getBlowerTagType = (status) => {
     font-size: 14px;
     font-weight: 500;
     color: #303133;
+}
+
+.status-badge {
+    font-size: 11px;
+    padding: 1px 4px;
+    border-radius: 3px;
+    background: #f4f4f5;
+    color: #909399;
+    border: none !important;
+    /* 强制文字颜色为白色 */
+    color: #fff !important;
+    /* 核心：强制覆盖 el-tag 的默认圆角为 3px */
+    border-radius: 3px !important;
+
+}
+
+
+
+
+.status-0 {
+    background: #cfc8c3;
+}
+
+/*  开启 */
+.status-1 {
+    background: #67c23a;
+}
+
+/* 关闭 */
+.status-2 {
+    background: #c58282;
+}
+
+/*  停止*/
+.status-3 {
+    background: #e6a23c;
+    animation: pulse 1s infinite;
+}
+
+/*  开到位*/
+.status-4 {
+    background: #37b972;
+}
+
+/*  关到位*/
+.status-5 {
+    background: #4e4848;
+}
+
+/*  窗故障*/
+.status-6 {
+    background: #d4b710;
 }
 </style>
