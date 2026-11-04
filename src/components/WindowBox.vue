@@ -15,8 +15,8 @@
         </template> -->
         <template #header v-if="'fan' in data">
             <div class="fan-style">
-                <!-- <span class="title-compact"> -->
-                <span class="sub-title-compact">
+                <span class="title-compact">
+                <!-- <span class="sub-title-compact"> -->
                     <el-icon>
                         <!-- <Compass /> -->
                     </el-icon> 窗 #{{ data.index }}

@@ -220,14 +220,14 @@ const getBlowerTagType = (status) => {
 .status-badge {
     font-size: 11px;
     padding: 1px 4px;
-    border-radius: 3px;
+    /* border-radius: 3px; */
     background: #f4f4f5;
     color: #909399;
     border: none !important;
     /* 强制文字颜色为白色 */
     color: #fff !important;
     /* 核心：强制覆盖 el-tag 的默认圆角为 3px */
-    border-radius: 3px !important;
+    border-radius: 10px !important;
 
 }
 

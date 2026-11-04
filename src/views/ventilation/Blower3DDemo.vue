@@ -7,6 +7,12 @@
       <el-button type="danger" :icon="SwitchButton" @click="controlWindow('close')">关闭</el-button>
       <el-button type="warning" :icon="VideoPause" @click="controlWindow('stop')">停止</el-button>
     </div>
+
+    <div class="control-btn-group alignment-center">
+      <el-button type="success" :icon="VideoPlay" @click="handleBlowerChange(1)">开启</el-button>
+      <el-button type="danger" :icon="SwitchButton" @click="handleBlowerChange('close')">关闭</el-button>
+      <el-button type="warning" :icon="VideoPause" @click="handleBlowerChange(3)">停止</el-button>
+    </div>
   </div>
 </template>
 
@@ -29,6 +35,9 @@ const currentAngle = ref(0)
 const maxAngle = Math.PI / 2
 const speed = 0.02 // 翻转速度调慢一点，更平滑
 
+let blowerBladeMesh = null
+const isBlowerRunning = ref(false)
+
 const controlWindow = (action) => {
   if (!windowGroup) return
   if (action === 'open') {
@@ -39,6 +48,18 @@ const controlWindow = (action) => {
     windowState.value = 'stopped'
   }
 }
+
+// 模拟接收到开启风机的控制指令/数据更新
+function handleBlowerChange(status) {
+  if (status === 1) {
+    // 开启风机动画
+    isBlowerRunning.value = true
+  } else {
+    // 关闭风机，停止旋转
+    isBlowerRunning.value = false
+  }
+}
+
 
 const initThree = () => {
   scene = new THREE.Scene()
@@ -76,7 +97,7 @@ const loadWindowModel = () => {
   windowGroup = new THREE.Group()
   scene.add(windowGroup)
 
-  loader.load('/asset/frontwall.fbx', (fbxObject) => {
+  loader.load('/asset/damper_blower.fbx', (fbxObject) => {
     const size = 0.2
     fbxObject.scale.set(size, size, size)
     // 自转90度
@@ -84,6 +105,8 @@ const loadWindowModel = () => {
     scene.add(fbxObject)
 
     const movingParts = []
+    // 是否开启风机的状态标识（联动你的业务数据，比如 status === 1）
+
 
 
     fbxObject.traverse((child) => {
@@ -111,7 +134,21 @@ const loadWindowModel = () => {
         ) {
           movingParts.push(child)
         }
+        else if (child.name === 'fengshan') {
+          blowerBladeMesh = child
+          // blowerBladeMesh.geometry.center(); // 将几何体中心点移到自身本地坐标系的 (0,0,0)
+          //  核心修复代码：开启双面渲染
+          if (child.material) {
+            child.material.side = THREE.DoubleSide
 
+            // 可选优化：如果材质是一个数组（部分模型有多材质），需要遍历修改
+            // if (Array.isArray(child.material)) {
+            //     child.material.forEach(m => m.side = THREE.DoubleSide)
+            // } else {
+            //     child.material.side = THREE.DoubleSide
+            // }
+          }
+        }
       }
     })
 
@@ -156,6 +193,11 @@ const loadWindowModel = () => {
   })
 }
 
+
+let currentSpeed = 0 // 当前实时转速
+const maxSpeed = 0.12 // 最高目标转速
+const acceleration = 0.003 // 加速度 / 减速度
+
 // 动画渲染帧循环
 const animate = () => {
   animationFrameId = requestAnimationFrame(animate)
@@ -177,6 +219,39 @@ const animate = () => {
 
     // 核心修改：控制绕 X 轴旋转（实现上下翻转动作）
     windowGroup.rotation.y = - currentAngle.value
+  }
+
+  // if (isBlowerRunning.value && blowerBladeMesh) {
+  //   // 顺时针旋转。根据你模型的朝向，决定是改 x、y 还是 z 轴
+  //   blowerBladeMesh.rotation.z -= blowerSpeed
+
+  //   // 性能优化：防止数字无限变大，转满一圈后重置
+  //   if (blowerBladeMesh.rotation.z < -Math.PI * 2) {
+  //     blowerBladeMesh.rotation.z = 0
+  //   }
+  // }
+  if (blowerBladeMesh) {
+    // blowerBladeMesh.geometry.center(); // 将几何体中心点移到自身本地坐标系的 (0,0,0)
+    if (isBlowerRunning.value) {
+      console.log('blower running')
+      // 启动时：平滑加速到最大速度
+      if (currentSpeed < maxSpeed) {
+        currentSpeed += acceleration
+      }
+
+    } else {
+      // 关闭时：依靠惯性平滑减速到 0
+      if (currentSpeed > 0) {
+        currentSpeed -= acceleration
+      }
+      else if (currentSpeed < 0) {
+        currentSpeed = 0
+      }
+
+    }
+
+    // 应用旋转
+    blowerBladeMesh.rotation.x -= currentSpeed
   }
 
   controls.update()

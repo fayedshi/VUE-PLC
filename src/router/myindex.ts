@@ -124,9 +124,9 @@ let routes = [
                 meta: { title: '手动控制面板corrected' }
               },
               {
-                path: 'ventiManual3D', 
-                name: 'VentiManual3D',
-                component: () => import('../views/ventilation/Door3DDemo_fbx.vue'),
+                path: 'blower', 
+                name: 'Blower',
+                component: () => import('../views/ventilation/Blower3DDemo.vue'),
                 meta: { title: '控制面板3D' }
               },
               // {
@@ -145,6 +145,12 @@ let routes = [
                 path: 'deviceGroup', 
                 name: 'DeviceGroup',
                 component: () => import('../views/ventilation/DeviceGroup.vue'),
+                meta: { title: '多3D设备tab' }
+              },
+              {
+                path: 'southWall', 
+                name: 'SouthWall',
+                component: () => import('../views/ventilation/SouthWall3DDemo.vue'),
                 meta: { title: '多3D设备tab' }
               }
 
