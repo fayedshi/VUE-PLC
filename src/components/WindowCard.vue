@@ -225,7 +225,7 @@ const getBlowerTagType = (status) => {
     color: #909399;
     border: none !important;
     /* 强制文字颜色为白色 */
-    color: #fff !important;
+    /* color: #fff !important; */
     /* 核心：强制覆盖 el-tag 的默认圆角为 3px */
     border-radius: 10px !important;
 

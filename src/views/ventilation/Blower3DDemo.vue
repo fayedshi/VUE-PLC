@@ -111,7 +111,8 @@ const loadWindowModel = () => {
 
     fbxObject.traverse((child) => {
       if (child.isMesh) {
-        console.log('发现窗户部件:', child.name)
+        const parentName = child.parent ? child.parent.name : null
+        console.log('发现窗户部件:', child.name, 'parent:', parentName)
 
         // 收集需要动的部件
         if (
