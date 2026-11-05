@@ -65,29 +65,13 @@ for (let i = 0; i < windowCount; i++) {
     partNameGroups[i] = group_1
   } else if (i == 13) {
     partNameGroups[i] = group_0
-    blowerMeshNames[i] = 'fengshan_instance_3'
+    blowerMeshNames[i] = 'fengshan'
   }
-
+  // blowerMeshNames[i] = 'fengshan'
 }
 
 // 🎯 【核心修改】完全使用普通 JS 陣列與物件，Vue 碰不到它們，絕對不會有 Proxy 報錯
 const window3DList = [
-  // {
-  //   id: 'window_1',
-  //   state: 'closed',       // 'closed', 'opening', 'open', 'closing', 'stopped'
-  //   currentAngle: 0,
-  //   movingPartNames: group_0,
-  //   group: null,           // 存放 THREE.Group
-  //   windowMeshList: []       // 存放真實 THREE.Mesh
-  // },
-  // {
-  //   id: 'window_2',
-  //   state: 'closed',
-  //   currentAngle: 0,
-  //   movingPartNames: group_1,
-  //   group: null,
-  //   realMeshList: []
-  // }
 ]
 
 const selectedHouseCode = ref('001')
@@ -146,8 +130,8 @@ const loadWindowModel = () => {
   loader.load('/asset/1104_1.fbx', (fbxObject) => {
     const size = 0.015
     fbxObject.scale.set(size, size, size)
-    fbxObject.updateMatrixWorld(true)
-    const tempBox = new THREE.Box3().setFromObject(fbxObject)
+    // fbxObject.updateMatrixWorld(true)
+    // const tempBox = new THREE.Box3().setFromObject(fbxObject)
 
     // 💡 让整个模型的最低点（tempBox.min.y）刚好等于 0 
     // 这样无论模型之前在 3D 软件里的中心点在哪里，它都会整体移动到世界坐标的绝对“地平面”上方
@@ -163,7 +147,7 @@ const loadWindowModel = () => {
         const parentName = child.parent ? child.parent.name : null
         console.log('发现窗户部件:', child.name, 'parent:', parentName)
         for (const windowItem of window3DList) {
-          // console.log('winItem', windowItem)
+          // console.log('winItem', windowItem)window3DList[13]
           if (windowItem.movingPartNames.includes(child.name)) {
             windowItem.windowMeshList.push(child)
             break;
@@ -173,10 +157,9 @@ const loadWindowModel = () => {
               child.material.side = THREE.DoubleSide
             }
             windowItem.blowerBladeMesh = child
-            break;
+            break
           }
         }
-        // })
       }
     })
 
@@ -187,52 +170,26 @@ const loadWindowModel = () => {
       console.log('winItem', windowItem)
       const windowGroup = new THREE.Group()
       fbxObject.add(windowGroup)
-      // scene.add(windowGroup)
-      const box = new THREE.Box3().setFromObject(windowGroup)
       // 計算真實包圍盒
-      // const tempGroup = new THREE.Group()
-      // windowItem.realMeshList.forEach(mesh => tempGroup.add(mesh.clone()))
       windowItem.windowMeshList.forEach(mesh => {
-
-        // windowGroup.attach(mesh)
-        // 使用世界坐标包围盒，避免本地坐标和克隆丢失缩放的问题
-        const meshBox = new THREE.Box3().setFromObject(mesh)
-        box.union(meshBox)
-      })
-
-      const center = box.getCenter(new THREE.Vector3())
-
-      // 2. 🎯 将旋转点从 X 轴的中心（center.x）挪到侧边。
-      // 如果门应该绕着【左侧】转，用 box.min.x；如果绕着【右侧】转，用 box.max.x。
-      // 这里先假设在左侧：
-      const pivotX = box.min.x
-      const pivotY = box.min.y
-      const pivotZ = box.min.z // Z轴通常保持在门厚度的中心
-
-      // 3. 将这个边缘的世界坐标转换为模型的本地坐标
-      const worldPivot = new THREE.Vector3(pivotX, pivotY, pivotZ)
-      const localPivot = fbxObject.worldToLocal(worldPivot.clone())
-
-      // 4. 将旋转组放置在侧边合页处
-      windowGroup.position.set(localPivot.x, localPivot.y, localPivot.z)
-      windowGroup.updateMatrixWorld(true)
-
-      // windowGroup.updateMatrixWorld(true) // 强制刷新组的矩阵，让它在正确位置生效
-      windowItem.windowMeshList.forEach((mesh) => {
         windowGroup.attach(mesh)
       })
 
-      // 設置旋轉軸心位置
-      // windowGroup.position.set(center.x, box.min.y, center.z)
+      const box = new THREE.Box3().setFromObject(windowGroup)
+      // // 3. 将这个边缘的世界坐标转换为模型的本地坐标
+      const worldPivot = new THREE.Vector3(box.max.x, box.min.y, box.min.z)
+      const localPivot = fbxObject.worldToLocal(worldPivot.clone())
+
+      // // 4. 将旋转组放置在侧边合页处
+      windowGroup.position.set(localPivot.x, localPivot.y, localPivot.z)
+      // windowGroup.updateMatrixWorld(true)
 
       // 移動真實 Mesh 並吸附
-      // windowItem.realMeshList.forEach((mesh) => {
-      //   mesh.position.x -= windowGroup.position.x
-      //   mesh.position.y -= windowGroup.position.y
-      //   mesh.position.z -= windowGroup.position.z
-      //   windowGroup.attach(mesh)
-      // })
-
+      windowItem.windowMeshList.forEach((mesh) => {
+        mesh.position.x -= windowGroup.position.x
+        mesh.position.y -= windowGroup.position.y
+        mesh.position.z -= windowGroup.position.z
+      })
       windowItem.group = windowGroup
     })
 
@@ -251,7 +208,6 @@ const loadWindowModel = () => {
 let currentSpeed = 0
 const maxSpeed = 0.12
 const acceleration = 0.003
-const LOCAL_X_AXIS = new THREE.Vector3(1, 0, 0);
 
 const animate = () => {
   animationFrameId = requestAnimationFrame(animate)
@@ -279,9 +235,12 @@ const animate = () => {
 
     // 2. 風扇動畫
     if (windowItem.blowerBladeMesh) {
+      windowItem.blowerBladeMesh.geometry.center(); // 将几何体中心点移到自身本地坐标系的 (0,0,0)
       if (windowItem.blowerState == 1 || windowItem.blowerState == 2) {
         // console.log('running blades')
-        if (currentSpeed < maxSpeed) currentSpeed += acceleration
+        if (currentSpeed < maxSpeed)
+          currentSpeed += acceleration
+        console.log('windowItem.blowerBladeMesh.rotation.x: ', windowItem.blowerBladeMesh.rotation.x, ' winItem:', windowItem)
       }
       // else if (windowItem.blowerState == 2) {
       //   if (currentSpeed < maxSpeed) currentSpeed -= acceleration
@@ -290,9 +249,20 @@ const animate = () => {
         if (currentSpeed > 0) currentSpeed -= acceleration
         if (currentSpeed < 0) currentSpeed = 0
       }
-      // windowItem.blowerBladeMesh.rotation.x -= currentSpeed
-      windowItem.blowerBladeMesh.rotateOnAxis(LOCAL_X_AXIS, -currentSpeed);
-      console.log('windowItem.blowerBladeMesh.rotation.x: ', windowItem.blowerBladeMesh.rotation.x)
+
+      if (currentSpeed > 0) {
+        // 直接改變 X 軸角度
+        windowItem.blowerBladeMesh.rotation.x -= currentSpeed
+
+        // 防止數值無限增大卡死，滿一圈重置
+        if (windowItem.blowerBladeMesh.rotation.x < -Math.PI * 2) {
+          windowItem.blowerBladeMesh.rotation.x += Math.PI * 2
+        }
+        // windowItem.blowerBladeMesh.updateMatrix()
+      }
+
+
+      return
     }
   })
   controls.update()
@@ -362,13 +332,14 @@ const init3DWindows = () => {
     let win3d = {
       id: winState.id,
       state: winState.status,       // 'closed', 'opening', 'open', 'closing', 'stopped'
+      // state: 1,
       currentAngle: 0,
       movingPartNames: partNameGroups[winState.id - 1],
       group: null,           // 存放 THREE.Group
       windowMeshList: [],       // 存放真實 THREE.Mesh
       blowerBladeMesh: null,
       blowerBladeMeshName: blowerMeshNames[winState.id - 1],
-      blowerState: null
+      blowerState: 0
     }
     if (winState.fan) {
       win3d.blowerState = winState.fan.status
@@ -378,17 +349,18 @@ const init3DWindows = () => {
     }
     window3DList.push(win3d)
   })
-  // writing for tesst
+  // writing for test
   window3DList.at(13).blowerState = 1
   window3DList.at(13).state = 1
+  // writing for test
 }
 
 
 onMounted(async () => {
   await store.initDeviceConfig('001')
   // initWebSocket()
-  initThree()
   init3DWindows()
+  initThree()
   console.log('3dwindowlist:', window3DList)
   window.addEventListener('resize', handleResize)
 })
