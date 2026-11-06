@@ -21,8 +21,8 @@
         <el-button type="warning" :icon="VideoPause" @click="handleBlowerChange(3)">停止</el-button>
       </div>
     -->
-      <el-row :gutter="20" v-if="store.windowStateList.length > 0">
-        <el-col v-for="item in store.windowStateList" :key="item.id" :xs="24" :sm="12" :md="8" :lg="12">
+      <el-row :gutter="20" v-if="southWindowList.length > 0">
+        <el-col v-for="item in southWindowList" :key="item.id" :xs="24" :sm="12" :md="8" :lg="12">
           <WindowCard :data="item" @action="handleDeviceAction" />
         </el-col>
       </el-row>
@@ -32,7 +32,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { VideoPlay, SwitchButton, VideoPause } from '@element-plus/icons-vue'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
@@ -42,6 +42,9 @@ import WindowCard from '../../components/WindowCard.vue'
 // import { onMounted, ref, computed, onBeforeUnmount } from 'vue'
 
 const store = useWindowControlStore()
+const southWindowList = computed(() => {
+  return store.windowStateList.filter(window => [1, 2, 3, 4, 5, 11, 12, 13, 14].includes(window.id))
+})
 
 const canvasContainer = ref(null) // 只有畫布 DOM 節點需要 ref 獲取元素
 
@@ -49,7 +52,7 @@ let scene, camera, renderer, controls, animationFrameId
 
 // 旋轉配置
 const maxAngle = Math.PI / 2
-const speed = 0.0002
+const speed = 0.02
 // let blowerBladeMesh = null
 const isBlowerRunning = ref(false) // 風機狀態保留 ref 供業務邏輯聯動（若不需要也可改 let）
 
@@ -227,14 +230,9 @@ const loadWindowModel = () => {
       // })
 
       const box = new THREE.Box3().setFromObject(windowGroup)
-      // 情况 A：如果是“上悬窗”（绕着上边框转）
-      // 轴心应该设在包围盒的顶部：Y轴设为 box.max.y
-      // windowGroup.position.set(center.x, box.max.y, center.z)
-      // windowGroup.position.set(box.max.x, box.min.y, box.min.z)
-      // // 3. 将这个边缘的世界坐标转换为模型的本地坐标
-      // const worldPivot = new THREE.Vector3(box.max.x, box.min.y, box.min.z) // 左侧开
-
-      const worldPivot = new THREE.Vector3(box.max.x, box.min.y, box.max.z) // 
+      let xVal = windowItem.openUpward ? box.max.x : box.min.x
+      const worldPivot = new THREE.Vector3(xVal, box.max.y, box.min.z) // 左侧开
+      // const worldPivot = new THREE.Vector3(box.max.x, box.max.y, box.min.z) // 往上开
       const localPivot = fbxObject.worldToLocal(worldPivot.clone())
 
       // // 4. 将旋转组放置在侧边合页处
@@ -283,7 +281,11 @@ const animate = () => {
         windowItem.currentAngle = 0
       }
       // 驅動 3D 群組旋轉
-      windowItem.group.rotation.y = -windowItem.currentAngle
+      if (windowItem.openUpward) {
+        windowItem.group.rotation.z = -windowItem.currentAngle //往上开
+      } else {
+        windowItem.group.rotation.y = -windowItem.currentAngle //往侧边开
+      }
     }
 
     // 2. 風扇動畫
@@ -307,13 +309,13 @@ const animate = () => {
 
       if (currentSpeed > 0) {
         // 直接改變 X 軸角度
-        if (windowItem.blowerState == 1) {
+        if (windowItem.blowerState == 1) {//正转
           windowItem.blowerBladeMesh.rotation.x -= currentSpeed
           // 防止數值無限增大卡死，滿一圈重置
           if (windowItem.blowerBladeMesh.rotation.x < -Math.PI * 2) {
             windowItem.blowerBladeMesh.rotation.x += Math.PI * 2
           }
-        } else if (windowItem.blowerState == 2) {
+        } else if (windowItem.blowerState == 2) {//反转
           windowItem.blowerBladeMesh.rotation.x += currentSpeed
           // 防止數值無限增大卡死，滿一圈重置
           if (windowItem.blowerBladeMesh.rotation.x > Math.PI * 2) {
@@ -402,19 +404,25 @@ const init3DWindows = () => {
       // blowerBladeMeshList: [],
       blowerBladeMesh: null,
       blowerBladeMeshName: blowerMeshNames[winState.id - 1],
-      blowerState: 0
+      blowerState: -1,
+      openUpward: true
     }
     if (winState.fan) {
       win3d.blowerState = winState.fan.status
     }
     if (winState.blower) {
       win3d.blowerState = winState.blower.status
+      win3d.openUpward = false
     }
     window3DList.push(win3d)
   })
   // writing for test
-  // window3DList.at(13).blowerState = 1
-  // window3DList.at(13).state = 1
+  // window3DList.at(1).blowerState = 1
+  // window3DList.at(1).state = 1
+  // window3DList.at(11).state = 1
+  // window3DList.at(11).blowerState = 2
+  // window3DList.at(12).state = 1
+  // window3DList.at(12).blowerState = 1
   // writing for test
 }
 

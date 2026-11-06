@@ -8,7 +8,6 @@
     <RouterLink to="/system/ventilation/blower" active-class="active">单风机(测试)</RouterLink>
     <RouterLink to="/system/ventilation/southWall" active-class="active">南面墙(测试)</RouterLink>
     <!-- <RouterLink to="/system/ventilation/doorGroup" active-class="active">Door Group(测试)</RouterLink> -->
-    <!-- <RouterLink to="/system/ventilation/door3DDemo" active-class="active">3Dglb</RouterLink> -->
     <!-- <RouterLink to="/system/ventilation/deviceGroup" active-class="active">设备组织(测试)</RouterLink> -->
   </div>
 
