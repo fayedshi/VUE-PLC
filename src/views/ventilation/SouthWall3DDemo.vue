@@ -22,7 +22,7 @@
       </div>
     -->
       <el-row :gutter="20" v-if="store.windowStateList.length > 0">
-        <el-col v-for="item in store.windowStateList" :key="item.id" :xs="24" :sm="12" :md="8" :lg="8">
+        <el-col v-for="item in store.windowStateList" :key="item.id" :xs="24" :sm="12" :md="8" :lg="12">
           <WindowCard :data="item" @action="handleDeviceAction" />
         </el-col>
       </el-row>
@@ -49,12 +49,15 @@ let scene, camera, renderer, controls, animationFrameId
 
 // 旋轉配置
 const maxAngle = Math.PI / 2
-const speed = 0.01
+const speed = 0.0002
 // let blowerBladeMesh = null
 const isBlowerRunning = ref(false) // 風機狀態保留 ref 供業務邏輯聯動（若不需要也可改 let）
 
 const group_0 = ['v', 'v2', '0_2', '2', 'BT_DLSZD_03', 'BT_RJCHY_01_02']
 const group_1 = ['g', 'g1', 'g2', 'g3', 'g4', 'g5', 'g6']
+const upper_win_moving_parts = ['g1', 'g2', 'k']  // 发现窗户部件: k_instance_2 parent: window_3
+const base_win_moving_parts = ['d1', 'd2', 'd3']  // 下窗的活动部件
+const base_blower_parts = ['fengshan'] // 下窗的风扇部件
 
 const windowCount = 18
 const partNameGroups = []
@@ -74,25 +77,26 @@ for (let i = 0; i < windowCount; i++) {
 const window3DList = [
 ]
 
+/**
+ * 判断名字是否匹配的函数
+ * @param {string} name - 需要检查的名字
+ * @returns {boolean} - 是否匹配成功
+ */
+const checkName = (name, prefixList) => {
+  // 如果名字为空，直接返回 false
+  if (!name) return false;
+
+  // 🌟 使用 some()：只要数组里有任意一个元素满足条件，就返回 true
+  return prefixList.some(item =>
+    name === item ||          // 1. 完全相等（包含在数组中）
+    name.startsWith(item)     // 2. 或者以该元素开头
+  );
+};
+
+
 const selectedHouseCode = ref('001')
 const handleDeviceAction = async ({ type, id, action }) => {
   await store.controlDevice(selectedHouseCode.value, type, id, action)
-}
-
-// 控制按鈕方法（直接操作普通 JS 物件）
-// const controlWindow = (index, action) => {
-//   const windowItem = window3DList[index]
-//   if (action === 'open') {
-//     if (windowItem.state !== 'open') windowItem.state = 'opening'
-//   } else if (action === 'close') {
-//     if (windowItem.state !== 'closed') windowItem.state = 'closing'
-//   } else if (action === 'stop') {
-//     windowItem.state = 'stopped'
-//   }
-// }
-
-function handleBlowerChange(status) {
-  isBlowerRunning.value = status === 1
 }
 
 const initThree = () => {
@@ -116,7 +120,7 @@ const initThree = () => {
 
   controls = new OrbitControls(camera, renderer.domElement)
   // controls.enableDamping = false
-  // controls.enableZoom = false;     // 禁用滚轮缩放
+  controls.enableZoom = false;     // 禁用滚轮缩放
   // controls.enablePan = false;      // 禁用右键平移
   // controls.enableRotate = false
 
@@ -127,16 +131,35 @@ const initThree = () => {
 const loadWindowModel = () => {
   const loader = new FBXLoader()
 
-  loader.load('/asset/1104_1.fbx', (fbxObject) => {
-    const size = 0.015
+  loader.load('/asset/1106_southl_with_ac_v1.fbx', (fbxObject) => {
+    const size = 0.018
     fbxObject.scale.set(size, size, size)
-    // fbxObject.updateMatrixWorld(true)
-    // const tempBox = new THREE.Box3().setFromObject(fbxObject)
-
-    // 💡 让整个模型的最低点（tempBox.min.y）刚好等于 0 
-    // 这样无论模型之前在 3D 软件里的中心点在哪里，它都会整体移动到世界坐标的绝对“地平面”上方
-    // fbxObject.position.y = -tempBox.min.y
+    fbxObject.position.set(0, 200, 0);
     scene.add(fbxObject)
+
+    // 或者使用 set 方法 (X, Y, Z)
+
+    fbxObject.updateMatrixWorld(true)
+    // 相機聚焦
+    const fullBox = new THREE.Box3().setFromObject(fbxObject)
+    const modelCenter = fullBox.getCenter(new THREE.Vector3())
+    const modelSize = fullBox.getSize(new THREE.Vector3())
+    // 🌟 5. 核心修正：相机聚焦与位置
+    if (controls) {
+      // 让轨道控制器死死盯着模型的几何中心 
+      controls.target.copy(modelCenter)
+
+      // 让相机挪到 Y=200 的高度，X 轴左移 60
+      // 🌟 【关键修复】：Z 轴必须加上一段距离（例如后退 200，或者根据模型大小动态计算），不能为 0！
+      const cameraDistance = modelSize.length() * 1.5 || 200; // 动态根据模型大小决定后退多少
+      camera.position.set(
+        modelCenter.x - 60, // 往左挪了60公分（X-60）
+        modelCenter.y, // 
+        modelCenter.z + 10 // 👈 往后退了2米（Z+200）
+      )
+      // 6. 刷新控制器
+      controls.update()
+    }
 
     // 遍歷模型，把真實 Mesh 分配到普通陣列中
 
@@ -146,38 +169,72 @@ const loadWindowModel = () => {
       if (child.isMesh) {
         const parentName = child.parent ? child.parent.name : null
         console.log('发现窗户部件:', child.name, 'parent:', parentName)
-        for (const windowItem of window3DList) {
-          // console.log('winItem', windowItem)window3DList[13]
-          if (windowItem.movingPartNames.includes(child.name)) {
-            windowItem.windowMeshList.push(child)
-            break;
-          }
-          else if (windowItem.blowerBladeMeshName == child.name) {
+        // for (const windowItem of window3DList) {
+        // console.log('winItem', windowItem)window3DList[13]
+
+        // if (windowItem.movingPartNames.includes(child.name)) {
+        //   windowItem.windowMeshList.push(child)
+        //   break;
+        // }
+        // else if (windowItem.blowerBladeMeshName == child.name) {
+        //   if (child.material) {
+        //     child.material.side = THREE.DoubleSide
+        //   }
+        //   windowItem.blowerBladeMesh = child
+        //   break
+        // }
+        if (parentName) {
+          if (checkName(child.name, upper_win_moving_parts)) {
+            const winId = Number(parentName.split('_').pop());
+            console.log('window index for upper win:', winId);
+            window3DList[winId - 1].windowMeshList.push(child)
+          } else if (checkName(child.name, base_blower_parts)) {
+            // const winId = Number(parentName.split('_').pop());
+            const winId = Number(parentName.replace('window', '').replace('_', ''));
             if (child.material) {
               child.material.side = THREE.DoubleSide
             }
-            windowItem.blowerBladeMesh = child
-            break
+            console.log(winId); // 输出: 3
+            console.log('window index for blower:', winId);
+            // window3DList[winId - 1].blowerBladeMeshList.push(child)
+            window3DList[winId - 1].blowerBladeMesh = child
+          } else if (checkName(child.name, base_win_moving_parts)) {
+            // const winId = Number(parentName.split('_').pop());
+            const winId = Number(parentName.replace('window', '').replace('_', ''));
+            console.log('window index for base win:', winId);
+            window3DList[winId - 1].windowMeshList.push(child)
           }
         }
+        // }
       }
     })
-
+    console.log('win3dlist', window3DList)
     // 計算軸心與群組建立
     window3DList.forEach((windowItem) => {
       if (windowItem.windowMeshList.length === 0) return
 
       console.log('winItem', windowItem)
       const windowGroup = new THREE.Group()
+      // const blowerGroup = new THREE.Group()
       fbxObject.add(windowGroup)
       // 計算真實包圍盒
       windowItem.windowMeshList.forEach(mesh => {
         windowGroup.attach(mesh)
       })
 
+      // windowItem.blowerBladeMeshList.forEach(mesh => {
+      //   blowerGroup.attach(mesh)
+      // })
+
       const box = new THREE.Box3().setFromObject(windowGroup)
+      // 情况 A：如果是“上悬窗”（绕着上边框转）
+      // 轴心应该设在包围盒的顶部：Y轴设为 box.max.y
+      // windowGroup.position.set(center.x, box.max.y, center.z)
+      // windowGroup.position.set(box.max.x, box.min.y, box.min.z)
       // // 3. 将这个边缘的世界坐标转换为模型的本地坐标
-      const worldPivot = new THREE.Vector3(box.max.x, box.min.y, box.min.z)
+      // const worldPivot = new THREE.Vector3(box.max.x, box.min.y, box.min.z) // 左侧开
+
+      const worldPivot = new THREE.Vector3(box.max.x, box.min.y, box.max.z) // 
       const localPivot = fbxObject.worldToLocal(worldPivot.clone())
 
       // // 4. 将旋转组放置在侧边合页处
@@ -192,14 +249,6 @@ const loadWindowModel = () => {
       })
       windowItem.group = windowGroup
     })
-
-    // 相機聚焦
-    const fullBox = new THREE.Box3().setFromObject(fbxObject)
-    const modelCenter = fullBox.getCenter(new THREE.Vector3())
-    controls.target.copy(modelCenter)
-    camera.position.set(modelCenter.x - 60, modelCenter.y, modelCenter.z)
-    controls.update()
-
   }, undefined, (error) => {
     console.error('FBX 模型加载失败:', error)
   })
@@ -220,45 +269,58 @@ const animate = () => {
         windowItem.currentAngle += speed
         if (windowItem.currentAngle >= maxAngle) {
           windowItem.currentAngle = maxAngle
-          windowItem.state = 'open'
         }
       } else if (windowItem.state === 2) {
         windowItem.currentAngle -= speed
         if (windowItem.currentAngle <= 0) {
           windowItem.currentAngle = 0
-          windowItem.state = 'closed'
+          // windowItem.state = 'closed'
         }
+      }
+      else if (windowItem.state === 4) {
+        windowItem.currentAngle = maxAngle
+      } else if (windowItem.state === 5) {
+        windowItem.currentAngle = 0
       }
       // 驅動 3D 群組旋轉
       windowItem.group.rotation.y = -windowItem.currentAngle
     }
 
     // 2. 風扇動畫
+    // if (windowItem.blowerBladeMeshList.length > 0) {
     if (windowItem.blowerBladeMesh) {
-      windowItem.blowerBladeMesh.geometry.center(); // 将几何体中心点移到自身本地坐标系的 (0,0,0)
+      // windowItem.blowerBladeMesh.geometry.center(); // 将几何体中心点移到自身本地坐标系的 (0,0,0)
       if (windowItem.blowerState == 1 || windowItem.blowerState == 2) {
         // console.log('running blades')
-        if (currentSpeed < maxSpeed)
+        if (currentSpeed < maxSpeed) {
           currentSpeed += acceleration
+        }
         console.log('windowItem.blowerBladeMesh.rotation.x: ', windowItem.blowerBladeMesh.rotation.x, ' winItem:', windowItem)
-      }
-      // else if (windowItem.blowerState == 2) {
-      //   if (currentSpeed < maxSpeed) currentSpeed -= acceleration
-      // } 
-      else if (windowItem.blowerState == 3) {
-        if (currentSpeed > 0) currentSpeed -= acceleration
-        if (currentSpeed < 0) currentSpeed = 0
+      } else if (windowItem.blowerState == 3) {
+        if (currentSpeed > 0) {
+          currentSpeed -= acceleration
+        }
+        if (currentSpeed < 0) {
+          currentSpeed = 0
+        }
       }
 
       if (currentSpeed > 0) {
         // 直接改變 X 軸角度
-        windowItem.blowerBladeMesh.rotation.x -= currentSpeed
-
-        // 防止數值無限增大卡死，滿一圈重置
-        if (windowItem.blowerBladeMesh.rotation.x < -Math.PI * 2) {
-          windowItem.blowerBladeMesh.rotation.x += Math.PI * 2
+        if (windowItem.blowerState == 1) {
+          windowItem.blowerBladeMesh.rotation.x -= currentSpeed
+          // 防止數值無限增大卡死，滿一圈重置
+          if (windowItem.blowerBladeMesh.rotation.x < -Math.PI * 2) {
+            windowItem.blowerBladeMesh.rotation.x += Math.PI * 2
+          }
+        } else if (windowItem.blowerState == 2) {
+          windowItem.blowerBladeMesh.rotation.x += currentSpeed
+          // 防止數值無限增大卡死，滿一圈重置
+          if (windowItem.blowerBladeMesh.rotation.x > Math.PI * 2) {
+            windowItem.blowerBladeMesh.rotation.x -= Math.PI * 2
+          }
         }
-        // windowItem.blowerBladeMesh.updateMatrix()
+
       }
 
 
@@ -337,6 +399,7 @@ const init3DWindows = () => {
       movingPartNames: partNameGroups[winState.id - 1],
       group: null,           // 存放 THREE.Group
       windowMeshList: [],       // 存放真實 THREE.Mesh
+      // blowerBladeMeshList: [],
       blowerBladeMesh: null,
       blowerBladeMeshName: blowerMeshNames[winState.id - 1],
       blowerState: 0
@@ -350,17 +413,17 @@ const init3DWindows = () => {
     window3DList.push(win3d)
   })
   // writing for test
-  window3DList.at(13).blowerState = 1
-  window3DList.at(13).state = 1
+  // window3DList.at(13).blowerState = 1
+  // window3DList.at(13).state = 1
   // writing for test
 }
 
 
 onMounted(async () => {
   await store.initDeviceConfig('001')
-  // initWebSocket()
   init3DWindows()
   initThree()
+  initWebSocket()
   console.log('3dwindowlist:', window3DList)
   window.addEventListener('resize', handleResize)
 })
@@ -386,7 +449,7 @@ onBeforeUnmount(() => {
 
 /* 左侧控制面板样式 */
 .left-panel {
-  width: 40%;
+  width: 30%;
   /* 固定的控制面板宽度 */
   padding: 10px;
   background-color: #ffffff;
@@ -399,6 +462,7 @@ onBeforeUnmount(() => {
   height: 100%;
   /* 撑满高度 */
   box-sizing: border-box;
+  overflow-y: auto;
 }
 
 /* 🎯 核心修改二：右侧画布自适应逻辑 */
