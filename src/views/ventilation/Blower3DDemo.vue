@@ -187,6 +187,7 @@ const loadWindowModel = () => {
     controls.target.copy(modelCenter)
     // 【新增安全机制】由于手动改了 target，最好让相机位置也基于中心点错开，防止镜头陷在模型里
     camera.position.set(modelCenter.x - 60, modelCenter.y, modelCenter.z)
+    fbxObject.position.y += 14
     controls.update()
 
   }, undefined, (error) => {

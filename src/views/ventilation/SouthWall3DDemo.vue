@@ -20,13 +20,11 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
-import { VideoPlay, SwitchButton, VideoPause } from '@element-plus/icons-vue'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader'
-import { useWindowControlStore, WindowActionEnum } from '../../store/WindowControl.ts' // 沿用上一轮回答的 Pinia Store
+import { useWindowControlStore } from '../../store/WindowControl.ts' // 沿用上一轮回答的 Pinia Store
 import WindowCard from '../../components/WindowCard.vue'
-// import { onMounted, ref, computed, onBeforeUnmount } from 'vue'
 
 const store = useWindowControlStore()
 const southWindowList = computed(() => {
@@ -41,7 +39,7 @@ let scene, camera, renderer, controls, animationFrameId
 const maxAngle = Math.PI / 2
 const speed = 0.02
 // let blowerBladeMesh = null
-const isBlowerRunning = ref(false) // 風機狀態保留 ref 供業務邏輯聯動（若不需要也可改 let）
+// const isBlowerRunning = ref(false) // 風機狀態保留 ref 供業務邏輯聯動（若不需要也可改 let）
 
 // const group_0 = ['v', 'v2', '0_2', '2', 'BT_DLSZD_03', 'BT_RJCHY_01_02']
 // const group_1 = ['g', 'g1', 'g2', 'g3', 'g4', 'g5', 'g6']
@@ -125,11 +123,6 @@ const loadWindowModel = () => {
   loader.load('/asset/southwall_full.fbx', (fbxObject) => {
     const size = 0.018
     fbxObject.scale.set(size, size, size)
-    fbxObject.position.set(0, 200, 0);
-    scene.add(fbxObject)
-
-    // 或者使用 set 方法 (X, Y, Z)
-
     fbxObject.updateMatrixWorld(true)
     // 相機聚焦
     const fullBox = new THREE.Box3().setFromObject(fbxObject)
@@ -144,11 +137,13 @@ const loadWindowModel = () => {
       // 🌟 【关键修复】：Z 轴必须加上一段距离（例如后退 200，或者根据模型大小动态计算），不能为 0！
       const cameraDistance = modelSize.length() * 1.5 || 200; // 动态根据模型大小决定后退多少
       camera.position.set(
-        modelCenter.x - 60, // 往左挪了60公分（X-60）
+        modelCenter.x - 70, // 往左挪了60公分（X-60）
         modelCenter.y, // 
-        modelCenter.z + 10 // 👈 往后退了2米（Z+200）
+        modelCenter.z + 15 // 👈 往后退了2米（Z+200）
       )
       // 6. 刷新控制器
+      fbxObject.position.y += 15 // 上移15
+      scene.add(fbxObject)
       controls.update()
     }
 
@@ -434,10 +429,12 @@ const init3DWindows = () => {
     }
   })
   // writing for test
-  device3DList[2].blowerState = 1
-  device3DList[2].state = 1
-  device3DList[11].state = 1
-  device3DList[11].blowerState = 2
+  // device3DList[2].blowerState = 1
+  // device3DList[2].state = 1
+  // device3DList[11].state = 1
+  // device3DList[11].blowerState = 2
+  // device3DList[11].state = 1
+  // device3DList[11].blowerState = 2
 
   // device3DList[33].blowerState = 1
   // device3DList[34].blowerState = 1
