@@ -6,7 +6,8 @@
                 <span class="title">
                     <el-icon>
                         <Compass />
-                    </el-icon>窗 #{{ data.index }}
+                        <!-- </el-icon>{{ data.blower ? '门' : '窗' }} #{{ seqNo }} -->
+                    </el-icon>窗 #{{ seqNo }}
                 </span>
                 <el-tag :class="['status-badge', `status-${data.status}`]" size="small">
                     {{ formatStatus('window', data.status) }}
@@ -44,7 +45,7 @@
         <!-- 4. 空调控制 -->
         <div v-else class="sub-device-section ac-section">
             <div class=" sub-header">
-                <span class="sub-title">❄️ 空调 #{{ data.index }}</span>
+                <span class="sub-title">❄️ 空调 #{{ seqNo }}</span>
                 <el-tag :type="data.status == 1 ? 'success' : 'info'" size="small">
                     {{ formatStatus('ac', data.status) }}
                 </el-tag>
@@ -104,9 +105,11 @@
 import { Compass } from '@element-plus/icons-vue'
 import { useWindowControlStore, WindowActionEnum, AcState, FanActionEnum, BlowerActionEnum, AcActionEnum } from '../store/WindowControl'
 import { computed } from 'vue';
+import { number } from 'echarts';
 const MyAcState = AcState;
 const props = defineProps({
-    data: { type: Object, required: true }
+    data: { type: Object, required: true },
+    seqNo: { typpe: number, required: false }
 })
 
 const emit = defineEmits(['action'])

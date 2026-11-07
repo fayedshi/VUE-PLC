@@ -2,28 +2,15 @@
   <div class="window-container">
 
     <div class="left-panel">
-      <h3>控制面板</h3>
-      <!-- <div class="control-btn-group alignment-center">窗 #1
-        <el-button type="success" :icon="VideoPlay" @click="controlWindow(0, 'open')">开启</el-button>
-        <el-button type="danger" :icon="SwitchButton" @click="controlWindow(0, 'close')">关闭</el-button>
-        <el-button type="warning" :icon="VideoPause" @click="controlWindow(0, 'stop')">停止</el-button>
-      </div>
-      <div class="control-btn-group alignment-center">窗 #2
-        <el-button type="success" :icon="VideoPlay" @click="controlWindow(1, 'open')">开启</el-button>
-        <el-button type="danger" :icon="SwitchButton" @click="controlWindow(1, 'close')">关闭</el-button>
-        <el-button type="warning" :icon="VideoPause" @click="controlWindow(1, 'stop')">停止</el-button>
-      </div>
-
-    
-      <div class="control-btn-group alignment-center">
-        <el-button type="success" :icon="VideoPlay" @click="handleBlowerChange(1)">开启</el-button>
-        <el-button type="danger" :icon="SwitchButton" @click="handleBlowerChange('close')">关闭</el-button>
-        <el-button type="warning" :icon="VideoPause" @click="handleBlowerChange(3)">停止</el-button>
-      </div>
-    -->
+      <span>控制面板</span>
       <el-row :gutter="20" v-if="southWindowList.length > 0">
-        <el-col v-for="item in southWindowList" :key="item.id" :xs="24" :sm="12" :md="8" :lg="12">
-          <WindowCard :data="item" @action="handleDeviceAction" />
+        <el-col v-for="(item, index) in southWindowList" :key="item.id" :xs="24" :sm="12" :md="8" :lg="12">
+          <WindowCard :data="item" :seqNo="index + 1" @action="handleDeviceAction" />
+        </el-col>
+      </el-row>
+      <el-row :gutter="20" v-if="store.acStateList.length > 0">
+        <el-col v-for="(item, index) in store.acStateList" :key="item.id" :xs="24" :sm="12" :md="8" :lg="12">
+          <WindowCard :data="item" :seqNo="index + 1" @action="handleDeviceAction" />
         </el-col>
       </el-row>
     </div>
@@ -56,29 +43,30 @@ const speed = 0.02
 // let blowerBladeMesh = null
 const isBlowerRunning = ref(false) // 風機狀態保留 ref 供業務邏輯聯動（若不需要也可改 let）
 
-const group_0 = ['v', 'v2', '0_2', '2', 'BT_DLSZD_03', 'BT_RJCHY_01_02']
-const group_1 = ['g', 'g1', 'g2', 'g3', 'g4', 'g5', 'g6']
+// const group_0 = ['v', 'v2', '0_2', '2', 'BT_DLSZD_03', 'BT_RJCHY_01_02']
+// const group_1 = ['g', 'g1', 'g2', 'g3', 'g4', 'g5', 'g6']
 const upper_win_moving_parts = ['g1', 'g2', 'k']  // 发现窗户部件: k_instance_2 parent: window_3
 const base_win_moving_parts = ['d1', 'd2', 'd3']  // 下窗的活动部件
-const base_blower_parts = ['fengshan'] // 下窗的风扇部件
+const blower_parts = ['fengshan'] // 窗或空调的风扇部件
+const ac_parts = ['fengji'] // 下窗的风扇部件
 
-const windowCount = 18
-const partNameGroups = []
-const blowerMeshNames = []
-for (let i = 0; i < windowCount; i++) {
-  partNameGroups[i] = []
-  if (i == 4) {
-    partNameGroups[i] = group_1
-  } else if (i == 13) {
-    partNameGroups[i] = group_0
-    blowerMeshNames[i] = 'fengshan'
-  }
-  // blowerMeshNames[i] = 'fengshan'
-}
+// const windowCount = 18
+// const partNameGroups = []
+// const blowerMeshNames = []
+// for (let i = 0; i < windowCount; i++) {
+//   partNameGroups[i] = []
+//   if (i == 4) {
+//     partNameGroups[i] = group_1
+//   } else if (i == 13) {
+//     partNameGroups[i] = group_0
+//     blowerMeshNames[i] = 'fengshan'
+//   }
+//   // blowerMeshNames[i] = 'fengshan'
+// }
 
 // 🎯 【核心修改】完全使用普通 JS 陣列與物件，Vue 碰不到它們，絕對不會有 Proxy 報錯
-const window3DList = [
-]
+const device3DList = {
+}
 
 /**
  * 判断名字是否匹配的函数
@@ -123,7 +111,7 @@ const initThree = () => {
 
   controls = new OrbitControls(camera, renderer.domElement)
   // controls.enableDamping = false
-  controls.enableZoom = false;     // 禁用滚轮缩放
+  controls.enableZoom = true;     // 禁用滚轮缩放
   // controls.enablePan = false;      // 禁用右键平移
   // controls.enableRotate = false
 
@@ -134,7 +122,7 @@ const initThree = () => {
 const loadWindowModel = () => {
   const loader = new FBXLoader()
 
-  loader.load('/asset/1106_southl_with_ac_v1.fbx', (fbxObject) => {
+  loader.load('/asset/southwall_full.fbx', (fbxObject) => {
     const size = 0.018
     fbxObject.scale.set(size, size, size)
     fbxObject.position.set(0, 200, 0);
@@ -167,13 +155,13 @@ const loadWindowModel = () => {
     // 遍歷模型，把真實 Mesh 分配到普通陣列中
 
     fbxObject.traverse((child) => {
-      let picked = false
+      // let picked = false
       // 每个mesh只能被以一个window拥有
       if (child.isMesh) {
         const parentName = child.parent ? child.parent.name : null
         console.log('发现窗户部件:', child.name, 'parent:', parentName)
-        // for (const windowItem of window3DList) {
-        // console.log('winItem', windowItem)window3DList[13]
+        // for (const windowItem of device3DList) {
+        // console.log('winItem', windowItem)device3DList[13]
 
         // if (windowItem.movingPartNames.includes(child.name)) {
         //   windowItem.windowMeshList.push(child)
@@ -187,34 +175,49 @@ const loadWindowModel = () => {
         //   break
         // }
         if (parentName) {
+          console.log('parent name: ', parentName)
           if (checkName(child.name, upper_win_moving_parts)) {
             const winId = Number(parentName.split('_').pop());
             console.log('window index for upper win:', winId);
-            window3DList[winId - 1].windowMeshList.push(child)
-          } else if (checkName(child.name, base_blower_parts)) {
+            if (!child.name.startsWith('k2')) {
+              device3DList[winId].windowMeshList.push(child)
+            }
+          } else if (checkName(child.name, blower_parts)) {
             // const winId = Number(parentName.split('_').pop());
+            // const winId = Number(parentName.replace('/window|kongtiao/g', '').replace('_', ''));
             const winId = Number(parentName.replace('window', '').replace('_', ''));
             if (child.material) {
               child.material.side = THREE.DoubleSide
             }
-            console.log(winId); // 输出: 3
             console.log('window index for blower:', winId);
-            // window3DList[winId - 1].blowerBladeMeshList.push(child)
-            window3DList[winId - 1].blowerBladeMesh = child
-          } else if (checkName(child.name, base_win_moving_parts)) {
+            // device3DList[winId - 1].blowerBladeMeshList.push(child)
+            device3DList[winId].blowerBladeMesh = child
+          } else if (checkName(child.name, ac_parts)) {
+            // const winId = Number(parentName.split('_').pop());
+
+            // const winId = Number(parentName.replace('/window|kongtiao/g', '').replace('_', ''));
+            const acId = Number(parentName.replace('kongtiao', '').replace('_', ''));
+            if (child.material) {
+              child.material.side = THREE.DoubleSide
+            }
+            console.log('ac index for blower:', acId);
+            // hardcoded for ac id
+            device3DList[32 + acId].blowerBladeMesh = child
+          }
+          else if (checkName(child.name, base_win_moving_parts)) {
             // const winId = Number(parentName.split('_').pop());
             const winId = Number(parentName.replace('window', '').replace('_', ''));
             console.log('window index for base win:', winId);
-            window3DList[winId - 1].windowMeshList.push(child)
+            device3DList[winId].windowMeshList.push(child)
           }
         }
         // }
       }
     })
-    console.log('win3dlist', window3DList)
+    console.log('win3dlist', device3DList)
     // 計算軸心與群組建立
-    window3DList.forEach((windowItem) => {
-      if (windowItem.windowMeshList.length === 0) return
+    Object.values(device3DList).forEach((windowItem) => {
+      if (!windowItem.windowMeshList || windowItem.windowMeshList.length === 0) return
 
       console.log('winItem', windowItem)
       const windowGroup = new THREE.Group()
@@ -260,7 +263,7 @@ const animate = () => {
   animationFrameId = requestAnimationFrame(animate)
 
   // 1. 窗戶動畫：高速渲染迴圈直接讀寫普通變數的屬性，效率最高
-  window3DList.forEach(windowItem => {
+  Object.values(device3DList).forEach(windowItem => {
     if (windowItem.group) {
       if (windowItem.state === 1) {
         console.log('item', windowItem, ' opening')
@@ -282,7 +285,7 @@ const animate = () => {
       }
       // 驅動 3D 群組旋轉
       if (windowItem.openUpward) {
-        windowItem.group.rotation.z = -windowItem.currentAngle //往上开
+        windowItem.group.rotation.z = -windowItem.currentAngle //往上开,本应是rotation.x，这里是局部x轴
       } else {
         windowItem.group.rotation.y = -windowItem.currentAngle //往侧边开
       }
@@ -366,7 +369,7 @@ const initWebSocket = () => {
     store.updateStatus(devStatesObj.value)
     store.windowStateList.forEach(winState => {
 
-      let win3d = window3DList.at(winState.id - 1)
+      let win3d = device3DList[winState.id]
       win3d.state = winState.status
       if (winState.fan) {
         win3d.blowerState = winState.fan.status
@@ -374,6 +377,12 @@ const initWebSocket = () => {
       if (winState.blower) {
         win3d.blowerState = winState.blower.status
       }
+    })
+
+    store.acStateList.forEach((acState) => {
+      let ac = device3DList[acState.id]
+      // ac.state = acState.status
+      ac.blowerState = acState.status
     })
 
   };
@@ -398,12 +407,12 @@ const init3DWindows = () => {
       state: winState.status,       // 'closed', 'opening', 'open', 'closing', 'stopped'
       // state: 1,
       currentAngle: 0,
-      movingPartNames: partNameGroups[winState.id - 1],
+      // movingPartNames: partNameGroups[winState.id - 1],
       group: null,           // 存放 THREE.Group
       windowMeshList: [],       // 存放真實 THREE.Mesh
       // blowerBladeMeshList: [],
       blowerBladeMesh: null,
-      blowerBladeMeshName: blowerMeshNames[winState.id - 1],
+      // blowerBladeMeshName: blowerMeshNames[winState.id - 1],
       blowerState: -1,
       openUpward: true
     }
@@ -414,15 +423,24 @@ const init3DWindows = () => {
       win3d.blowerState = winState.blower.status
       win3d.openUpward = false
     }
-    window3DList.push(win3d)
+    device3DList[winState.id] = win3d
+  })
+
+  store.acStateList.forEach(acState => {
+    device3DList[acState.id] = {
+      id: acState.id,
+      blowerBladeMesh: null,
+      blowerState: -1,
+    }
   })
   // writing for test
-  // window3DList.at(1).blowerState = 1
-  // window3DList.at(1).state = 1
-  // window3DList.at(11).state = 1
-  // window3DList.at(11).blowerState = 2
-  // window3DList.at(12).state = 1
-  // window3DList.at(12).blowerState = 1
+  device3DList[2].blowerState = 1
+  device3DList[2].state = 1
+  device3DList[11].state = 1
+  device3DList[11].blowerState = 2
+
+  // device3DList[33].blowerState = 1
+  // device3DList[34].blowerState = 1
   // writing for test
 }
 
@@ -432,7 +450,7 @@ onMounted(async () => {
   init3DWindows()
   initThree()
   initWebSocket()
-  console.log('3dwindowlist:', window3DList)
+  console.log('3dwindowlist:', device3DList)
   window.addEventListener('resize', handleResize)
 })
 

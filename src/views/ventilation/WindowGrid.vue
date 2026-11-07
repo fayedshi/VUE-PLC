@@ -25,19 +25,19 @@
             <HouseSelect v-model="selectedHouseCode" @change="handleHouseChange" />
         </div>
         <el-row :gutter="20" v-if="nonBlowerWindowList.length > 0">
-            <el-col v-for="item in nonBlowerWindowList" :key="item.id" :xs="24" :sm="12" :md="8" :lg="4">
-                <WindowCard :data="item" @action="handleDeviceAction" />
+            <el-col v-for="(item, index) in nonBlowerWindowList" :key="item.id" :xs="24" :sm="12" :md="8" :lg="4">
+                <WindowCard :data="item" :seqNo="index + 1" @action="handleDeviceAction" />
             </el-col>
         </el-row>
         <el-row :gutter="20" v-if="blowerWindowList.length > 0">
-            <el-col v-for="item in blowerWindowList" :key="item.id" :xs="24" :sm="12" :md="8" :lg="4">
-                <WindowCard :data="item" @action="handleDeviceAction" />
+            <el-col v-for="(item, index) in blowerWindowList" :key="item.id" :xs="24" :sm="12" :md="8" :lg="4">
+                <WindowCard :data="item" :seqNo="index + 1" @action="handleDeviceAction" />
             </el-col>
         </el-row>
 
         <el-row :gutter="20" v-if="store.acStateList.length > 0">
-            <el-col v-for="item in store.acStateList" :key="item.id" :xs="24" :sm="12" :md="8" :lg="4">
-                <WindowCard :data="item" @action="handleDeviceAction" />
+            <el-col v-for="(item, index) in store.acStateList" :key="item.id" :xs="24" :sm="12" :md="8" :lg="4">
+                <WindowCard :data="item" :seqNo="index + 1" @action="handleDeviceAction" />
             </el-col>
         </el-row>
         <!-- 空状态提示 -->
