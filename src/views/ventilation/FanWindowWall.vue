@@ -14,12 +14,12 @@ const sceneContainer = ref(null);
 // 定义数据驱动的模拟接口数据（50米长、6米高的墙，上面有3个不同位置的风机）
 const warehouseData = {
   wallLength: 50,
-  wallHeight: 6,
+  wallHeight: 36,
   wallWidth: 0.8,
   fans: [
-    { id: 'fan-1', xPercent: 0.2, yHeight: 4.7, speed: 0.05 }, // 靠左的风机
-    { id: 'fan-2', xPercent: 0.5, yHeight: 2.5, speed: 0.08 }, //居中的风机
-    { id: 'fan-3', xPercent: 0.8, yHeight: 3.5, speed: 0.03 }  // 靠右的风机
+    { id: 'fan-1', xPercent: 0.2, yHeight: 24.7, speed: 0.05 }, // 靠左的风机
+    { id: 'fan-2', xPercent: 0.5, yHeight: 22.5, speed: 0.08 }, //居中的风机
+    { id: 'fan-3', xPercent: 0.8, yHeight: 32.5, speed: 0.03 }  // 靠右的风机
   ]
 };
 

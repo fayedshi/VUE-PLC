@@ -153,6 +153,12 @@ let routes = [
                 component: () => import('../views/ventilation/FanWindowWall.vue'),
                 meta: { title: '多3D设备tab' }
               },
+              {
+                path: 'fanwindowWallDyna', 
+                name: 'FanwindowWallDyna',
+                component: () => import('../views/ventilation/FanWindowWallDynamic.vue'),
+                meta: { title: '多3D设备tab' }
+              },
 
             ]
           },

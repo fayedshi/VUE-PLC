@@ -234,14 +234,6 @@ const initGranConfig = async () => {
             }
         })
         console.log('devices loaded ', devices)
-        // categories.value.forEach((cate) => {
-        //     // cate.devices=Array.from({ length: getDevLen(cate.type) }, (_, i) => ({ id: `${cate.type}-${i + granConfig.value[cate.type][0]}`, name: `${cate.label}#${i + 1}`, status: 4 }))
-        //     if (granConfig.value[cate.type]) {
-        //         cate.devices = Array.from({ length: getDevLen(cate.type) }, (_, i) => ({ id: `${cate.type}-${i + 1}`, name: `${cate.label}#${i + 1}`, status: 4 }))
-        //     }
-        // })
-
-        // numWindows.value = granConfig.value['windows']
     } catch (error) {
         console.error('❌ 请求后端接口失败:', error)
         alert('数据加载失败，请检查后端服务是否启动！')
