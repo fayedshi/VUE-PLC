@@ -115,7 +115,7 @@ let routes = [
                 path: 'ventiManual', 
                 name: 'VentiMnaual',
                 component: () => import('../views/ventilation/VentiManualPanel.vue'),
-                meta: { title: '手动控制面板' }
+                meta: { title: '手动控制面板(废弃)' }
               },
               {
                 path: 'ventiMan', 
@@ -146,7 +146,13 @@ let routes = [
                 name: 'SouthWall',
                 component: () => import('../views/ventilation/SouthWall3DDemo.vue'),
                 meta: { title: '多3D设备tab' }
-              }
+              },
+              {
+                path: 'fanwindowWall', 
+                name: 'FanwindowWall',
+                component: () => import('../views/ventilation/FanWindowWall.vue'),
+                meta: { title: '多3D设备tab' }
+              },
 
             ]
           },

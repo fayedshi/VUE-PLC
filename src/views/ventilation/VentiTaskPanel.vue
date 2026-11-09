@@ -473,7 +473,7 @@ const startJob = async (jobType) => {
     }
     // console.log('job started')
     // console.log('result ', result)
-    // alert(result.data.message)
+    ElMessage.success(result.data.message)
   } catch (err) {
     // alert('操作失败，请检查 PLC 连接');
   } finally {

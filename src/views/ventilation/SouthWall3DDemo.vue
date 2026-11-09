@@ -3,6 +3,7 @@
 
     <div class="left-panel">
       <span>控制面板</span>
+      <div v-if="isLoading" class="loading-overlay">⚙️ 正在加载3D模型...</div>
       <el-row :gutter="20" v-if="southWindowList.length > 0">
         <el-col v-for="(item, index) in southWindowList" :key="item.id" :xs="24" :sm="12" :md="8" :lg="12">
           <WindowCard :data="item" :seqNo="index + 1" @action="handleDeviceAction" />
@@ -14,7 +15,9 @@
         </el-col>
       </el-row>
     </div>
-    <div ref="canvasContainer" class="canvas-container"></div>
+    
+    <div ref="canvasContainer" class="canvas-container">
+    </div>
   </div>
 </template>
 
@@ -26,6 +29,7 @@ import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader'
 import { useWindowControlStore } from '../../store/WindowControl.ts' // 沿用上一轮回答的 Pinia Store
 import WindowCard from '../../components/WindowCard.vue'
 
+const isLoading = ref(true)
 const store = useWindowControlStore()
 const southWindowList = computed(() => {
   return store.windowStateList.filter(window => [1, 2, 3, 4, 5, 11, 12, 13, 14].includes(window.id))
@@ -37,7 +41,8 @@ let scene, camera, renderer, controls, animationFrameId
 
 // 旋轉配置
 const maxAngle = Math.PI / 2
-const speed = 0.02
+const speed = 0.00058
+// const speed = 0.00658
 // let blowerBladeMesh = null
 // const isBlowerRunning = ref(false) // 風機狀態保留 ref 供業務邏輯聯動（若不需要也可改 let）
 
@@ -47,6 +52,7 @@ const upper_win_moving_parts = ['g1', 'g2', 'k']  // 发现窗户部件: k_insta
 const base_win_moving_parts = ['d1', 'd2', 'd3']  // 下窗的活动部件
 const blower_parts = ['fengshan'] // 窗或空调的风扇部件
 const ac_parts = ['fengji'] // 下窗的风扇部件
+
 
 // const windowCount = 18
 // const partNameGroups = []
@@ -108,20 +114,22 @@ const initThree = () => {
   scene.add(dirLight)
 
   controls = new OrbitControls(camera, renderer.domElement)
-  // controls.enableDamping = false
-  controls.enableZoom = true;     // 禁用滚轮缩放
-  // controls.enablePan = false;      // 禁用右键平移
-  // controls.enableRotate = false
+  controls.enableDamping = false
+  controls.enableZoom = false;     // 禁用滚轮缩放
+  controls.enablePan = false;      // 禁用右键平移
+  controls.enableRotate = false
 
   loadWindowModel()
   animate()
+  console.log('loaded model')
+  
 }
 
 const loadWindowModel = () => {
   const loader = new FBXLoader()
 
-  loader.load('/asset/southwall_full.fbx', (fbxObject) => {
-    const size = 0.018
+  loader.load('/asset/1109_gran_v4.fbx', (fbxObject) => {
+    const size = 0.045
     fbxObject.scale.set(size, size, size)
     fbxObject.updateMatrixWorld(true)
     // 相機聚焦
@@ -137,12 +145,12 @@ const loadWindowModel = () => {
       // 🌟 【关键修复】：Z 轴必须加上一段距离（例如后退 200，或者根据模型大小动态计算），不能为 0！
       const cameraDistance = modelSize.length() * 1.5 || 200; // 动态根据模型大小决定后退多少
       camera.position.set(
-        modelCenter.x - 70, // 往左挪了60公分（X-60）
+        modelCenter.x - 80, // 往左挪了60公分（X-60）
         modelCenter.y, // 
-        modelCenter.z + 15 // 👈 往后退了2米（Z+200）
+        modelCenter.z + 4 // 👈 往后退了2米（Z+200）
       )
       // 6. 刷新控制器
-      fbxObject.position.y += 15 // 上移15
+      // fbxObject.position.y += 6 // 上移15
       scene.add(fbxObject)
       controls.update()
     }
@@ -261,7 +269,7 @@ const animate = () => {
   Object.values(device3DList).forEach(windowItem => {
     if (windowItem.group) {
       if (windowItem.state === 1) {
-        console.log('item', windowItem, ' opening')
+        // console.log('item', windowItem, ' opening')
         windowItem.currentAngle += speed
         if (windowItem.currentAngle >= maxAngle) {
           windowItem.currentAngle = maxAngle
@@ -320,11 +328,7 @@ const animate = () => {
             windowItem.blowerBladeMesh.rotation.x -= Math.PI * 2
           }
         }
-
       }
-
-
-      return
     }
   })
   controls.update()
@@ -429,12 +433,16 @@ const init3DWindows = () => {
     }
   })
   // writing for test
-  // device3DList[2].blowerState = 1
   // device3DList[2].state = 1
+  // device3DList[2].blowerState = 1
+  // device3DList[3].state = 1
+  // device3DList[3].blowerState = 1
+  // device3DList[4].state = 1
+  // device3DList[4].blowerState = 1
   // device3DList[11].state = 1
   // device3DList[11].blowerState = 2
-  // device3DList[11].state = 1
-  // device3DList[11].blowerState = 2
+  // device3DList[12].state = 1
+  // device3DList[12].blowerState = 2
 
   // device3DList[33].blowerState = 1
   // device3DList[34].blowerState = 1
@@ -443,10 +451,16 @@ const init3DWindows = () => {
 
 
 onMounted(async () => {
-  await store.initDeviceConfig('001')
+  await Promise.all([
+    store.initDeviceConfig('001'),
+    initWebSocket()
+    ]
+  )
+  console.log('done first part init')
   init3DWindows()
   initThree()
-  initWebSocket()
+  isLoading.value = false
+
   console.log('3dwindowlist:', device3DList)
   window.addEventListener('resize', handleResize)
 })
@@ -464,7 +478,7 @@ onBeforeUnmount(() => {
   display: flex;
   width: 100%;
   /* 必须让总宽度充满父级（如 body） */
-  height: 1000px;
+  height: 800px;
   /* 推荐：直接充满整个屏幕高度，也可以设为具体值如 700px */
   margin: 0 auto;
   box-sizing: border-box;
@@ -482,7 +496,7 @@ onBeforeUnmount(() => {
   flex-direction: column;
   gap: 20px;
   z-index: 10;
-  height: 100%;
+  /* height: 10; */
   /* 撑满高度 */
   box-sizing: border-box;
   overflow-y: auto;
@@ -492,7 +506,7 @@ onBeforeUnmount(() => {
 .canvas-container {
   flex: 1;
   /* 牢牢吃满除了左侧 panel 以外的所有剩余宽度 */
-  height: 100%;
+  height: 500px;
   /* 高度继承父级的 100vh，直接和左侧面板对齐 */
   background-color: #f1f5f9;
   /* 临时画布背景色，防止加载前全白 */

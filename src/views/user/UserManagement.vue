@@ -23,35 +23,39 @@
             <el-table-column prop="created_at" label="创建时间" />
 
             <!-- ⚙️ 统一的操作列（仅超级管理员可见） -->
-            <el-table-column label="操作" width="220">
+            <el-table-column label="操作" width="280">
                 <template #default="scope">
+                    <div class="action-buttons">
+                        <el-button type="primary" size="small" icon="Edit" :disabled="scope.row.username === 'admin'"
+                            @click="openEditDialog(scope.row)">
+                            编辑
+                        </el-button>
 
-
-                    <!-- 2. 删除按钮 -->
-                    <el-button type="danger" size="small" icon="Delete"
-                        :disabled="scope.row.username === 'admin' || scope.row.username === currentUser"
-                        @click="handleDelete(scope.row)">
-                        删除
-                    </el-button>
-                    <!-- 1. 重置密码按钮（使用 primary 或 warning 蓝色/黄色调，与删除的红色错开） -->
-                    <el-button typtype="warning" icon="Refresh" @click="handleResetPassword(scope.row)"
-                        :disabled="scope.row.username === 'admin'">
-                        重置密码
-                    </el-button>
+                        <!-- 2. 删除按钮 -->
+                        <el-button type="danger" size="small" icon="Delete"
+                            :disabled="scope.row.username === 'admin' || scope.row.username === currentUser"
+                            @click="handleDelete(scope.row)">
+                            删除
+                        </el-button>
+                        <!-- 1. 重置密码按钮（使用 primary 或 warning 蓝色/黄色调，与删除的红色错开） -->
+                        <el-button typtype="warning" icon="Refresh" @click="handleResetPassword(scope.row)"
+                            :disabled="scope.row.username === 'admin'">
+                            重置密码
+                        </el-button>
+                    </div>
                 </template>
             </el-table-column>
         </el-table>
 
 
         <!-- 添加用户弹窗 -->
-        <el-dialog v-model="dialogVisible" title="新增用户" width="400px">
+        <!-- 表单弹窗（新增/编辑复用） -->
+        <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑用户' : '新增用户'" width="400px">
             <el-form :model="userForm" label-width="80px">
                 <el-form-item label="用户名">
-                    <el-input v-model="userForm.username" />
+                    <!-- 编辑时通常不允许修改用户名，若允许可去掉 disabled -->
+                    <el-input v-model="userForm.username" :disabled="isEdit" />
                 </el-form-item>
-                <!-- <el-form-item label="密码">
-                    <el-input v-model="userForm.password" type="password" show-password />
-                </el-form-item> -->
                 <el-form-item label="角色">
                     <el-select v-model="userForm.role" style="width: 100%" placeholder="请选择">
                         <el-option v-for="role in roleList" :key="role.name" :label="role.desc" :value="role.name" />
@@ -60,7 +64,7 @@
             </el-form>
             <template #footer>
                 <el-button @click="dialogVisible = false">取消</el-button>
-                <el-button type="primary" @click="submitAddUser">确定</el-button>
+                <el-button type="primary" @click="submitForm">确定</el-button>
             </template>
         </el-dialog>
     </div>
@@ -75,6 +79,7 @@ const userList = ref([]);
 const roleList = ref([]);
 const loading = ref(false);
 const dialogVisible = ref(false);
+const isEdit = ref(false); // 标记当前是新增还是编辑
 
 const currentRole = localStorage.getItem('role');
 const currentUser = localStorage.getItem('username');
@@ -145,7 +150,46 @@ const handleResetPassword = (row) => {
 }
 
 const openAddDialog = () => {
+    isEdit.value = false;
     userForm.value = { username: '', password: '', role: '' };
+    dialogVisible.value = true;
+};
+
+// 统一提交入口
+const submitForm = async () => {
+    if (!userForm.value.username || !userForm.value.role) {
+        return ElMessage.warning('请填写完整信息');
+    }
+
+    if (isEdit.value) {
+        await submitEditUser();
+    } else {
+        await submitAddUser();
+    }
+};
+
+// 提交变更：编辑用户
+const submitEditUser = async () => {
+    try {
+        // 假设编辑接口为 PUT /api/users/:id，请根据后端实际路由调整
+        await http.put(`/api/users/${userForm.value.id}`, {
+            username: userForm.value.username,
+            role: userForm.value.role
+        });
+        ElMessage.success('用户更新成功');
+        dialogVisible.value = false;
+        fetchUsers();
+    } catch (err) {
+        const errorMsg = err.response?.data?.detail || '更新失败，请重试';
+        ElMessage.error(errorMsg);
+    }
+};
+
+// 打开编辑弹窗
+const openEditDialog = (row) => {
+    isEdit.value = true;
+    // 使用浅拷贝，避免在弹窗中修改时直接影响表格视图
+    userForm.value = { ...row };
     dialogVisible.value = true;
 };
 
@@ -201,6 +245,14 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* 强制操作按钮横向排列且不换行 */
+.action-buttons {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+}
+
 .user-management {
     padding: 20px;
     background: #fff;

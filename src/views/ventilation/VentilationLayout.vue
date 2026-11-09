@@ -7,6 +7,7 @@
     <RouterLink to="/system/ventilation/ventiMan" active-class="active">手动控制面板</RouterLink>
     <RouterLink to="/system/ventilation/blower" active-class="active">单风机(测试)</RouterLink>
     <RouterLink to="/system/ventilation/southWall" active-class="active">南面墙(测试)</RouterLink>
+    <RouterLink to="/system/ventilation/fanwindowWall" active-class="active">动态墙</RouterLink>
     <!-- <RouterLink to="/system/ventilation/doorGroup" active-class="active">Door Group(测试)</RouterLink> -->
     <!-- <RouterLink to="/system/ventilation/deviceGroup" active-class="active">设备组织(测试)</RouterLink> -->
   </div>
