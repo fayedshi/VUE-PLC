@@ -1,151 +1,90 @@
 <template>
     <div class="control-container" v-loading="store.loading" element-loading-text="正在读取后端拓扑配置...">
-        <!-- 顶部状态栏 -->
-        <!-- <div class="page-header">
-            <h2>🏭 智能窗控与通风设备管理中心</h2>
-            <el-alert title="数据联动提示：系统已根据 YAML 拓扑自动映射排风扇 (27-30) 与风机 (19-26) 的从属关系。" type="info" show-icon
-                :closable="false" />
-        </div> -->
 
-        <!-- 设备网格布局 -->
-        <div class="panel-header">
-            <div class="category-title">
-                <h3>模式切换</h3>
-            </div>
-            <!-- 第一组：远程 / 本地 -->
-            <div class="btn-group">
-                <button :class="{ active: controlMode === 1 }" @click="switchMode('switch', store.switchAddress, 2)">
-                    远程
-                </button>
-                <button :class="{ active: controlMode === 0 }" @click="switchMode('switch', store.switchAddress, 1)">
-                    本地
-                </button>
-            </div>
-
+        <!-- 顶部全局配置栏（仓房选择） -->
+        <div class="global-header">
             <HouseSelect v-model="selectedHouseCode" @change="handleHouseChange" />
         </div>
-        <el-row :gutter="20" v-if="nonBlowerWindowList.length > 0">
-            <el-col v-for="(item, index) in nonBlowerWindowList" :key="item.id" :xs="24" :sm="12" :md="8" :lg="4">
-                <WindowCard :data="item" :seqNo="index + 1" @action="handleDeviceAction" />
-            </el-col>
-        </el-row>
-        <el-row :gutter="20" v-if="blowerWindowList.length > 0">
-            <el-col v-for="(item, index) in blowerWindowList" :key="item.id" :xs="24" :sm="12" :md="8" :lg="4">
-                <WindowCard :data="item" :seqNo="index + 1" @action="handleDeviceAction" />
-            </el-col>
-        </el-row>
 
-        <el-row :gutter="20" v-if="store.acStateList.length > 0">
-            <el-col v-for="(item, index) in store.acStateList" :key="item.id" :xs="24" :sm="12" :md="8" :lg="4">
-                <WindowCard :data="item" :seqNo="index + 1" @action="handleDeviceAction" />
-            </el-col>
-        </el-row>
-        <!-- 空状态提示 -->
-        <el-empty v-else-if="!store.loading" description="暂无设备配置数据" />
+        <!-- 当有控制柜数据时，显示多标签页 -->
+        <el-tabs v-if="store.cabinList && store.cabinList.length > 0" v-model="activeCabinetTab" type="border-card"
+            class="cabinet-tabs">
+            <!-- 循环生成控制柜 Tab -->
+            <el-tab-pane v-for="(windowList, index) in store.cabinList" :key="index" :label="`控制柜 ${index + 1}`"
+                :name="String(index)">
+                <!-- 每个控制柜内部的独立控制面板 -->
+                <div class="panel-box">
+
+                    <!-- 局部面板头部：当前控制柜的模式切换 -->
+                    <div class="panel-header">
+                        <div class="category-title">
+                            <h3>模式切换</h3>
+                        </div>
+                        <!-- 绑定当前控制柜自己的控制模式 -->
+                        <div class="btn-group">
+                            <button :class="{ active: controlMode === 1 }"
+                                @click="switchMode('switch', store.switchAddress, 2)">
+                                远程
+                            </button>
+                            <button :class="{ active: controlMode === 0 }"
+                                @click="switchMode('switch', store.switchAddress, 1)">
+                                本地
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 当前控制柜下的设备网格布局 -->
+                    <el-row :gutter="20" v-if="windowList && windowList.length > 0">
+                        <el-col v-for="(item, index) in windowList" :key="item.id" :xs="24" :sm="12" :md="8" :lg="4">
+                            <!-- 传入当前控制柜的设备数据 -->
+                            <WindowCard :data="item" :seqNo="index + 1" @action="handleDeviceAction" />
+                        </el-col>
+                    </el-row>
+
+                    <!-- 当前控制柜下无设备 -->
+                    <el-empty v-else description="该控制柜暂无设备配置" />
+
+                </div>
+            </el-tab-pane>
+        </el-tabs>
+
+        <!-- 全局无控制柜数据提示 -->
+        <el-empty v-else-if="!store.loading" description="暂无控制柜配置数据" />
     </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import HouseSelect from '../../components/HouseSelect.vue';
-import { useWindowControlStore } from '../../store/WindowControl.ts' // 沿用上一轮回答的 Pinia Store
+import { useWindowControlStore } from '../../store/WindowControl' // 沿用上一轮回答的 Pinia Store
 import WindowCard from '../../components/WindowCard.vue'
 import { onMounted, ref, computed, onBeforeUnmount } from 'vue'
 
 const store = useWindowControlStore()
-const selectedHouseCode = ref('');
 const controlMode = ref('')
-const nonBlowerWindowList = computed(() => {
-    return store.windowStateList.filter(window => !window.blower)
-})
+const selectedHouseCode = ref('')
+const activeCabinetTab = ref('') // 当前选中的控制柜 Tab ID
 
-const blowerWindowList = computed(() => {
-    return store.windowStateList.filter(window => window.blower)
-})
-
-const devStatesObj = ref({
-})
-
-const handleHouseChange = async () => {
+// 监听仓房切换
+const handleHouseChange = async (val: string) => {
+    // 1. 调用 store 里的方法获取该仓房下的所有控制柜及设备拓扑
     await store.initDeviceConfig(selectedHouseCode.value)
-    console.log('after house change: ', store.windowStateList)
-    initWebSocket()
-}
-
-// 2. 远程 / 本地 切换点击事件
-const switchMode = async (type, id, action) => {
-
-    try {
-        await store.controlDevice(selectedHouseCode.value, type, id, action)
-        // console.log('result ', result)
-        console.log(`控制模式已成功切换`)
-
-    } catch (err) {
-        alert('操作失败，请检查 PLC 连接');
+    console.log('len ', store.cabinList.length)
+    // // 2. 数据加载完成后，默认选中第一个控制柜的 Tab
+    if (store.cabinList.length > 0) {
+        activeCabinetTab.value = '0'
     }
 }
 
-let isExplicitlyClosed = false
-let socket = null
-const initWebSocket = () => {
-    // todo: need granary switch control in ui, hardcode 001 for now
-
-    socket = new WebSocket(`ws-api/ws/dev-state/${selectedHouseCode.value}`);
-    // socket = new WebSocket(`ws://${backendAdd}/ws/dev-state`);`
-
-    // 连接成功事件
-    socket.onopen = () => {
-        console.log('成功连接到 Python 后端 WebSocket！');
-    };
-
-    // 接收到后端实时数据事件
-    socket.onmessage = (event) => {
-        // 解析后端传过来的 JSON 字符串
-        devStatesObj.value = JSON.parse(event.data);
-
-        // console.log('devstate', event.data)
-        // devStatesObj.value= {"switch":[1],"windows":[6,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5],"blowers":[0,0,0,0,0,0,0,0],"fans":[0,0,0,0],"ac":[0,0]}
-        controlMode.value = devStatesObj.value?.['switch'][0]
-        store.updateStatus(devStatesObj.value)
-    };
-
-    // 连接关闭事件
-    socket.onclose = () => {
-        // console.log('【前端提示】连接已断开，3秒后尝试自动重连...');
-        if (!isExplicitlyClosed)
-            setTimeout(initWebSocket, 3000); // 掉线自动重连机制
-    };
-
-    // 发生错误事件
-    socket.onerror = (error) => {
-        console.error('【前端提示】WebSocket 发生错误:', error);
-    };
-};
-
-onMounted(async () => {
-    // @change这里加载了子组件中返回的housecode,所以让子组件先执行
-    // console.log('selected house', selectedHouseCode.value)
-    // try {
-
-    //     const result = await store.initDeviceConfig(selectedHouseCode.value)
-
-    // }
-    // catch (err) {
-    //     console.log('initDeviceConfig 发生错误')
-    // }
-    // initWebSocket()
-})
-// 拦截子组件动作并调用 Store
-const handleDeviceAction = async ({ type, id, action }) => {
-    await store.controlDevice(selectedHouseCode.value, type, id, action)
+// 修改模式切换方法，传入 cabinetId 明确是要修改哪个柜子
+const switchMode = (type: string, address: string, mode: number, cabinetId: string) => {
+    console.log(`控制柜 ${cabinetId} 切换模式为: ${mode}`)
+    // 调用后端 API 或 store 方法发送指令
+    // store.updateCabinetMode(cabinetId, mode)
 }
 
-onBeforeUnmount(() => {
-    if (socket) {
-        console.log('venti manual panel destroyed')
-        socket.close();
-        isExplicitlyClosed = true
-    }
-});
+const handleDeviceAction = (actionData: any) => {
+    // 处理组件事件
+}
 </script>
 
 <style scoped>
@@ -155,16 +94,33 @@ onBeforeUnmount(() => {
     min-height: 100vh;
 }
 
+/* 全局仓房选择头部 */
+.global-header {
+    margin-bottom: 16px;
+    background: #ffffff;
+    padding: 12px 20px;
+    border-radius: 8px;
+    border: 1px solid #ebeef5;
+}
+
+/* Tabs 容器样式 */
+.cabinet-tabs {
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+}
+
+.panel-box {
+    padding: 8px 0;
+}
+
 /* 顶部按钮栏容器 */
 .panel-header {
     display: flex;
     align-items: center;
     justify-content: left;
-    /* padding: 12px 20px; */
-    background: #ffffff;
-    border-radius: 8px;
-    /* box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05); */
-    border: 1px solid #ebeef5;
+    margin-bottom: 20px;
+    /* 留出与下方设备卡片的间距 */
     gap: 16px;
 }
 
@@ -176,23 +132,28 @@ onBeforeUnmount(() => {
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
+.btn-group button {
+    padding: 6px 16px;
+    border: 1px solid #dcdfe6;
+    background: #fff;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
 .category-title {
     width: 90px;
     flex-shrink: 0;
+}
+
+.category-title h3 {
+    margin: 0;
+    font-size: 16px;
+    color: #303133;
 }
 
 .btn-group button.active {
     background-color: #409eff;
     color: #ffffff;
     border-color: #409eff;
-}
-
-.page-header {
-    margin-bottom: 24px;
-}
-
-.page-header h2 {
-    margin-bottom: 12px;
-    color: #303133;
 }
 </style>

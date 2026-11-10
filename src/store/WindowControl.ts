@@ -84,41 +84,34 @@ const blowerMap = ref<Map<number, number>>(new Map())
 
 export const useWindowControlStore = defineStore('windowControl', () => {
     // --- 模拟解析 YAML 配置 ---
-    let config = {
-        // windows: { start: 1, end: 18 },
-        // fanWindow: { src: [2, 4, 6, 10], target_start: 27 },
-        // blowerWindow: { src_start: 11, src_end: 18, target_start: 19 }
-    }
+
     const loading = ref(false)
     const switchAddress = ref()
     // 初始化/获取后端配置与数据的核心方法
-    const initDeviceConfig = async (houseCode: string) => {
+    const initDeviceConfig = async (houseIndex: string) => {
         resetData()
         loading.value = true
         try {
+            let config = {
+                // windows: { start: 1, end: 18 },
+                // fanWindow: { src: [2, 4, 6, 10], target_start: 27 },
+                // blowerWindow: { src_start: 11, src_end: 18, target_start: 19 }
+            }
             // 1. 从后端获取配置 (后端可以直接返回 JSON 化的 YAML 配置以及当前设备状态)
-            const response = await http.get(`/api/dev-address/${houseCode}`)
+            const response = await http.get('/api/dev-address', {
+                params: {
+                    house_index: houseIndex
+                }
+            })
+
             console.log('config:', response)
             config = response.data
-            switchAddress.value = config?.['switch'][0]
+            // switchAddress.value = config?.['switch'][0]
             // console.log('switchadd ',switchAddress.value)
-            // 2. 动态解析映射规则
-            // const fMap = new Map<number, number>()
-            // if (config.fanWindow) {
-            //     config.fanWindow.src.forEach((winId: number, index: number) => {
-            //         fMap.set(winId, config.fanWindow.target_start + index)
-            //     })
-            //     fanMap.value = fMap
-            // }
-            fanMap.value = getDataMap('fanWindow')
-            // console.log('fanMap', fanMap.value)
 
-            // const bMap = new Map<number, number>()
-            // for (let winId = config.blowerWindow.src_start; winId <= config.blowerWindow.src_end; winId++) {
-            //     const index = winId - config.blowerWindow.src_start
-            //     bMap.set(winId, config.blowerWindow.target_start + index)
-            // }
-            blowerMap.value = getDataMap('blowerWindow')
+            // fanMap.value = getDataMap('fanWindow')
+            // // console.log('fanMap', fanMap.value)
+            // blowerMap.value = getDataMap('blowerWindow')
 
             // 3. 灌入后端返回的实时状态 (status)
             // 假设后端返回的 currentStatus 结构为 { windows: {...}, fans: {...}, blowers: {...} }
@@ -127,110 +120,78 @@ export const useWindowControlStore = defineStore('windowControl', () => {
             // Object.assign(blowers, currentStatus.blowers)
 
             // 初始化所有设备状态
-            let fanIndex = 1
-            let blowerIndex = 1
-            let windowIndex = 1
-            let damperStart = false
-            for (let i = config.windows[0]; i <= config.windows[1]; i++) {
-
-                const winState: WindowState = { id: i, index: windowIndex++, status: -1, fan: null, blower: null }
-
-                if (fanMap.value.has(i)) {
-                    const fanId = fanMap.value.get(i)!
-                    // fans[fanId] = { id: fanId, index: fanIndex++, status: -1 }
-                    const fan: FanState = { id: fanId, index: fanIndex++, status: -1 }
-                    winState.fan = fan
-                }
-
-                if (blowerMap.value.has(i)) {
-                    if (!damperStart) {
-                        // windowIndex = 1
-                        damperStart = true
-                    }
-                    const blowerId = blowerMap.value.get(i)!
-                    // blowers[blowerId] = { id: blowerId, index: blowerIndex++, status: -1 }
-                    const blower: BlowerState = { id: blowerId, index: blowerIndex, status: -1 }
-                    blowerIndex++
-                    winState.blower = blower
-                }
-                // todo: 这里可以加一个windowDisplayIndex
-                windowStateList.value.push(winState)
-                // windows.value[i] = { id: i, index: windowIndex++, status: -1 }
-            }
-
-            let j = 1;
-            for (let i = config.ac[0]; i <= config.ac[1]; i++) {
-                // acs.value[i] = { id: i, index: j++, status: -1 }
-                const ac: AcState = { id: i, index: j++, status: -1 }
-                acStateList.value.push(ac)
-            }
-            // console.log('acs', acStateList.value, 'windowList:', windowStateList.value)
-            // 不用computed， 因为task list有status字段，一旦status更新，tasklist会重新计算，这样selected, start值都会被清空
-            windowTaskList.value = windowStateList.value.map(state => {
-                // 1. 實例化一個全新的 WindowTask 物件（自帶 start, stop, selected 的預設值）
-                const task = new WindowTask();
-
-                // 2. 將基底狀態 (id, index, status) 複製過去
-                Object.assign(task, {
-                    id: state.id,
-                    index: state.index,
-                    status: state.status
-                });
-
-                // 3. 處理內部的子狀態轉換（注意：State 要轉成 Task 的實例）
-                if (state.fan) {
-                    task.fan = new FanTask();
-                    Object.assign(task.fan, state.fan);
-                }
-                if (state.blower) {
-                    task.blower = new BlowerTask();
-                    Object.assign(task.blower, state.blower);
-                }
-
-                return task;
+            const cabins = config?.['PLC-Cabin-List']
+            cabins.forEach(element => {
+                buildWindowList(element)
             });
-            acTaskList.value = acStateList.value.map(state => {
-                const task = new AcTask();
-                Object.assign(task, {
-                    id: state.id,
-                    index: state.index,
-                    status: state.status
-                });
-                return task
-            })
-            console.log('windowtask list:', windowTaskList.value)
+
+            console.log('cc list:', cabinList.value)
 
         } catch (error) {
             console.error('加载窗控配置失败:', error)
-            ElMessage.error(`当前房屋[${houseCode}]配置解析错误，请前往后台检查！`)
+            ElMessage.error(`当前房屋[${houseIndex}]配置解析错误，请前往后台检查！`)
         } finally {
             loading.value = false
         }
     }
 
-    const getDataMap = (key) => {
-        const idMap = new Map<number, number>()
-        let subConfig = config?.[key]
-        if (subConfig.src) {
-            // console.log('in src')
-            subConfig.src.forEach((winId: number, index: number) => {
-                idMap.set(winId, subConfig.target_start + index)
-            })
-        } else if (subConfig.src_start) {
-            // console.log('to src_start')
-            for (let winId = subConfig.src_start; winId <= subConfig.src_end; winId++) {
-                const index = winId - subConfig.src_start
-                idMap.set(winId, subConfig.target_start + index)
-            }
+    // const getDataMap = (key) => {
+    //     const idMap = new Map<number, number>()
+    //     let subConfig = config?.[key]
+    //     if (subConfig.src) {
+    //         // console.log('in src')
+    //         subConfig.src.forEach((winId: number, index: number) => {
+    //             idMap.set(winId, subConfig.target_start + index)
+    //         })
+    //     } else if (subConfig.src_start) {
+    //         // console.log('to src_start')
+    //         for (let winId = subConfig.src_start; winId <= subConfig.src_end; winId++) {
+    //             const index = winId - subConfig.src_start
+    //             idMap.set(winId, subConfig.target_start + index)
+    //         }
+    //     }
+    //     return idMap
+    // }
+
+    const buildWindowList = ((config) => {
+        let subConfig = config['mapping']
+        let winSrcIds = subConfig?.['window_src'] || []
+        if (subConfig) {
+            delete subConfig.window_src
         }
-        return idMap
-    }
+        console.log('winids:', winSrcIds)
+        const windowStateList = []
+        winSrcIds.forEach((winId: number, index: number) => {
+            const winState: WindowState = { id: winId, status: -1, fan: null, valve: null }
+            Object.keys(subConfig).forEach(key => {
+                const deviceType = key.substring(0, key.indexOf('_'))
+                let deviceId = -1
+                if (key.endsWith('_start')) {
+                    deviceId = subConfig[key] + index
+                } else if (key.endsWith('_list')) {
+                    let deviceList = subConfig[key]
+                    deviceId = deviceList[index]
+                    //winState.fan ={id: deviceList[index], status: -1 }
+                }
+                winState[deviceType] = { id: deviceId, status: -1 }
+            })
+            windowStateList.push(winState)
+        })
+
+        // add nature windows
+        let winIds = config['window']||[]
+        winIds.forEach((winId)=>{
+            
+        })
+        cabinList.value.push(windowStateList)
+    })
 
 
 
     // --- 响应式状态定义 ---, key, value键值对类型
-    const windows = ref<Record<number, WindowState>>({})
-    const windowStateList = ref<WindowState[]>([])
+    // const windowStateList = ref<WindowState[]>([])
+    const cabinList = ref([])
+
 
     let fans = reactive<Record<number, FanState>>({})
     let blowers = reactive<Record<number, BlowerState>>({})
@@ -241,16 +202,13 @@ export const useWindowControlStore = defineStore('windowControl', () => {
     const acTaskList = ref<AcTask[]>([])
 
     const resetData = () => {
-        windows.value = {}
-        windowStateList.value = []
-        // acs.value = {}
-        acStateList.value = []
-        windowTaskList.value = []
-        acTaskList.value = []
+        // windows.value = {}
+        cabinList.value = []
+        // List.value = []
         console.log('已成功清空上一个房屋的数据缓存')
     }
 
-    const updateStatus = (devStatesObj) => {
+    const updateStatus = (devStatesObj, ccIndex) => {
         // console.log('in updatestatus: ', devStatesObj)
         // Object.keys(windows.value).map(Number).map(winId => {
         //     const fanId = fanMap.value.get(winId) as number
@@ -267,12 +225,12 @@ export const useWindowControlStore = defineStore('windowControl', () => {
         //         }
         //     }
         // })
-        windowStateList.value.forEach((winState) => {
+        cabinList[ccIndex].value.forEach((winState) => {
             winState.status = devStatesObj.windows[winState.id - 1]
             if (winState.fan) {
                 // if (winState.child instanceof FanState) {
                 winState.fan.status = devStatesObj.fans[winState.fan.index - 1]
-            } else if (winState.blower) {
+            } else if (winState.valve) {
                 winState.blower.status = devStatesObj.blowers[winState.blower.index - 1]
             }
         })
@@ -283,9 +241,9 @@ export const useWindowControlStore = defineStore('windowControl', () => {
         //         acs.value[acId].status = devStatesObj.ac[acs.value[acId].index - 1]
         //     }
         // })
-        acStateList.value.forEach((acState) => {
-            acState.status = devStatesObj.ac[acState.index - 1]
-        })
+        // acStateList.value.forEach((acState) => {
+        //     acState.status = devStatesObj.ac[acState.index - 1]
+        // })
     }
 
     // --- 聚合的计算属性：供页面循环渲染使用 ---
@@ -327,8 +285,6 @@ export const useWindowControlStore = defineStore('windowControl', () => {
         )
     )
 
-
-
     // --- 控制动作 (对接后端 API / Mqtt) ---
     const controlDevice = async (houseCode: string, type: 'window' | 'fan' | 'blower' | 'ac' | 'switch', id: number, action: number) => {
         console.log(`发送指令: housecode-${houseCode} 设备类型[${type}], 设备ID[${id}], 动作[${action}]`)
@@ -342,14 +298,15 @@ export const useWindowControlStore = defineStore('windowControl', () => {
             // console.log('result ', result)
         } catch (err) {
             // alert('操作失败: '+err);
-        } 
+        }
     }
 
     return {
         loading, switchAddress,
-        windowStateList, acStateList,
-        windowTaskList, acTaskList,
-        selectedAcList, selectedWindowTaskList,
+        // windowStateList, acStateList,
+        // windowTaskList, acTaskList,
+        // selectedAcList, selectedWindowTaskList,
+        cabinList,
         initDeviceConfig, updateStatus, controlDevice
     }
 })

@@ -4,7 +4,7 @@
 
         <el-select clearable v-model="modelValue" placeholder="请选择" style="width: 100px" @change="handleHouseChange">
             <!-- 循环渲染 el-option -->
-            <el-option v-for="houseCode in houseCodeList" :key="houseCode" :label="houseCode" :value="houseCode" />
+            <el-option v-for="(houseCode,index) in houseCodeList" :key="houseCode" :label="houseCode" :value="index" />
         </el-select>
     </div>
 
@@ -37,7 +37,7 @@ onMounted(async () => {
         if (result.data) {
             houseCodeList.value = result.data
             // console.log(' house cod list', houseCodeList.value)
-            modelValue.value = houseCodeList.value[0]
+            modelValue.value = 0
             handleHouseChange()
         }
     } catch (error) {
