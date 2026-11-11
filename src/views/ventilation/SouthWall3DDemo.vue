@@ -225,7 +225,7 @@ const loadWindowModel = () => {
       fbxObject.add(windowGroup)
 
       // windowItem.group = windowGroup
-      if (!windowItem.windowMeshList || windowItem.windowMeshList.length === 0) {
+      if (!windowItem.windowMeshList) {
         console.warn(`⚠️ 警告: 设备 ${windowItem.id || '未知'} 没有找到对应的 3D Mesh 网格！将使用默认中心点挂载标签。`);
 
         // 如果没有 Mesh，直接在原地（父级中心）挂一个标签，不让它报空
@@ -236,12 +236,14 @@ const loadWindowModel = () => {
         // console.log('winItem with empty meshlist:', windowItem, ' created lable')
 
         // return // 结束当前设备的后续吸附计算，进入下一个设备
-        // windowGroup.attach(windowItem.blowerBladeMesh)
+        windowGroup.attach(windowItem.blowerBladeMesh)
       }
       // 計算真實包圍盒
-      windowItem?.windowMeshList?.forEach(mesh => {
-        windowGroup.attach(mesh)
-      })
+      else {
+        windowItem?.windowMeshList?.forEach(mesh => {
+          windowGroup.attach(mesh)
+        })
+      }
 
       const box = new THREE.Box3().setFromObject(windowGroup)
       let xVal = windowItem.openUpward ? box.max.x : box.min.x
@@ -265,6 +267,7 @@ const loadWindowModel = () => {
 
       // 方案2：自动贴到窗户右侧边缘外
       // // 1. 重新计算当前 windowGroup (已经对齐好轴心) 的局部包围盒
+      // const xBox = windowItem.group ? windowGroup : windowItem.blowerBladeMesh
       const localBox = new THREE.Box3().setFromObject(windowGroup)
 
       // 2. 计算出窗户模型在局部空间下的总宽度 (X轴最大值减去最小值)
@@ -274,7 +277,7 @@ const loadWindowModel = () => {
       // 既然它是相对于轴心的局部坐标，我们直接把 X 轴设为窗户的宽度 (windowWidth)
       // 这样按钮就会【刚好贴在窗户的右边缘】！
       // 如果想离边缘再远一点，就额外加个 10 或 20 即可。
-      const extraPadding = 30/size; // 这里加减的数字对应的是你模型原始的巨额尺寸标准
+      const extraPadding = 30 / size; // 这里加减的数字对应的是你模型原始的巨额尺寸标准
       htmlLabel.position.set(
         windowWidth + extraPadding, // 自动贴到窗户右侧边缘外
         5 / size,                         // Y 轴居中
@@ -355,7 +358,7 @@ const animate = () => {
 
   // 1. 窗戶動畫：高速渲染迴圈直接讀寫普通變數的屬性，效率最高
   Object.values(device3DList).forEach(windowItem => {
-    if (windowItem.group) {
+    if (windowItem.windowMeshList && windowItem.windowMeshList.length > 0) {
       if (windowItem.state === 1) {
         // console.log('item', windowItem, ' opening')
         windowItem.currentAngle += speed
@@ -549,7 +552,7 @@ const init3DWindows = () => {
 onMounted(async () => {
   await Promise.all([
     store.initDeviceConfig('001'),
-    initWebSocket()
+    // initWebSocket()
   ]
   )
   console.log('done first part init')
@@ -617,7 +620,7 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   gap: 6px;
   background: rgba(0, 0, 0, 0.8) !important;
-  padding:  5px;
+  padding: 5px;
   border-radius: 6px;
   border: 1px solid #555;
   pointer-events: auto !important;
