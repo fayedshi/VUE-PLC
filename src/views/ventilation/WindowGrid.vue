@@ -62,7 +62,7 @@ import { onMounted, ref, computed, onBeforeUnmount } from 'vue'
 const store = useWindowControlStore()
 const controlMode = ref('')
 const selectedHouseCode = ref('')
-const activeCabinetTab = ref('') // 当前选中的控制柜 Tab ID
+const activeCabinetTab = ref(0) // 当前选中的控制柜 Tab ID
 
 // 监听仓房切换
 const handleHouseChange = async (val: string) => {
@@ -71,7 +71,7 @@ const handleHouseChange = async (val: string) => {
     console.log('len ', store.cabinList.length)
     // // 2. 数据加载完成后，默认选中第一个控制柜的 Tab
     if (store.cabinList.length > 0) {
-        activeCabinetTab.value = '0'
+        activeCabinetTab.value = 0
     }
 }
 
@@ -82,9 +82,11 @@ const switchMode = (type: string, address: string, mode: number, cabinetId: stri
     // store.updateCabinetMode(cabinetId, mode)
 }
 
-const handleDeviceAction = (actionData: any) => {
-    // 处理组件事件
+// 拦截子组件动作并调用 Store
+const handleDeviceAction = async ({ type, id, action }) => {
+    await store.controlDevice(selectedHouseCode.value, type, id, action)
 }
+
 </script>
 
 <style scoped>

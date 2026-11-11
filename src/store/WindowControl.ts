@@ -160,7 +160,8 @@ export const useWindowControlStore = defineStore('windowControl', () => {
             delete subConfig.window_src
         }
         console.log('winids:', winSrcIds)
-        const windowStateList = []
+        // const windowStateList = []
+        const windowStateList = reactive<Record<number, WindowState>>({})
         winSrcIds.forEach((winId: number, index: number) => {
             const winState: WindowState = { id: winId, status: -1, fan: null, valve: null }
             Object.keys(subConfig).forEach(key => {
@@ -175,15 +176,17 @@ export const useWindowControlStore = defineStore('windowControl', () => {
                 }
                 winState[deviceType] = { id: deviceId, status: -1 }
             })
-            windowStateList.push(winState)
+            windowStateList[winId] = winState
         })
 
         // add nature windows
-        let winIds = config['window']||[]
-        winIds.forEach((winId)=>{
-            
-        })
-        cabinList.value.push(windowStateList)
+        let range = config['window'] || []
+        for (let winId = range[0]; winId <= range[1]; winId++) {
+            if (!windowStateList[winId]) {
+                windowStateList[winId] = { id: winId, status: -1, fan: null, valve: null }
+            }
+        }
+        cabinList.value.push(Object.values(windowStateList))
     })
 
 
