@@ -15,7 +15,7 @@
         </el-col>
       </el-row>
     </div>
-    
+
     <div ref="canvasContainer" class="canvas-container">
     </div>
   </div>
@@ -28,17 +28,18 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader'
 import { useWindowControlStore } from '../../store/WindowControl.ts' // 沿用上一轮回答的 Pinia Store
 import WindowCard from '../../components/WindowCard.vue'
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 
 const isLoading = ref(true)
 const store = useWindowControlStore()
 const southWindowList = computed(() => {
-  return store.windowStateList.filter(window => [1, 2, 3, 4, 5, 11, 12, 13, 14].includes(window.id))
+  return store.windowStateList.filter(window => [1, 2, 3, 4, 5, 11, 12, 13, 14, 33, 34].includes(window.id))
 })
 
 const canvasContainer = ref(null) // 只有畫布 DOM 節點需要 ref 獲取元素
 
 let scene, camera, renderer, controls, animationFrameId
-
+const labelRenderer = new CSS2DRenderer();
 // 旋轉配置
 const maxAngle = Math.PI / 2
 const speed = 0.00058
@@ -100,12 +101,23 @@ const initThree = () => {
   const width = canvasContainer.value.clientWidth
   const height = canvasContainer.value.clientHeight // 从容器获取实际高度（即刚才设置的800px）
 
-  camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 10000)
+  camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000)
   camera.lookAt(0, 0, 0)
 
   renderer = new THREE.WebGLRenderer({ antialias: true })
   renderer.setSize(width, height)
   canvasContainer.value.appendChild(renderer.domElement)
+
+  // 4. 关键：创建 CSS2D 渲染器 (负责把 HTML 按钮贴进 3D 空间)
+
+  labelRenderer.setSize(width, height);
+  labelRenderer.domElement.style.position = 'absolute';
+  labelRenderer.domElement.style.top = '0px';
+  labelRenderer.domElement.style.left = '0px';
+  // 关键：让 CSS2D 层的鼠标事件默认穿透，只有碰到按钮时才响应
+  labelRenderer.domElement.style.pointerEvents = 'none';
+  canvasContainer.value.appendChild(labelRenderer.domElement);
+
 
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.8)
   scene.add(ambientLight)
@@ -114,22 +126,23 @@ const initThree = () => {
   scene.add(dirLight)
 
   controls = new OrbitControls(camera, renderer.domElement)
-  controls.enableDamping = false
-  controls.enableZoom = false;     // 禁用滚轮缩放
-  controls.enablePan = false;      // 禁用右键平移
-  controls.enableRotate = false
+  // controls.enableDamping = false
+  // controls.enableZoom = false;     // 禁用滚轮缩放
+  // controls.enablePan = false;      // 禁用右键平移
+  // controls.enableRotate = false
 
   loadWindowModel()
   animate()
   console.log('loaded model')
-  
+
 }
 
 const loadWindowModel = () => {
   const loader = new FBXLoader()
 
   loader.load('/asset/1109_gran_v4.fbx', (fbxObject) => {
-    const size = 0.045
+    const size = 0.085
+    // const size = 1
     fbxObject.scale.set(size, size, size)
     fbxObject.updateMatrixWorld(true)
     // 相機聚焦
@@ -145,12 +158,12 @@ const loadWindowModel = () => {
       // 🌟 【关键修复】：Z 轴必须加上一段距离（例如后退 200，或者根据模型大小动态计算），不能为 0！
       const cameraDistance = modelSize.length() * 1.5 || 200; // 动态根据模型大小决定后退多少
       camera.position.set(
-        modelCenter.x - 80, // 往左挪了60公分（X-60）
+        modelCenter.x - 150, // 往左挪了60公分（X-60）
         modelCenter.y, // 
-        modelCenter.z + 4 // 👈 往后退了2米（Z+200）
+        modelCenter.z + 10 // 👈 往后退了2米（Z+200）
       )
       // 6. 刷新控制器
-      // fbxObject.position.y += 6 // 上移15
+      fbxObject.position.y += 6 // 上移15
       scene.add(fbxObject)
       controls.update()
     }
@@ -163,20 +176,6 @@ const loadWindowModel = () => {
       if (child.isMesh) {
         const parentName = child.parent ? child.parent.name : null
         console.log('发现窗户部件:', child.name, 'parent:', parentName)
-        // for (const windowItem of device3DList) {
-        // console.log('winItem', windowItem)device3DList[13]
-
-        // if (windowItem.movingPartNames.includes(child.name)) {
-        //   windowItem.windowMeshList.push(child)
-        //   break;
-        // }
-        // else if (windowItem.blowerBladeMeshName == child.name) {
-        //   if (child.material) {
-        //     child.material.side = THREE.DoubleSide
-        //   }
-        //   windowItem.blowerBladeMesh = child
-        //   break
-        // }
         if (parentName) {
           console.log('parent name: ', parentName)
           if (checkName(child.name, upper_win_moving_parts)) {
@@ -220,20 +219,29 @@ const loadWindowModel = () => {
     console.log('win3dlist', device3DList)
     // 計算軸心與群組建立
     Object.values(device3DList).forEach((windowItem) => {
-      if (!windowItem.windowMeshList || windowItem.windowMeshList.length === 0) return
+      // if (!windowItem.windowMeshList || windowItem.windowMeshList.length === 0) return
 
-      console.log('winItem', windowItem)
       const windowGroup = new THREE.Group()
-      // const blowerGroup = new THREE.Group()
       fbxObject.add(windowGroup)
+
+      // windowItem.group = windowGroup
+      if (!windowItem.windowMeshList || windowItem.windowMeshList.length === 0) {
+        console.warn(`⚠️ 警告: 设备 ${windowItem.id || '未知'} 没有找到对应的 3D Mesh 网格！将使用默认中心点挂载标签。`);
+
+        // 如果没有 Mesh，直接在原地（父级中心）挂一个标签，不让它报空
+        // const htmlLabel = create3DMenu()
+        // htmlLabel.position.set(2, 2, 0)
+        // windowGroup.add(htmlLabel)
+        // windowItem.group = windowGroup
+        // console.log('winItem with empty meshlist:', windowItem, ' created lable')
+
+        // return // 结束当前设备的后续吸附计算，进入下一个设备
+        // windowGroup.attach(windowItem.blowerBladeMesh)
+      }
       // 計算真實包圍盒
-      windowItem.windowMeshList.forEach(mesh => {
+      windowItem?.windowMeshList?.forEach(mesh => {
         windowGroup.attach(mesh)
       })
-
-      // windowItem.blowerBladeMeshList.forEach(mesh => {
-      //   blowerGroup.attach(mesh)
-      // })
 
       const box = new THREE.Box3().setFromObject(windowGroup)
       let xVal = windowItem.openUpward ? box.max.x : box.min.x
@@ -243,19 +251,99 @@ const loadWindowModel = () => {
 
       // // 4. 将旋转组放置在侧边合页处
       windowGroup.position.set(localPivot.x, localPivot.y, localPivot.z)
-      // windowGroup.updateMatrixWorld(true)
 
       // 移動真實 Mesh 並吸附
-      windowItem.windowMeshList.forEach((mesh) => {
+      windowItem?.windowMeshList?.forEach((mesh) => {
         mesh.position.x -= windowGroup.position.x
         mesh.position.y -= windowGroup.position.y
         mesh.position.z -= windowGroup.position.z
       })
+
+      // console.log('window group pos: ', windowGroup.position)
+
+      const htmlLabel = create3DMenu(windowItem)
+
+      // 方案2：自动贴到窗户右侧边缘外
+      // // 1. 重新计算当前 windowGroup (已经对齐好轴心) 的局部包围盒
+      const localBox = new THREE.Box3().setFromObject(windowGroup)
+
+      // 2. 计算出窗户模型在局部空间下的总宽度 (X轴最大值减去最小值)
+      const windowWidth = localBox.max.x - localBox.min.x
+
+      // 3. 自动设置按钮坐标：
+      // 既然它是相对于轴心的局部坐标，我们直接把 X 轴设为窗户的宽度 (windowWidth)
+      // 这样按钮就会【刚好贴在窗户的右边缘】！
+      // 如果想离边缘再远一点，就额外加个 10 或 20 即可。
+      const extraPadding = 30/size; // 这里加减的数字对应的是你模型原始的巨额尺寸标准
+      htmlLabel.position.set(
+        windowWidth + extraPadding, // 自动贴到窗户右侧边缘外
+        5 / size,                         // Y 轴居中
+        10                          // Z 轴往前稍微挪一点，防止和窗户重合闪烁
+      )
+      // 方案2：自动贴到窗户右侧边缘外
+
+
+
+      // 方案1 手动一个个调整
+      // 假设在正常世界里，你只想往右移动 10 个单位
+      // const normalX = 30;
+      // const normalY = 2;
+      // const normalZ = 1;
+
+      // // 核心：把正常数值除以 0.045（size），抵消外层的缩小影响
+      // // 这样在代码里你写 10，底层实际运行的就是 10 / 0.045 = 222.2
+      // htmlLabel.position.set(
+      //   normalX / size,
+      //   normalY / size,
+      //   normalZ / size
+      // )
+      // 方案1 手动一个个调整
+
+      windowGroup.add(htmlLabel)
+      console.log('winItem:', windowItem, ' created lable')
       windowItem.group = windowGroup
     })
   }, undefined, (error) => {
     console.error('FBX 模型加载失败:', error)
   })
+}
+
+function create3DMenu(windowItem) {
+  // 步骤 A: 用原生 JS 创建标准的 HTML 结构（可以自由绑定 Vue 中的业务逻辑）
+  const uiDiv = document.createElement('div');
+  uiDiv.className = 'window-ui-container';
+
+  // 创建“开窗”按钮
+  const btnOpen = document.createElement('button');
+  btnOpen.className = 'window-btn';
+  btnOpen.innerText = '开窗';
+  btnOpen.onclick = function () {
+    // 这里可以调用普通的 JS/Vue 逻辑
+    alert(`【Vue 逻辑执行】窗户已开启id: ${windowItem.id} `);
+    console.log(`正在控制设备: ${windowItem.id}`);
+    // 改变 3D 材质颜色
+    // windowMesh.material.color.setHex(0x00ff00);
+  };
+
+  // 创建“关窗”按钮
+  const btnClose = document.createElement('button');
+  btnClose.className = 'window-btn close';
+  btnClose.innerText = '关窗';
+  btnClose.onclick = function () {
+    alert('【Vue 逻辑执行】窗户已关闭');
+    // windowMesh.material.color.setHex(0x00aaff);
+    // await store.controlDevice(selectedHouseCode.value, type, id, action)
+  };
+
+  // 组装 DOM
+  uiDiv.appendChild(btnOpen);
+  uiDiv.appendChild(btnClose);
+
+  // 步骤 B: 使用 CSS2DObject 将 HTML 包裹成 3D 空间对象
+  const htmlLabel = new CSS2DObject(uiDiv);
+
+  // 步骤 C: 设置按钮在 3D 空间中的相对位置 (窗户右侧)
+  return htmlLabel
 }
 
 let currentSpeed = 0
@@ -332,7 +420,14 @@ const animate = () => {
     }
   })
   controls.update()
-  renderer.render(scene, camera)
+  // 1. 渲染 3D 模型
+  if (renderer && scene && camera)
+    renderer.render(scene, camera);
+
+  // 2. 核心：必须加上这行来渲染 HTML 按钮
+  if (labelRenderer && scene && camera)
+    labelRenderer.render(scene, camera);
+  // renderer.render(scene, camera)
 }
 
 const handleResize = () => {
@@ -366,7 +461,7 @@ const initWebSocket = () => {
     // console.log('devstate', event.data)
     // controlMode.value = devStatesObj.value?.['switch'][0]
     store.updateStatus(devStatesObj.value)
-    store.windowStateList.forEach(winState => {
+    southWindowList.value.forEach(winState => {
 
       let win3d = device3DList[winState.id]
       win3d.state = winState.status
@@ -400,7 +495,7 @@ const initWebSocket = () => {
 };
 
 const init3DWindows = () => {
-  store.windowStateList.forEach(winState => {
+  southWindowList.value.forEach(winState => {
     let win3d = {
       id: winState.id,
       state: winState.status,       // 'closed', 'opening', 'open', 'closing', 'stopped'
@@ -428,6 +523,7 @@ const init3DWindows = () => {
   store.acStateList.forEach(acState => {
     device3DList[acState.id] = {
       id: acState.id,
+      group: null,
       blowerBladeMesh: null,
       blowerState: -1,
     }
@@ -454,7 +550,7 @@ onMounted(async () => {
   await Promise.all([
     store.initDeviceConfig('001'),
     initWebSocket()
-    ]
+  ]
   )
   console.log('done first part init')
   init3DWindows()
@@ -486,7 +582,7 @@ onBeforeUnmount(() => {
 
 /* 左侧控制面板样式 */
 .left-panel {
-  width: 30%;
+  width: 1%;
   /* 固定的控制面板宽度 */
   padding: 10px;
   background-color: #ffffff;
@@ -503,14 +599,43 @@ onBeforeUnmount(() => {
 }
 
 /* 🎯 核心修改二：右侧画布自适应逻辑 */
+/* 🎯 核心修改：改为 .canvas-container，并确保它是相对定位 */
 .canvas-container {
   flex: 1;
-  /* 牢牢吃满除了左侧 panel 以外的所有剩余宽度 */
-  height: 500px;
-  /* 高度继承父级的 100vh，直接和左侧面板对齐 */
+  height: 800px;
   background-color: #f1f5f9;
-  /* 临时画布背景色，防止加载前全白 */
   overflow: hidden;
+  position: relative;
+  /* 必须是 relative，这样里面的 absolute 渲染层才能以此为基准对齐 */
+}
+
+/* 🎯 核心修改：穿透设置动态生成的按钮样式（换成了 .canvas-container） */
+.canvas-container :deep(.window-ui-container) {
+  /* font-size: 6px  !important; */
+  display: flex;
+  /* flex-direction: column; */
+  justify-content: space-between;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.8) !important;
+  padding:  5px;
+  border-radius: 6px;
+  border: 1px solid #555;
+  pointer-events: auto !important;
+  /* 强制开启点击，把点击权从大透明层抢回来 */
+  z-index: 9999 !important;
+  /* 强制置于最顶层 */
+}
+
+/* 🎯 核心修改：按钮自身的穿透设置 */
+.canvas-container :deep(.window-btn) {
+  color: white;
+  background: #2196F3;
+  border: none;
+  padding: 4px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  pointer-events: auto !important;
+  /* 确保按钮本身可点击 */
 }
 
 .left-panel h3 {
