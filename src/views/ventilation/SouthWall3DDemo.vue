@@ -1,20 +1,20 @@
 <template>
   <div class="window-container">
 
-    <div class="left-panel">
+    <!-- <div class="left-panel">
       <span>控制面板</span>
       <div v-if="isLoading" class="loading-overlay">⚙️ 正在加载3D模型...</div>
       <el-row :gutter="20" v-if="southWindowList.length > 0">
         <el-col v-for="(item, index) in southWindowList" :key="item.id" :xs="24" :sm="12" :md="8" :lg="12">
-          <WindowCard :data="item" :seqNo="index + 1" @action="handleDeviceAction" />
+          <WindowWidget :data="item" :seqNo="index + 1" @action="handleDeviceAction" />
         </el-col>
       </el-row>
       <el-row :gutter="20" v-if="store.acStateList.length > 0">
         <el-col v-for="(item, index) in store.acStateList" :key="item.id" :xs="24" :sm="12" :md="8" :lg="12">
-          <WindowCard :data="item" :seqNo="index + 1" @action="handleDeviceAction" />
+          <WindowWidget :data="item" :seqNo="index + 1" @action="handleDeviceAction" />
         </el-col>
       </el-row>
-    </div>
+    </div> -->
 
     <div ref="canvasContainer" class="canvas-container">
     </div>
@@ -22,13 +22,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed, reactive, markRaw } from 'vue'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader'
 import { useWindowControlStore } from '../../store/WindowControl.ts' // 沿用上一轮回答的 Pinia Store
-import WindowCard from '../../components/WindowCard.vue'
+import WindowCard from '../../components/WindowWidget.vue'
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import { createVNode, render, getCurrentInstance } from 'vue'
 
 const isLoading = ref(true)
 const store = useWindowControlStore()
@@ -54,20 +55,6 @@ const base_win_moving_parts = ['d1', 'd2', 'd3']  // 下窗的活动部件
 const blower_parts = ['fengshan'] // 窗或空调的风扇部件
 const ac_parts = ['fengji'] // 下窗的风扇部件
 
-
-// const windowCount = 18
-// const partNameGroups = []
-// const blowerMeshNames = []
-// for (let i = 0; i < windowCount; i++) {
-//   partNameGroups[i] = []
-//   if (i == 4) {
-//     partNameGroups[i] = group_1
-//   } else if (i == 13) {
-//     partNameGroups[i] = group_0
-//     blowerMeshNames[i] = 'fengshan'
-//   }
-//   // blowerMeshNames[i] = 'fengshan'
-// }
 
 // 🎯 【核心修改】完全使用普通 JS 陣列與物件，Vue 碰不到它們，絕對不會有 Proxy 報錯
 const device3DList = {
@@ -141,10 +128,12 @@ const loadWindowModel = () => {
   const loader = new FBXLoader()
 
   loader.load('/asset/1109_gran_v4.fbx', (fbxObject) => {
-    const size = 0.085
+
+    const size = 0.012
     // const size = 1
     fbxObject.scale.set(size, size, size)
     fbxObject.updateMatrixWorld(true)
+    fbxObject.rotation.y = (90 * Math.PI) / 180;
     // 相機聚焦
     const fullBox = new THREE.Box3().setFromObject(fbxObject)
     const modelCenter = fullBox.getCenter(new THREE.Vector3())
@@ -158,12 +147,12 @@ const loadWindowModel = () => {
       // 🌟 【关键修复】：Z 轴必须加上一段距离（例如后退 200，或者根据模型大小动态计算），不能为 0！
       const cameraDistance = modelSize.length() * 1.5 || 200; // 动态根据模型大小决定后退多少
       camera.position.set(
-        modelCenter.x - 150, // 往左挪了60公分（X-60）
+        modelCenter.x, // 往左挪了60公分（X-60） -80
         modelCenter.y, // 
-        modelCenter.z + 10 // 👈 往后退了2米（Z+200）
+        modelCenter.z + 23  // 👈 往后退了2米（Z+200）+10
       )
       // 6. 刷新控制器
-      fbxObject.position.y += 6 // 上移15
+      // fbxObject.position.y -= 2 // 上移15
       scene.add(fbxObject)
       controls.update()
     }
@@ -193,7 +182,7 @@ const loadWindowModel = () => {
             }
             console.log('window index for blower:', winId);
             // device3DList[winId - 1].blowerBladeMeshList.push(child)
-            device3DList[winId].blowerBladeMesh = child
+            device3DList[winId].blowerBladeMesh = markRaw(child)
           } else if (checkName(child.name, ac_parts)) {
             // const winId = Number(parentName.split('_').pop());
 
@@ -204,7 +193,7 @@ const loadWindowModel = () => {
             }
             console.log('ac index for blower:', acId);
             // hardcoded for ac id
-            device3DList[32 + acId].blowerBladeMesh = child
+            device3DList[32 + acId].blowerBladeMesh = markRaw(child)
           }
           else if (checkName(child.name, base_win_moving_parts)) {
             // const winId = Number(parentName.split('_').pop());
@@ -218,12 +207,11 @@ const loadWindowModel = () => {
     })
     console.log('win3dlist', device3DList)
     // 計算軸心與群組建立
+    let step = 0
     Object.values(device3DList).forEach((windowItem) => {
       // if (!windowItem.windowMeshList || windowItem.windowMeshList.length === 0) return
-
       const windowGroup = new THREE.Group()
       fbxObject.add(windowGroup)
-
       // windowItem.group = windowGroup
       if (!windowItem.windowMeshList) {
         console.warn(`⚠️ 警告: 设备 ${windowItem.id || '未知'} 没有找到对应的 3D Mesh 网格！将使用默认中心点挂载标签。`);
@@ -236,7 +224,24 @@ const loadWindowModel = () => {
         // console.log('winItem with empty meshlist:', windowItem, ' created lable')
 
         // return // 结束当前设备的后续吸附计算，进入下一个设备
-        windowGroup.attach(windowItem.blowerBladeMesh)
+        const htmlLabel = create3DMenu(windowItem)
+        // windowGroup.attach(windowItem.blowerBladeMesh)
+        const bladeBox = new THREE.Box3().setFromObject(windowItem.blowerBladeMesh)
+        const bladeWorldCenter = new THREE.Vector3()
+        bladeBox.getCenter(bladeWorldCenter)
+
+        // 2. 直接放进 scene 里，完美对齐！
+        // htmlLabel.position.copy(bladeWorldCenter)
+        htmlLabel.position.set(bladeBox.max.x, bladeBox.max.y - 2.0, bladeBox.max.z)
+
+        // const worldPos = new THREE.Vector3()
+        // fbxObject.add(windowGroup)
+        console.log(windowItem.id, 'bladeWorldCenter: ', bladeWorldCenter)
+        // htmlLabel.position.copy(windowGroup.position)
+        // step += 0.6
+        // htmlLabel.position.x += step / size
+        scene.add(htmlLabel)
+        // return
       }
       // 計算真實包圍盒
       else {
@@ -264,90 +269,120 @@ const loadWindowModel = () => {
       // console.log('window group pos: ', windowGroup.position)
 
       const htmlLabel = create3DMenu(windowItem)
+      const worldPos = new THREE.Vector3();
+      // 强制更新矩阵并计算世界坐标，存入 worldPos 中
+      windowGroup.getWorldPosition(worldPos);
 
-      // 方案2：自动贴到窗户右侧边缘外
-      // // 1. 重新计算当前 windowGroup (已经对齐好轴心) 的局部包围盒
-      // const xBox = windowItem.group ? windowGroup : windowItem.blowerBladeMesh
-      const localBox = new THREE.Box3().setFromObject(windowGroup)
+      console.log('windowGroup for simple windw:', windowGroup.position)
+      if (!windowItem.openUpward) {
+        worldPos.x += 3.5
+      } else {
+        worldPos.x -= 0.8
+        worldPos.y += 0.7
+      }
 
-      // 2. 计算出窗户模型在局部空间下的总宽度 (X轴最大值减去最小值)
-      const windowWidth = localBox.max.x - localBox.min.x
+      htmlLabel.position.copy(worldPos) // 可以用wingroup的世界坐标，也可以用windowGroup的坐标，然后fbxObject.add
 
-      // 3. 自动设置按钮坐标：
-      // 既然它是相对于轴心的局部坐标，我们直接把 X 轴设为窗户的宽度 (windowWidth)
-      // 这样按钮就会【刚好贴在窗户的右边缘】！
-      // 如果想离边缘再远一点，就额外加个 10 或 20 即可。
-      const extraPadding = 30 / size; // 这里加减的数字对应的是你模型原始的巨额尺寸标准
-      htmlLabel.position.set(
-        windowWidth + extraPadding, // 自动贴到窗户右侧边缘外
-        5 / size,                         // Y 轴居中
-        10                          // Z 轴往前稍微挪一点，防止和窗户重合闪烁
-      )
-      // 方案2：自动贴到窗户右侧边缘外
-
-
-
-      // 方案1 手动一个个调整
-      // 假设在正常世界里，你只想往右移动 10 个单位
-      // const normalX = 30;
-      // const normalY = 2;
-      // const normalZ = 1;
-
-      // // 核心：把正常数值除以 0.045（size），抵消外层的缩小影响
-      // // 这样在代码里你写 10，底层实际运行的就是 10 / 0.045 = 222.2
-      // htmlLabel.position.set(
-      //   normalX / size,
-      //   normalY / size,
-      //   normalZ / size
-      // )
-      // 方案1 手动一个个调整
-
-      windowGroup.add(htmlLabel)
-      console.log('winItem:', windowItem, ' created lable')
-      windowItem.group = windowGroup
+      scene.add(htmlLabel)
+      // console.log('winItem:', windowItem, ' created lable')
+      windowItem.group = markRaw(windowGroup)
     })
+    console.log('scene:', scene)
+    // fbxObject.updateMatrixWorld(true)
   }, undefined, (error) => {
     console.error('FBX 模型加载失败:', error)
   })
 }
 
+const currentInstance = getCurrentInstance()
+const savedAppContext = currentInstance?.appContext
+
 function create3DMenu(windowItem) {
-  // 步骤 A: 用原生 JS 创建标准的 HTML 结构（可以自由绑定 Vue 中的业务逻辑）
-  const uiDiv = document.createElement('div');
-  uiDiv.className = 'window-ui-container';
 
-  // 创建“开窗”按钮
-  const btnOpen = document.createElement('button');
-  btnOpen.className = 'window-btn';
-  btnOpen.innerText = '开窗';
-  btnOpen.onclick = function () {
-    // 这里可以调用普通的 JS/Vue 逻辑
-    alert(`【Vue 逻辑执行】窗户已开启id: ${windowItem.id} `);
-    console.log(`正在控制设备: ${windowItem.id}`);
-    // 改变 3D 材质颜色
-    // windowMesh.material.color.setHex(0x00ff00);
-  };
+  //   // 步骤 A: 用原生 JS 创建标准的 HTML 结构（可以自由绑定 Vue 中的业务逻辑）
+  //   const uiDiv = document.createElement('div');
+  //   uiDiv.className = 'window-ui-container';
 
-  // 创建“关窗”按钮
-  const btnClose = document.createElement('button');
-  btnClose.className = 'window-btn close';
-  btnClose.innerText = '关窗';
-  btnClose.onclick = function () {
-    alert('【Vue 逻辑执行】窗户已关闭');
-    // windowMesh.material.color.setHex(0x00aaff);
-    // await store.controlDevice(selectedHouseCode.value, type, id, action)
-  };
+  //   // 创建“开窗”按钮
+  //   const btnOpen = document.createElement('button');
+  //   btnOpen.className = 'window-btn';
+  //   btnOpen.innerText = '开窗';
+  //   btnOpen.onclick = function () {
+  //     // 这里可以调用普通的 JS/Vue 逻辑
+  //     alert(`【Vue 逻辑执行】窗户已开启id: ${windowItem.id} `);
+  //     console.log(`正在控制设备: ${windowItem.id}`);
+  //     // 改变 3D 材质颜色
+  //     // windowMesh.material.color.setHex(0x00ff00);
+  //   };
 
-  // 组装 DOM
-  uiDiv.appendChild(btnOpen);
-  uiDiv.appendChild(btnClose);
+  //   // 创建“关窗”按钮
+  //   const btnClose = document.createElement('button');
+  //   btnClose.className = 'window-btn close';
+  //   btnClose.innerText = '关窗';
+  //   btnClose.onclick = function () {
+  //     alert('【Vue 逻辑执行】窗户已关闭');
+  //     // windowMesh.material.color.setHex(0x00aaff);
+  //     // await store.controlDevice(selectedHouseCode.value, type, id, action)
+  //   };
 
-  // 步骤 B: 使用 CSS2DObject 将 HTML 包裹成 3D 空间对象
-  const htmlLabel = new CSS2DObject(uiDiv);
+  //   // 组装 DOM
+  //   uiDiv.appendChild(btnOpen);
+  //   uiDiv.appendChild(btnClose);
 
-  // 步骤 C: 设置按钮在 3D 空间中的相对位置 (窗户右侧)
-  return htmlLabel
+  //   // 步骤 B: 使用 CSS2DObject 将 HTML 包裹成 3D 空间对象
+  //   const htmlLabel = new CSS2DObject(uiDiv);
+
+  //   // 步骤 C: 设置按钮在 3D 空间中的相对位置 (窗户右侧)
+  //   return htmlLabel
+
+
+  // 如果你需要在 setup 外部获取全局注册的 Element Plus 组件和 Pinia，保留 appContext
+  // const appContext = getCurrentInstance()?.appContext
+  // console.log('current instance: ', getCurrentInstance())
+
+  // function create3DMenu(windowItem: any, seqNo: number) {
+  // 1. 创建一个空的原生 DOM 容器
+  const container = document.createElement('div')
+  container.className = 'three-card-wrapper' // 用于控制点击穿透和缩放
+
+  // 2. 创建 WindowCard 的虚拟 DOM 节点，并传入 props 和事件监听
+  const vnode = createVNode(WindowCard, {
+    data: windowItem,
+    seqNo: windowItem.id,
+
+    // 监听 WindowCard 内部 emit('action', payload) 抛出的事件
+    // 注意：Vue 3 规定事件监听属性必须以 "on" + 首字母大写的事件名命名，即 onAction
+    onAction: async (payload) => {
+      console.log('收到 3D 卡片抛出的控制指令:', payload)
+
+      // 1. 解构出参数
+      const { type, id, action } = payload
+
+      // 2. 调用 Pinia store 或接口发送控制命令（复用你原来的业务方法）
+      await store.controlDevice(selectedHouseCode.value, type, id, action)
+
+      // 3. 联动 3D 模型动画（例如：如果是开窗，设置目标旋转角度为 60 度）
+      // if (type === 'window') {
+      //   // 假设你在 windowItem 上挂载了 targetAngle 用于动画循环
+      //   // windowItem.targetAngle = action === WindowActionEnum.OPEN ? THREE.MathUtils.degToRad(60) : 0
+      // }
+    }
+  })
+
+
+  // 3. 绑定当前 Vue 应用上下文（确保组件内部能正常识别 el-card、el-button 和 Pinia store）
+  if (savedAppContext) {
+    vnode.appContext = savedAppContext
+  }
+
+  // 4. 将虚拟 DOM 真实渲染到空 div 中
+  render(vnode, container)
+
+  // 5. 包裹成 Three.js 的 3D 标签对象返回
+  return new CSS2DObject(container)
 }
+
+// }
 
 let currentSpeed = 0
 const maxSpeed = 0.12
@@ -359,22 +394,22 @@ const animate = () => {
   // 1. 窗戶動畫：高速渲染迴圈直接讀寫普通變數的屬性，效率最高
   Object.values(device3DList).forEach(windowItem => {
     if (windowItem.windowMeshList && windowItem.windowMeshList.length > 0) {
-      if (windowItem.state === 1) {
+      if (windowItem.status === 1) {
         // console.log('item', windowItem, ' opening')
         windowItem.currentAngle += speed
         if (windowItem.currentAngle >= maxAngle) {
           windowItem.currentAngle = maxAngle
         }
-      } else if (windowItem.state === 2) {
+      } else if (windowItem.status === 2) {
         windowItem.currentAngle -= speed
         if (windowItem.currentAngle <= 0) {
           windowItem.currentAngle = 0
-          // windowItem.state = 'closed'
+          // windowItem.status = 'closed'
         }
       }
-      else if (windowItem.state === 4) {
+      else if (windowItem.status === 4) {
         windowItem.currentAngle = maxAngle
-      } else if (windowItem.state === 5) {
+      } else if (windowItem.status === 5) {
         windowItem.currentAngle = 0
       }
       // 驅動 3D 群組旋轉
@@ -467,7 +502,7 @@ const initWebSocket = () => {
     southWindowList.value.forEach(winState => {
 
       let win3d = device3DList[winState.id]
-      win3d.state = winState.status
+      win3d.status = winState.status
       if (winState.fan) {
         win3d.blowerState = winState.fan.status
       }
@@ -478,7 +513,7 @@ const initWebSocket = () => {
 
     store.acStateList.forEach((acState) => {
       let ac = device3DList[acState.id]
-      // ac.state = acState.status
+      // ac.status = acState.status
       ac.blowerState = acState.status
     })
 
@@ -499,26 +534,27 @@ const initWebSocket = () => {
 
 const init3DWindows = () => {
   southWindowList.value.forEach(winState => {
-    let win3d = {
+    let win3d = reactive({
       id: winState.id,
-      state: winState.status,       // 'closed', 'opening', 'open', 'closing', 'stopped'
-      // state: 1,
+      status: winState.status,       // 'closed', 'opening', 'open', 'closing', 'stopped'
       currentAngle: 0,
-      // movingPartNames: partNameGroups[winState.id - 1],
       group: null,           // 存放 THREE.Group
-      windowMeshList: [],       // 存放真實 THREE.Mesh
-      // blowerBladeMeshList: [],
+      // windowMeshList: [],       // 存放真實 THREE.Mesh
+      windowMeshList: markRaw([]),
       blowerBladeMesh: null,
-      // blowerBladeMeshName: blowerMeshNames[winState.id - 1],
       blowerState: -1,
-      openUpward: true
-    }
+      openUpward: true,
+      fan: null,
+      blower: null
+    })
     if (winState.fan) {
       win3d.blowerState = winState.fan.status
+      win3d.fan = winState.fan
     }
     if (winState.blower) {
       win3d.blowerState = winState.blower.status
       win3d.openUpward = false
+      win3d.blower = winState.blower
     }
     device3DList[winState.id] = win3d
   })
@@ -532,15 +568,15 @@ const init3DWindows = () => {
     }
   })
   // writing for test
-  // device3DList[2].state = 1
+  // device3DList[2].status = 1
   // device3DList[2].blowerState = 1
-  // device3DList[3].state = 1
+  // device3DList[3].status = 1
   // device3DList[3].blowerState = 1
-  // device3DList[4].state = 1
+  // device3DList[4].status = 1
   // device3DList[4].blowerState = 1
-  // device3DList[11].state = 1
+  // device3DList[11].status = 1
   // device3DList[11].blowerState = 2
-  // device3DList[12].state = 1
+  // device3DList[12].status = 1
   // device3DList[12].blowerState = 2
 
   // device3DList[33].blowerState = 1
@@ -552,7 +588,7 @@ const init3DWindows = () => {
 onMounted(async () => {
   await Promise.all([
     store.initDeviceConfig('001'),
-    // initWebSocket()
+    initWebSocket()
   ]
   )
   console.log('done first part init')
@@ -584,22 +620,21 @@ onBeforeUnmount(() => {
 }
 
 /* 左侧控制面板样式 */
-.left-panel {
+/* .left-panel {
   width: 1%;
-  /* 固定的控制面板宽度 */
+ 
   padding: 10px;
   background-color: #ffffff;
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
-  /* 右侧分界阴影 */
+
   display: flex;
   flex-direction: column;
   gap: 20px;
   z-index: 10;
-  /* height: 10; */
-  /* 撑满高度 */
+
   box-sizing: border-box;
   overflow-y: auto;
-}
+} */
 
 /* 🎯 核心修改二：右侧画布自适应逻辑 */
 /* 🎯 核心修改：改为 .canvas-container，并确保它是相对定位 */
@@ -649,13 +684,6 @@ onBeforeUnmount(() => {
   padding-left: 8px;
 }
 
-.control-btn-group {
-  display: flex;
-  gap: 12px;
-  padding: 10px 0;
-  border-bottom: 1px solid #f1f5f9;
-}
-
 .alignment-center {
   display: flex;
   flex-direction: column;
@@ -664,4 +692,16 @@ onBeforeUnmount(() => {
   gap: 8px;
   width: 100%;
 }
+
+/* 控制 3D 卡片容器的点击事件与整体缩放比例 */
+.canvas-container :deep(.three-card-wrapper) {
+  pointer-events: auto !important;
+  /* 必须开启，否则按钮点不动 */
+  user-select: none;
+  /* 如果觉得卡片在 3D 场景里太大遮挡模型，可以用 scale 整体等比例缩小 */
+  transform: scale(0.8);
+  transform-origin: center center;
+}
+
+
 </style>
