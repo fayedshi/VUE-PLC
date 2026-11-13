@@ -3,12 +3,12 @@
     <!-- 二级子菜单导航 -->
 
     <RouterLink to="/system/ventilation/" exact-active-class="active">作业控制面板</RouterLink>
-    <RouterLink to="/system/ventilation/ventiManual" active-class="active">手动控制面板(废弃)</RouterLink>
+    <!-- <RouterLink to="/system/ventilation/ventiManual" active-class="active">手动控制面板(废弃)</RouterLink> -->
     <RouterLink to="/system/ventilation/ventiMan" active-class="active">手动控制面板</RouterLink>
-    <RouterLink to="/system/ventilation/blower" active-class="active">单风机(测试)</RouterLink>
-    <RouterLink to="/system/ventilation/southWall" active-class="active">南面墙(测试)</RouterLink>
-    <RouterLink to="/system/ventilation/fanwindowWall" active-class="active">动态墙(demo)</RouterLink>
-    <RouterLink to="/system/ventilation/fanwindowWallDyna" active-class="active">动态墙(测试)</RouterLink>
+    <!-- <RouterLink to="/system/ventilation/blower" active-class="active">单风机(测试)</RouterLink> -->
+    <RouterLink to="/system/ventilation/southWall" active-class="active">南面墙</RouterLink>
+    <!-- <RouterLink to="/system/ventilation/fanwindowWall" active-class="active">动态墙(demo)</RouterLink> -->
+    <!-- <RouterLink to="/system/ventilation/fanwindowWallDyna" active-class="active">动态墙(测试)</RouterLink> -->
     <!-- <RouterLink to="/system/ventilation/doorGroup" active-class="active">Door Group(测试)</RouterLink> -->
     <!-- <RouterLink to="/system/ventilation/deviceGroup" active-class="active">设备组织(测试)</RouterLink> -->
   </div>

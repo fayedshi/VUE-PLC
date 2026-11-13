@@ -37,12 +37,12 @@
             <div class=" sub-header">
                 <span class="sub-title">❄️ 空调 #{{ seqNo }}</span>
                 <el-tag :type="data.status == 1 ? 'success' : 'info'" size="small">
-                    {{ formatStatus('ac', data.status) }}
+                    {{ formatStatus('ac', data.blowerState) }}
                 </el-tag>
             </div>
 
             <el-button-group size="small">
-                <el-button type="warning" :disabled="data.status == 1" plain
+                <el-button type="warning" :disabled="data.blowerState == 1" plain
                     @click="onControl('ac', data.id, AcActionEnum.START)">开启</el-button>
                 <el-button type="info" plain @click="onControl('ac', data.id, AcActionEnum.STOP)">停止</el-button>
             </el-button-group>
@@ -269,7 +269,7 @@ const getBlowerTagType = (status) => {
 
 /* 1. 限制卡片最大宽度，并整体等比例缩小到 75%（觉得还大可以改成 0.65） */
 .window-card {
-    width: 175px;
+    width: 168px;
     border-radius: 4px;
     transform: scale(0.75);
     transform-origin: center center;

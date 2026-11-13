@@ -3,7 +3,7 @@
 
     <!-- <div class="left-panel">
       <span>控制面板</span>
-      <div v-if="isLoading" class="loading-overlay">⚙️ 正在加载3D模型...</div>
+      
       <el-row :gutter="20" v-if="southWindowList.length > 0">
         <el-col v-for="(item, index) in southWindowList" :key="item.id" :xs="24" :sm="12" :md="8" :lg="12">
           <WindowWidget :data="item" :seqNo="index + 1" @action="handleDeviceAction" />
@@ -16,8 +16,8 @@
       </el-row>
     </div> -->
 
-    <div ref="canvasContainer" class="canvas-container">
-    </div>
+    <div ref="canvasContainer" class="canvas-container"></div>
+
   </div>
 </template>
 
@@ -560,12 +560,12 @@ const init3DWindows = () => {
   })
 
   store.acStateList.forEach(acState => {
-    device3DList[acState.id] = {
+    device3DList[acState.id] = reactive({
       id: acState.id,
       group: null,
       blowerBladeMesh: null,
       blowerState: -1,
-    }
+    })
   })
   // writing for test
   // device3DList[2].status = 1
@@ -601,6 +601,11 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  if (socket) {
+    console.log('south wall closed socket')
+    socket.close();
+    isExplicitlyClosed = true
+  }
   cancelAnimationFrame(animationFrameId)
   window.removeEventListener('resize', handleResize)
   if (renderer) renderer.dispose()
@@ -619,23 +624,6 @@ onBeforeUnmount(() => {
   box-sizing: border-box;
 }
 
-/* 左侧控制面板样式 */
-/* .left-panel {
-  width: 1%;
- 
-  padding: 10px;
-  background-color: #ffffff;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
-
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  z-index: 10;
-
-  box-sizing: border-box;
-  overflow-y: auto;
-} */
-
 /* 🎯 核心修改二：右侧画布自适应逻辑 */
 /* 🎯 核心修改：改为 .canvas-container，并确保它是相对定位 */
 .canvas-container {
@@ -645,52 +633,6 @@ onBeforeUnmount(() => {
   overflow: hidden;
   position: relative;
   /* 必须是 relative，这样里面的 absolute 渲染层才能以此为基准对齐 */
-}
-
-/* 🎯 核心修改：穿透设置动态生成的按钮样式（换成了 .canvas-container） */
-.canvas-container :deep(.window-ui-container) {
-  /* font-size: 6px  !important; */
-  display: flex;
-  /* flex-direction: column; */
-  justify-content: space-between;
-  gap: 6px;
-  background: rgba(0, 0, 0, 0.8) !important;
-  padding: 5px;
-  border-radius: 6px;
-  border: 1px solid #555;
-  pointer-events: auto !important;
-  /* 强制开启点击，把点击权从大透明层抢回来 */
-  z-index: 9999 !important;
-  /* 强制置于最顶层 */
-}
-
-/* 🎯 核心修改：按钮自身的穿透设置 */
-.canvas-container :deep(.window-btn) {
-  color: white;
-  background: #2196F3;
-  border: none;
-  padding: 4px 8px;
-  cursor: pointer;
-  white-space: nowrap;
-  pointer-events: auto !important;
-  /* 确保按钮本身可点击 */
-}
-
-.left-panel h3 {
-  margin-top: 0;
-  color: #1e293b;
-  font-size: 18px;
-  border-left: 4px solid #10b981;
-  padding-left: 8px;
-}
-
-.alignment-center {
-  display: flex;
-  flex-direction: column;
-  /* 标签在上，按钮在下的垂直分栏，或者改成 row 保持横向 */
-  align-items: flex-start;
-  gap: 8px;
-  width: 100%;
 }
 
 /* 控制 3D 卡片容器的点击事件与整体缩放比例 */
@@ -703,5 +645,19 @@ onBeforeUnmount(() => {
   transform-origin: center center;
 }
 
-
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  /* 半透明黑底 */
+  color: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+  /* 确保层级最高，不被 canvas 或 CSS2DRenderer 挡住 */
+}
 </style>

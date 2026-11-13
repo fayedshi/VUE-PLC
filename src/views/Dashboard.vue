@@ -223,7 +223,7 @@ onBeforeUnmount(() => {
 <style scoped>
 /* 容器基准 */
 .app-container {
-  max-width: 800px;
+  /* max-width: 800px; */
   margin: 30px auto;
   font-family: sans-serif;
 }
@@ -232,7 +232,7 @@ onBeforeUnmount(() => {
 .top-bar {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 20px;
   padding: 0 4px;
 }
