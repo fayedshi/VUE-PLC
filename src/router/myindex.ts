@@ -159,6 +159,12 @@ let routes = [
                 component: () => import('../views/ventilation/FanWindowWallDynamic.vue'),
                 meta: { title: '多3D设备tab' }
               },
+              {
+                path: 'demos/Dynamic_Windows_and_Labels', 
+                name: 'DynaFanWindowWithLabel',
+                component: () => import('../views/ventilation/demos/Dynamic_Windows_and_Labels.vue'),
+                meta: { title: '多3D设备tab' }
+              },
 
             ]
           },

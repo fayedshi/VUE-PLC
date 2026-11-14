@@ -106,7 +106,7 @@ const loadMultipleWindows = () => {
     windowsList.value.push(windowData)
     scene.add(windowData.group)
 
-    loader.load('/asset/windows.fbx', (fbxObject) => {
+    loader.load('/asset/window.fbx', (fbxObject) => {
       const size = 0.14
       fbxObject.scale.set(size, size, size)
       fbxObject.rotation.y = Math.PI / 2
