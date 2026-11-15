@@ -69,7 +69,9 @@ const initThree = () => {
   // camera.position.set(60, -60, 60); 
 
   // 让相机对准原点（模型所在的位置）
+  camera.position.set(0, 2, 8);
   camera.lookAt(0, 0, 0);
+
 
   renderer = new THREE.WebGLRenderer({ antialias: true })
   renderer.setSize(canvasContainer.value.clientWidth, 500)
@@ -87,6 +89,45 @@ const initThree = () => {
   // controls.enablePan = false;      // 禁用右键平移
   // controls.enableRotate=false
 
+
+  // 初始化 Three.js 场景
+  // scene = new THREE.Scene();
+  // scene.background = new THREE.Color(0x1a1a1a);
+
+  // camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+  // camera.position.set(0, 2, 8);
+  // camera.lookAt(0, 0, 0);
+
+  // renderer = new THREE.WebGLRenderer({ canvas: canvasRef.value, antialias: true });
+  // renderer.setSize(window.innerWidth, window.innerHeight);
+  // renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+  // controls = new OrbitControls(camera, renderer.domElement);
+  // controls.enableDamping = true;
+
+  // // 添加灯光
+  // // const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+  // // scene.add(ambientLight);
+  // const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+  // directionalLight.position.set(5, 10, 7);
+  // scene.add(directionalLight);
+
+  // 创建 3D 墙体
+  const wallGeo = new THREE.BoxGeometry(15, 8, 0.1);
+  const wallMat = new THREE.MeshStandardMaterial({ color: 0x556655 });
+  const wall = new THREE.Mesh(wallGeo, wallMat);
+  wall.position.set(-1, -0.2, 0);
+  scene.add(wall);
+
+  // 创建 地面
+  const floorGeo = new THREE.PlaneGeometry(18, 18);
+  const floorMat = new THREE.MeshStandardMaterial({ color: 0xe0e0e0 });
+  const floor = new THREE.Mesh(floorGeo, floorMat);
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.y = -(8 / 2);
+  floor.receiveShadow = true;
+  scene.add(floor);
+
   loadWindowModel()
   animate()
 }
@@ -95,20 +136,31 @@ const loadWindowModel = () => {
   const loader = new FBXLoader()
 
   windowGroup = new THREE.Group()
-  scene.add(windowGroup)
 
   loader.load('/asset/damper_blower.fbx', (fbxObject) => {
-    const size = 0.2
+    const size = 0.02
     fbxObject.scale.set(size, size, size)
+
     // 自转90度
-    // fbxObject.rotation.y =  Math.PI /2
+    fbxObject.rotation.y = Math.PI / 2
+    // 相机自动聚焦
+    const fullBox = new THREE.Box3().setFromObject(fbxObject)
+    const modelCenter = fullBox.getCenter(new THREE.Vector3())
+
+    // const box = new THREE.Box3().setFromObject(fbxObject);
+    // //   console.log('box', box)
+    // const center = box.getCenter(new THREE.Vector3());
+    // console.log('center', center)
+    // // 将模型内部网格拉回原点（如果希望底部贴地，y 可以用 box.min.y）
+
+    fbxObject.position.sub(modelCenter)
+    fbxObject.position.z += 0.25
+
     scene.add(fbxObject)
+    fbxObject.position.y += 1.2
 
     const movingParts = []
     // 是否开启风机的状态标识（联动你的业务数据，比如 status === 1）
-
-
-
     fbxObject.traverse((child) => {
       if (child.isMesh) {
         const parentName = child.parent ? child.parent.name : null
@@ -141,53 +193,39 @@ const loadWindowModel = () => {
           //  核心修复代码：开启双面渲染
           if (child.material) {
             child.material.side = THREE.DoubleSide
-
-            // 可选优化：如果材质是一个数组（部分模型有多材质），需要遍历修改
-            // if (Array.isArray(child.material)) {
-            //     child.material.forEach(m => m.side = THREE.DoubleSide)
-            // } else {
-            //     child.material.side = THREE.DoubleSide
-            // }
           }
         }
       }
     })
 
+
+    fbxObject.add(windowGroup)
+
     // 将运动部件安全吸附到运动组
-    movingParts.forEach((part) => {
+    movingParts.forEach((part) => {// 这些part原来就在fbxobject中，fbxobject开始上移2，这些part坐标继承了fbx的坐标，也会变
       windowGroup.attach(part)
     })
 
-    // 【关键：动态修正翻转轴心点】
-    // 默认通过计算移动部件的包围盒，找到它的几何中心
     const box = new THREE.Box3().setFromObject(windowGroup)
-    const center = box.getCenter(new THREE.Vector3())
+    const worldPivot = new THREE.Vector3(box.min.x, (box.min.y + box.max.y) / 2, box.min.z) // 往上开
+    const localPivot = windowGroup.worldToLocal(worldPivot.clone())
+    windowGroup.position.copy(localPivot)
 
-    // 情况 A：如果是“上悬窗”（绕着上边框转）
-    // 轴心应该设在包围盒的顶部：Y轴设为 box.max.y
-    // windowGroup.position.set(center.x, box.max.y, center.z)
-    windowGroup.position.set(box.max.x, box.min.y, box.min.z)
-
-    // 情况 B：如果是“下悬窗”（绕着下边框转）
-    // 如果是下翻，请取消注释下面这行，并注释掉上面的情况 A
-    // windowGroup.position.set(center.x, box.min.y, center.z)
-
-    // 改变了父容器 windowGroup 的位置后，需要把里面的子部件往反方向挪动相同距离，
-    // 这样窗户在视觉上才不会发生瞬间位移，且旋转中心成功移到了边缘
+    const boxHelper = new THREE.BoxHelper(windowGroup, 0xff0000);
+    scene.add(boxHelper);
     movingParts.forEach((part) => {
       part.position.x -= windowGroup.position.x
       part.position.y -= windowGroup.position.y
       part.position.z -= windowGroup.position.z
     })
 
-    // 相机自动聚焦
-    const fullBox = new THREE.Box3().setFromObject(fbxObject)
-    const modelCenter = fullBox.getCenter(new THREE.Vector3())
 
-    controls.target.copy(modelCenter)
+    // fbxObject.position.sub(modelCenter)
+
+    // controls.target.copy(modelCenter)
     // 【新增安全机制】由于手动改了 target，最好让相机位置也基于中心点错开，防止镜头陷在模型里
-    camera.position.set(modelCenter.x - 60, modelCenter.y, modelCenter.z)
-    fbxObject.position.y += 14
+    // camera.position.set(modelCenter.x - 60, modelCenter.y, modelCenter.z)
+    // fbxObject.position.y += 1
     controls.update()
 
   }, undefined, (error) => {
@@ -267,6 +305,7 @@ const handleResize = () => {
   camera.updateProjectionMatrix()
   renderer.setSize(width, 500)
 }
+
 
 onMounted(() => {
   initThree()
