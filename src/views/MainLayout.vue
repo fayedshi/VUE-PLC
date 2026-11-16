@@ -11,26 +11,28 @@
         <el-menu-item index="/">
           <span>粮情看板</span>
         </el-menu-item>
-        <el-menu-item index="/users" v-if="role=='SUPER_ADMIN' || role === 'SUPER_ADMIN'">
-
-          <span>用户管理</span>
-        </el-menu-item>
-        <el-menu-item index="/alarms">
-
-          <span>系统报警</span>
-        </el-menu-item>
         <el-menu-item index="/system">
 
           <span>功能主页</span>
         </el-menu-item>
-        <el-menu-item index="/tasks">
 
+
+        <el-menu-item index="/alarms">
+          <span>系统报警</span>
+        </el-menu-item>
+
+        <el-menu-item index="/tasks">
           <span>作业信息</span>
         </el-menu-item>
-        <el-menu-item index="/settings">
 
+        <el-menu-item index="/settings">
           <span>系统设置</span>
         </el-menu-item>
+        
+        <el-menu-item index="/users" v-if="role == 'SUPER_ADMIN' || role === 'SUPER_ADMIN'">
+          <span>用户管理</span>
+        </el-menu-item>
+
       </el-menu>
     </el-aside>
 
@@ -38,9 +40,10 @@
 
       <el-header class="layout-header">
         <div v-if="username" class="header-left">当前用户：{{ username }} ({{ role }})
-          <el-button style="margin-left: 10px;" size="middle" @click="toChangePass()">修改密码</el-button>  
+          <el-button style="margin-left: 10px;" size="middle" @click="toChangePass()">修改密码</el-button>
         </div>
-        <el-button style="margin-left: 10px;" size="middle" @click="handleLogout">{{ username ? "退出" : "登录" }}</el-button>
+        <el-button style="margin-left: 10px;" size="middle" @click="handleLogout">{{ username ? "退出" : "登录"
+        }}</el-button>
         <!-- <el-button v-else type="danger" size="small" @click="handleLogout">登录</el-button> -->
       </el-header>
 
@@ -88,7 +91,7 @@ const handleLogout = () => {
   router.push('/login')
 };
 
-const toChangePass=()=>{
+const toChangePass = () => {
   router.push('/changePass')
 }
 </script>

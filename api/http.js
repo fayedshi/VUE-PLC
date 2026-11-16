@@ -5,7 +5,7 @@ import myRouter from '../src/router/myindex';
 const http = axios.create({
   //   baseURL: 'http://localhost:8000', // 后端 FastAPI 地址
   baseURL: 'http-api', // 后端 FastAPI 地址
-  timeout: 5000
+  timeout: 10000
 });
 
 // 请求拦截：附带 JWT Token

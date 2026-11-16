@@ -5,7 +5,7 @@
 
     <!-- HTML 菜单图层：由数据驱动自动渲染 -->
     <div class="ui-container">
-      <div v-for="win in windows" :key="win.id" v-show="win.isPresented" class="window-menu" :style="{
+      <div v-for="win in windowPosList" :key="win.id" v-show="win.isPresented" class="window-menu" :style="{
         transform: `translate3d(${win.screenX}px, ${win.screenY}px, 0) translate(-50%, -120%)`
       }">
         <h4>{{ win.title }}</h4>
@@ -31,26 +31,10 @@ const canvasRef = ref(null);
 //   { id: 2, title: '中间窗户', pos3D: new THREE.Vector3(-5, 2.5, 0.05), screenX: 0, screenY: 0, isPresented: false },
 //   { id: 3, title: '右侧窗户', pos3D: new THREE.Vector3(-2, 2.5, 0.05), screenX: 0, screenY: 0, isPresented: false }
 // ]);
+const windowPosObj = {}
+const baseVector = new THREE.Vector3(-7, 2.5, 0.05)
+const windowPosList = ref([])
 
-const windows = computed(() => {
-  const windowList = {}
-  const baseVector = new THREE.Vector3(-8, 2.5, 0.05)
-  for (let i = 1, j = 0; i <= 14; i++, j++) {
-    let pos = baseVector.clone()
-
-    if (i == 6 || i == 11) {
-      // pos.x = baseVector.x
-      j = 0
-    }
-    if (i >= 11) {
-      pos.y = baseVector.y - 3 // y轴下移2个单位
-      console.log('id', i, 'pos.x: ', pos.x)
-    }
-    pos.x += j * 3 //x方向隔3个单位
-    windowList[i] = { id: i, title: '窗户' + i, pos3D: pos, screenX: 0, screenY: 0, isPresented: false }
-  }
-  return windowList
-})
 
 
 // const bottomWindows = computed(() => {
@@ -100,19 +84,19 @@ const loader = new FBXLoader()
 const device3DList = {}
 
 const init3DWindows = async () => {
-  const fanWinFbx = await loadModel('damper_blower')
-  const simpleWinFbx = await loadModel('window')
+  let devType = 'upperwindow'
+  const blowerWinFbx = await loadModel('damper_blower')
+  const simplerUpperWinFbx = await loadModel('upperwindow')
+  const fanWinFbx = await loadModel('fan_window')
 
   southWindowList.value.forEach(winState => {
-    let fbxObj = simpleWinFbx
+    let fbxObj = simplerUpperWinFbx
     console.log('fbxobj:', fbxObj)
     let win3d = reactive({
       id: winState.id,
-      status: winState.status,       // 'closed', 'opening', 'open', 'closing', 'stopped'
+      status: winState.status,
       currentAngle: 0,
       group: null,           // 存放 THREE.Group
-      // windowMeshList: [],       // 存放真實 THREE.Mesh
-      // windowMeshList: markRaw([]),
       blowerBladeMesh: null,
       blowerState: -1,
       openUpward: true,
@@ -123,8 +107,10 @@ const init3DWindows = async () => {
       win3d.blowerState = winState.fan.status
       win3d.fan = winState.fan
       fbxObj = fanWinFbx
+      devType = 'fanWindow'
     } else if (winState.blower) {
-      fbxObj = fanWinFbx
+      fbxObj = blowerWinFbx
+      devType = 'blowerWindow'
       win3d.blowerState = winState.blower.status
       win3d.openUpward = false
       win3d.blower = winState.blower
@@ -136,17 +122,19 @@ const init3DWindows = async () => {
     // 注意：旋转后记得更新一下矩阵，再进行后续的包围盒和转轴计算
     // winMesh.updateMatrixWorld(true)
 
-    const [movingParts, blowerBladeMesh] = loadMovingMeshes(winMesh)
+    const [parts, bladeMesh] = loadMovingMeshes(devType, winMesh)
+    const movingParts = (parts)
+    const blowerBladeMesh = (bladeMesh)
     // 将运动部件安全吸附到运动组
     const windowGroup = new THREE.Group()
-    winMesh.position.copy(windows.value[winState.id].pos3D);
+    winMesh.position.copy(windowPosObj[winState.id].pos3D);
     winMesh.add(windowGroup)
     movingParts.forEach((part) => {
-      windowGroup.attach(part) // attach之后windowgroup才有坐标，否则是0，0，0
+      windowGroup.attach(part)
     })
 
-    const boxHelper = new THREE.BoxHelper(windowGroup, 0xff0000);
-    scene.add(boxHelper);
+    // const boxHelper = new THREE.BoxHelper(windowGroup, 0xff0000);
+    // scene.add(boxHelper);
     win3d.group = windowGroup
     win3d.blowerBladeMesh = blowerBladeMesh
 
@@ -157,9 +145,9 @@ const init3DWindows = async () => {
     //   box.expandByObject(part)
     // })
 
-    // let xVal = win3d.openUpward ? box.max.x : box.min.x
-    // const worldPivot = new THREE.Vector3(xVal, box.max.y, box.min.z) // 左侧开
-    const worldPivot = new THREE.Vector3(box.min.x, (box.min.y + box.max.y) / 2, box.min.z) // 往上开
+    let xVal = win3d.openUpward ? box.max.x : box.min.x
+    const worldPivot = new THREE.Vector3(xVal, box.max.y, box.min.z) // 左侧开
+    // const worldPivot = new THREE.Vector3(box.min.x, (box.min.y + box.max.y) / 2, box.min.z) // 往上开
     const localPivot = winMesh.worldToLocal(worldPivot.clone())
 
     // // // 4. 将旋转组放置在侧边合页处
@@ -188,12 +176,12 @@ const init3DWindows = async () => {
     // })
   })
   // writing for test
-  device3DList[2].status = 1
-  device3DList[2].blowerState = 1
-  device3DList[3].status = 1
-  device3DList[3].blowerState = 1
-  device3DList[4].status = 1
-  device3DList[4].blowerState = 1
+  // device3DList[2].status = 1
+  // device3DList[2].blowerState = 1
+  // device3DList[3].status = 1
+  // device3DList[3].blowerState = 1
+  // device3DList[4].status = 1
+  // device3DList[4].blowerState = 1
   // device3DList[11].status = 1
   // device3DList[11].blowerState = 2
   // device3DList[12].status = 1
@@ -217,8 +205,10 @@ const loadModel = (async devType => {
   // 将模型内部网格拉回原点（如果希望底部贴地，y 可以用 box.min.y）
 
   fbx.position.sub(center);
+
   const wrapper = new THREE.Group();
-  wrapper.add(fbx);
+  fbx.position.z += 0.25
+  wrapper.add(fbx)
 
   // return [fbx, wrapper]
   return wrapper
@@ -250,7 +240,7 @@ const animate = () => {
       }
       // 驅動 3D 群組旋轉
       if (windowItem.openUpward) {
-        windowItem.group.rotation.y = -windowItem.currentAngle //往上开,本应是rotation.x，这里是局部x轴
+        windowItem.group.rotation.x = -windowItem.currentAngle //往上开,本应是rotation.x，这里是局部x轴
       } else {
         windowItem.group.rotation.y = -windowItem.currentAngle //往侧边开
       }
@@ -310,7 +300,8 @@ const animate = () => {
     renderer.render(scene, camera);
 
   // 遍历数据源，计算 2D 投影坐标
-  Object.values(windows.value).forEach((win) => {
+  // console.log('line 324', windows.value)
+  windowPosList.value.forEach((win, index) => {
     // 1. 复制该窗户的固定的 3D 世界坐标
     tempPosition.copy(win.pos3D);
 
@@ -327,6 +318,8 @@ const animate = () => {
     win.screenX = (tempPosition.x * 0.5 + 0.5) * window.innerWidth;
     win.screenY = (tempPosition.y * -0.5 + 0.5) * window.innerHeight;
 
+    win.screenX = 200 * index
+    win.screenY = 100 + index*10 
     // 5. 在屏幕范围内则显示
     win.isPresented = true;
 
@@ -334,12 +327,14 @@ const animate = () => {
   });
 };
 
-
-
-const loadMovingMeshes = (fbx => {
+const partsCache = {}
+const loadMovingMeshes = ((devType, fbx) => {
   // const winMeshGroup = new THREE.Group()
   let blowerBladeMesh = null
   const movingParts = []
+  // if (partsCache[devType]) {
+  //   return partsCache[devType]
+  // }
   fbx.traverse(child => {
     if (child && child.isMesh) {
       const parentName = child.parent ? child.parent.name : null
@@ -347,7 +342,7 @@ const loadMovingMeshes = (fbx => {
       // 收集需要动的部件
       if (
         ['v', 'v2', '0_2', '2', 'BT_DLSZD_03',
-          'BT_RJCHY_01_02', 'BT_RJCHY_01_02_instance'
+          'BT_RJCHY_01_02', 'BT_RJCHY_01_02_instance', 'g1', 'g2', 'k'
         ].includes(child.name)
       ) {
         console.log('adding child', child)
@@ -367,20 +362,42 @@ const loadMovingMeshes = (fbx => {
       }
     }
   })
-  return [movingParts, blowerBladeMesh]
+  partsCache[devType] = [movingParts, blowerBladeMesh]
+  return partsCache[devType]
 })
 
 // --- 6. 生命周期钩子 ---
+const southWindowCount = ref(0)
 onMounted(async () => {
   await Promise.all([
-    store.initDeviceConfig('001'),
+    store.initDeviceConfig('001')
     // initWebSocket()
-  ]
-  )
+  ])
+  let j = 0
+  windowPosList.value = southWindowList.value.map(window => {
+    let pos = baseVector.clone()
+    let i = window.id
+    if (i == 6 || i == 11) {
+      // pos.x = baseVector.x
+      j = 0
+    }
+    if (i >= 11) {
+      pos.y = -2 // y轴下移2个单位
+      console.log('id', i, 'pos.x: ', pos.x)
+      pos.x += j * 1
+    }
+    pos.x += j * 3 //x方向隔3个单位
+    const windowPos = { id: i, title: '窗户' + i, pos3D: pos, screenX: 0, screenY: 0, isPresented: false }
+    windowPosObj[i] = windowPos
+    j++
+    return windowPos
+  })
+
+  southWindowCount.value = southWindowList.value.length
 
   // 初始化 Three.js 场景
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x1a1a1a);
+  scene.background = new THREE.Color('#f1f5f9');
 
   camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
   camera.position.set(0, 2, 8);
@@ -422,41 +439,6 @@ onMounted(async () => {
   const windowMat = new THREE.MeshStandardMaterial({ color: 0x00aaff, transparent: true, opacity: 0.7 });
 
   await init3DWindows()
-  // const loader = new FBXLoader()
-  // loader.load('/asset/damper_blower.fbx', (fbx) => {
-  //   const size = 0.015
-  //   fbx.scale.set(size, size, size)
-  //   fbx.rotation.y = Math.PI / 2
-
-  //   const box = new THREE.Box3().setFromObject(fbx);
-  //   //   console.log('box', box)
-  //   const center = box.getCenter(new THREE.Vector3());
-  //   console.log('center', center)
-  //   // 将模型内部网格拉回原点（如果希望底部贴地，y 可以用 box.min.y）
-
-  //   const boxHelper = new THREE.BoxHelper(fbx, 0xff0000);
-  //   scene.add(boxHelper);
-
-  //   fbx.position.sub(center);
-  //   const wrapper = new THREE.Group();
-  //   wrapper.add(fbx);
-  //   // wrapper.position.copy(windows.value[0].pos3D); // 现在 wrapper 的位置就是模型真实的几何中心
-  //   // scene.add(wrapper);
-  //   // fbx.position.copy(windows[0].pos3D)
-  //   // scene.add(fbx)
-
-  //   windows.value.forEach((win) => {
-  //     // const winMesh = new THREE.Mesh(windowGeo, windowMat);
-  //     const winMesh = wrapper.clone();
-
-  //     // console.log('winmesh pos:', winMesh.position)
-  //     winMesh.position.copy(win.pos3D);
-  //     console.log('winmesh pos latest:', winMesh.position)
-  //     scene.add(winMesh);
-  //   })
-  // })
-
-
 
   // 监听窗口大小变化并启动动画
   window.addEventListener('resize', handleResize);
