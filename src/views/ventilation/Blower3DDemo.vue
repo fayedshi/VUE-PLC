@@ -137,7 +137,7 @@ const loadWindowModel = () => {
 
   windowGroup = new THREE.Group()
 
-  loader.load('/asset/damper_blower.fbx', (fbxObject) => {
+  loader.load('/asset/fan_window.fbx', (fbxObject) => {
     const size = 0.02
     fbxObject.scale.set(size, size, size)
 

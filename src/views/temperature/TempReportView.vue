@@ -78,6 +78,7 @@ import axios from 'axios'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import HouseSelect from '../../components/HouseSelect.vue'
+import http from '../../../api/http.js'
 
 // ==================== 业务状态 ====================
 const isLoading = ref(false)
@@ -126,13 +127,13 @@ const createIdCardSprite = (text) => {
   const ctx = canvas.getContext('2d')
 
   drawRoundRect(ctx, 4, 4, 120, 40, 8)
-  ctx.fillStyle = 'rgba(30, 41, 59, 0.95)'
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.95)'
   ctx.fill()
   ctx.lineWidth = 2
   ctx.strokeStyle = '#64748b'
   ctx.stroke()
 
-  ctx.font = 'bold 24px sans-serif'
+  ctx.font = '300 30px sans-serif'
   ctx.fillStyle = '#f8fafc'
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
@@ -210,7 +211,7 @@ const init25DScene = () => {
     0.1,
     1000
   )
-  camera.position.set(58, 52, 58)
+  camera.position.set(72, 32, 28)
   camera.lookAt(0, 6, 0)
 
   renderer = new THREE.WebGLRenderer({ antialias: true })
@@ -222,20 +223,20 @@ const init25DScene = () => {
   controls.enableDamping = true
   controls.enableRotate = true
   controls.screenSpacePanning = true
-  controls.minZoom = 0.5
+  controls.minZoom = 0.8
   controls.maxZoom = 2.5
 
   // 仓库地板与外框线
   const floorMesh = new THREE.Mesh(
     new THREE.BoxGeometry(76, 0.6, 56),
-    new THREE.MeshBasicMaterial({ color: 0x162033 })
+    new THREE.MeshBasicMaterial({ color: 0x162030 })
   )
   floorMesh.position.y = -0.3
   scene.add(floorMesh)
 
-  const gridHelper = new THREE.GridHelper(74, 18, 0x1e3a8a, 0x1e293b)
-  gridHelper.position.y = 0.02
-  scene.add(gridHelper)
+  // const gridHelper = new THREE.GridHelper(74, 18, 0x1e3a8a, 0x1e293b)
+  // gridHelper.position.y = 0.02
+  // scene.add(gridHelper)
 
   const edges = new THREE.EdgesGeometry(new THREE.BoxGeometry(76, 15, 56))
   const wireFrame = new THREE.LineSegments(
@@ -286,7 +287,7 @@ const renderCablesIn25D = (cache) => {
   const startZ = -((rows - 1) * spacingZ) / 2
 
   // 4 个测温层高度（适当拉开垂直距离，让小卡片上下不遮挡）
-  const layerHeights = [12.0, 8.8, 5.6, 2.4]
+  // const layerHeights = [12, 11, 10, 9]
 
   for (let cableIdx = 0; cableIdx < 35; cableIdx++) {
     const col = cableIdx % cols
@@ -303,7 +304,7 @@ const renderCablesIn25D = (cache) => {
     const idCard = createIdCardSprite(`#${cableIdx + 1}`)
     idCard.position.set(posX, 14.2, posZ)
     cableGroup.add(idCard)
-
+    let cardHeight = 13
     // 3. 直接在 4 个测温点位置挂载温度小卡片
     for (let layer = 0; layer < 4; layer++) {
       const rawVal = cache[`temp${cableIdx * 4 + layer}`]
@@ -312,9 +313,9 @@ const renderCablesIn25D = (cache) => {
       const tempVal = Number(rawVal) / 10
       const isHigh = tempVal > 35.0
       const isLow = tempVal < 5.0
-
+      cardHeight = cardHeight - 1
       const tempCard = createTempCardSprite(tempVal, isHigh, isLow)
-      tempCard.position.set(posX, layerHeights[layer], posZ)
+      tempCard.position.set(posX, cardHeight, posZ)
       cableGroup.add(tempCard)
     }
   }
@@ -338,7 +339,7 @@ const onWindowResize = () => {
 const fetchTemperatureData = async (formattedTime = '') => {
   isLoading.value = true
   try {
-    const response = await axios.get('http-api/api/tempreport', {
+    const response = await http.get('http-api/api/tempreport', {
       params: {
         input_time: formattedTime,
         house_code: selectedHouseCode.value

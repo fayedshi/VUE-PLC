@@ -15,11 +15,11 @@
       <button class="btn-search" :disabled="isLoading" @click="handleSearch">
         {{ isLoading ? '分析中...' : '📊 生成趋势图' }}
       </button>
-      <button class="btn-reset" @click="resetTimeRange">🔄 重置三天</button>
+      <button class="btn-reset" @click="resetTimeRange">🔄 重置七天</button>
     </div>
     <!-- 🎯 2. 新增：层级切换选项卡（极致简洁扁平设计） -->
     <div class="layer-selector">
-      <h2>粮仓温湿度趋势分析（每5分钟抽样）</h2>
+      <h2>粮仓温湿度趋势分析</h2>
       <!-- 💡 新增：数据指标复选框群组 -->
       <div class="options">
         <div class="metric-checkboxes options">
@@ -61,6 +61,7 @@ import axios from 'axios'
 // 💡 请确保项目已安装 echarts: npm install echarts
 import * as echarts from 'echarts'
 import HouseSelect from '../../components/HouseSelect.vue';
+import http from '../../../api/http.js'
 
 const chartRef = ref(null)
 let myChart = null
@@ -184,10 +185,10 @@ const handleMetricChange = () => {
 
 const initDefaultTime = () => {
   const now = new Date()
-  const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000)
+  const startTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
 
   // 转换为 datetime-local 输入框需要的格式: YYYY-MM-DDTHH:mm
-  timeRange.value.startTime = formatDateToLocal(threeDaysAgo)
+  timeRange.value.startTime = formatDateToLocal(startTime)
   timeRange.value.endTime = formatDateToLocal(now)
 }
 
@@ -218,11 +219,11 @@ const initChart = () => {
   }
 }
 
-const http = axios.create({
-  // baseURL: 'http://192.168.0.16:8000',
-  baseURL: 'http-api',
-  timeout: 5000
-});
+// const http = axios.create({
+//   // baseURL: 'http://192.168.0.16:8000',
+//   baseURL: 'http-api',
+//   timeout: 5000
+// });
 
 const selectedHouseCode = ref('001');
 
