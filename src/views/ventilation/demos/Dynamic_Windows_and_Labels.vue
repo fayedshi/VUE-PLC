@@ -1,15 +1,19 @@
 <template>
   <div class="scene-container">
+    <HouseSelect v-model="selectedHouseCode" @change="handleHouseChange" />
     <!-- 3D 渲染画布 -->
     <canvas ref="canvasRef" class="webgl-canvas"></canvas>
 
     <!-- HTML 菜单图层：由数据驱动自动渲染 -->
     <div class="ui-container">
+
       <div v-for="win in windowPosList" :key="win.id" v-show="win.isPresented" class="window-menu" :style="{
         transform: `translate3d(${win.screenX}px, ${win.screenY}px, 0) translate(-50%, -120%)`
       }">
-        <h4>{{ win.title }}</h4>
-        <button @click="handleAction(win.title)">开启</button>
+        <!-- <h4>{{ win.title }}</h4>
+        <button @click="handleAction(win.title)">开启</button> -->
+        <WindowWidget v-if="device3DList && device3DList[win.id]" :data="device3DList[win.id]" :seqNo="win.id"
+          @action="handleDeviceAction" />
       </div>
     </div>
 
@@ -18,9 +22,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed, reactive } from 'vue';
+import { ref, onMounted, onUnmounted, computed, reactive, markRaw } from 'vue';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import WindowWidget from '../../../components/WindowWidget.vue'
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader'
 import { useWindowControlStore } from '../../../store/WindowControl.ts'
 
@@ -65,6 +70,10 @@ const acceleration = 0.003
 const handleAction = (title) => {
   alert(`Vue 3 触发：${title}已开启`);
 };
+const selectedHouseCode = ref('')
+const handleDeviceAction = async ({ type, id, action }) => {
+  await store.controlDevice(selectedHouseCode.value, type, id, action)
+}
 
 // --- 5. 处理窗口缩放 ---
 const handleResize = () => {
@@ -135,8 +144,8 @@ const init3DWindows = async () => {
 
     // const boxHelper = new THREE.BoxHelper(windowGroup, 0xff0000);
     // scene.add(boxHelper);
-    win3d.group = windowGroup
-    win3d.blowerBladeMesh = blowerBladeMesh
+    win3d.group = markRaw(windowGroup)
+    win3d.blowerBladeMesh = blowerBladeMesh ? markRaw(blowerBladeMesh) : blowerBladeMesh
 
     const box = new THREE.Box3().setFromObject(windowGroup)
     //box3算出来的是世界坐标，如果此时winmesh不在原点，则需要转换成局部坐标再赋值
@@ -176,8 +185,8 @@ const init3DWindows = async () => {
     // })
   })
   // writing for test
-  // device3DList[2].status = 1
-  // device3DList[2].blowerState = 1
+  device3DList[2].status = 1
+  device3DList[2].blowerState = 1
   // device3DList[3].status = 1
   // device3DList[3].blowerState = 1
   // device3DList[4].status = 1
@@ -194,7 +203,7 @@ const init3DWindows = async () => {
 
 const loadModel = (async devType => {
   const fbx = await loader.loadAsync(`/asset/${devType}.fbx`)
-  const size = 0.015
+  const size = 0.008
   fbx.scale.set(size, size, size)
   fbx.rotation.y = Math.PI / 2
 
@@ -318,8 +327,8 @@ const animate = () => {
     win.screenX = (tempPosition.x * 0.5 + 0.5) * window.innerWidth;
     win.screenY = (tempPosition.y * -0.5 + 0.5) * window.innerHeight;
 
-    win.screenX = 200 * index
-    win.screenY = 100 + index*10 
+    // win.screenX = 200 * index
+    // win.screenY = 100 + index*10 
     // 5. 在屏幕范围内则显示
     win.isPresented = true;
 
@@ -487,15 +496,15 @@ onUnmounted(() => {
   position: absolute;
   top: 0;
   left: 0;
-  background: rgba(30, 30, 30, 0.85);
+  /* background: rgba(30, 30, 30, 0.85); */
   color: white;
-  padding: 10px 15px;
+  /* padding: 10px 15px; */
   border-radius: 6px;
-  border: 1px solid #444;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+  /* border: 1px solid #444; */
+  /* box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5); */
   pointer-events: auto;
   /* 恢复菜单自身的点击事件 */
-  width: 120px;
+  /* width: 120px; */
   will-change: transform;
   /* 优化 GPU 渲染性能 */
 }
