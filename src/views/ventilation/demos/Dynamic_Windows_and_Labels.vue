@@ -1,28 +1,37 @@
 <template>
-  <div class="scene-container">
-    <HouseSelect v-model="selectedHouseCode" @change="handleHouseChange" />
-    <!-- 3D 渲染画布 -->
-    <canvas ref="canvasRef" class="webgl-canvas"></canvas>
-
-    <!-- HTML 菜单图层：由数据驱动自动渲染 -->
-    <div class="ui-container">
-
-      <div v-for="win in windowPosList" :key="win.id" v-show="win.isPresented" class="window-menu" :style="{
-        transform: `translate3d(${win.screenX}px, ${win.screenY}px, 0) translate(-50%, -120%)`
-      }">
-        <!-- <h4>{{ win.title }}</h4>
-        <button @click="handleAction(win.title)">开启</button> -->
-        <WindowWidget v-if="device3DList && device3DList[win.id]" :data="device3DList[win.id]" :seqNo="win.id"
-          @action="handleDeviceAction" />
-      </div>
+  <!-- 外层统一容器，锁定视口高度并隐藏溢出，防止出现滚动条 -->
+  <div class="page-wrapper">
+    <!-- 顶部悬浮控制栏：改为绝对定位悬浮在 3D 场景上方，不挤占画布空间 -->
+    <div class="houseselect-bar">
+      <HouseSelect v-model="selectedHouseCode" @change="handleHouseChange" />
+      <el-tabs v-model="activeTab" class="wall-tabs" @tab-change="handleTabChange">
+        <el-tab-pane label="南墙" :name="0"></el-tab-pane>
+        <el-tab-pane label="北墙" :name="1"></el-tab-pane>
+      </el-tabs>
     </div>
 
-    <div class="instructions">Vue 3 数据驱动：按住鼠标拖拽旋转视角</div>
+    <!-- 3D 渲染主容器 -->
+    <div class="scene-container">
+      <!-- 3D 渲染画布 -->
+      <canvas ref="canvasRef" class="webgl-canvas"></canvas>
+
+      <!-- HTML 菜单图层：由数据驱动自动渲染 -->
+      <div class="ui-container">
+        <div v-for="win in windowPosList" :key="win.id" v-show="win.isPresented" class="window-menu" :style="{
+          transform: `translate3d(${win.screenX}px, ${win.screenY}px, 0) translate(-50%, -120%)`
+        }">
+          <WindowWidget v-if="device3DList?.[win.id]" :data="device3DList[win.id]" :seqNo="win.id"
+            @action="handleDeviceAction" />
+        </div>
+      </div>
+
+      <div class="instructions">Vue 3 数据驱动：按住鼠标拖拽旋转视角</div>
+    </div>
   </div>
 </template>
-
 <script setup>
 import { ref, onMounted, onUnmounted, computed, reactive, markRaw } from 'vue';
+import HouseSelect from '../../../components/HouseSelect.vue';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import WindowWidget from '../../../components/WindowWidget.vue'
@@ -37,10 +46,41 @@ const canvasRef = ref(null);
 //   { id: 3, title: '右侧窗户', pos3D: new THREE.Vector3(-2, 2.5, 0.05), screenX: 0, screenY: 0, isPresented: false }
 // ]);
 const windowPosObj = {}
-const baseVector = new THREE.Vector3(-7, 2.5, 0.05)
+const baseWinVector = new THREE.Vector3(-8.5, 6.5, 0.05)
+const baseACVectors = [new THREE.Vector3(-6.5, 3.5, 0.05), new THREE.Vector3(4.0, 3.5, 0.05)]
 const windowPosList = ref([])
 
 
+const activeTab = ref(0)
+
+// name 参数即为 el-tab-pane 上绑定的 name（'params' 或 'valves'）
+const handleTabChange = async (name) => {
+  console.log('当前切换到了：', name)
+  if (name === 0) {
+    // 切换到南墙 3D 逻辑
+    activeTab.value = 0
+
+  } else if (name === 1) {
+    // 切换到北墙 3D 逻辑
+    activeTab.value = 1
+  }
+
+  console.log('after switch tab active devs:', activeDeviceList.value)
+  console.log('after switch tab north dev3DPosList.value:', dev3DPosList.value)
+  // device3DList = {}
+  activeWinMeshes.forEach(mesh => {
+    scene.remove(mesh)
+    // 2. 彻底释放旧mesh占用的显卡内存（如果以后不再复用这个 mesh）
+    mesh.geometry?.dispose()
+    mesh.material?.dispose()
+  })
+  cancelAnimationFrame(animationFrameId);
+  await init3DWindows(activeDeviceList.value)
+  animate()
+  project3DToScreen()
+
+
+}
 
 // const bottomWindows = computed(() => {
 //   const windows = {}
@@ -61,7 +101,7 @@ const store = useWindowControlStore()
 // --- 3. 核心计算与渲染循环 ---
 let currentSpeed = 0
 const maxAngle = Math.PI / 2
-const speed = 0.0058
+const speed = 0.00058
 const maxSpeed = 0.12
 const acceleration = 0.003
 
@@ -75,6 +115,21 @@ const handleDeviceAction = async ({ type, id, action }) => {
   await store.controlDevice(selectedHouseCode.value, type, id, action)
 }
 
+const handleHouseChange = async () => {
+  await Promise.all([
+    store.initDeviceConfig(selectedHouseCode.value),
+    initThree(),
+    // initWebSocket()
+  ])
+  console.log('activeDeviceList.value', activeDeviceList.value)
+  windowPosList.value = dev3DPosList.value
+  await init3DWindows(activeDeviceList.value)
+  console.log('device3DList in handle house change: ', device3DList)
+  testDevicesForDebug()
+  animate()
+  project3DToScreen()
+}
+
 // --- 5. 处理窗口缩放 ---
 const handleResize = () => {
   if (!camera || !renderer) return;
@@ -83,27 +138,38 @@ const handleResize = () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
 };
 
-const southWindowList = computed(() => {
-  return store.windowStateList.filter(window => [1, 2, 3, 4, 5, 11, 12, 13, 14, 33, 34].includes(window.id))
+const activeDeviceList = computed(() => {
+  const fullDevList = store.windowStateList.concat(store.acStateList);
+  console.log('fulldevs:', fullDevList, 'activtab: ', activeTab.value)
+  const southIds = [1, 2, 3, 4, 5, 11, 12, 13, 14, 33, 34]
+  if (!activeTab.value) {
+    return fullDevList.filter(window => southIds.includes(window.id))
+  } else {
+    return fullDevList.filter(window => !southIds.includes(window.id))
+  }
+
   // return store.windowStateList.filter(window => [2].includes(window.id))
 })
 
 
 const loader = new FBXLoader()
-const device3DList = {}
-
-const init3DWindows = async () => {
+let device3DList = reactive({})
+let activeWinMeshes = []
+const init3DWindows = async (activeDeviceList) => {
+  activeWinMeshes = []
   let devType = 'upperwindow'
   const blowerWinFbx = await loadModel('damper_blower')
   const simplerUpperWinFbx = await loadModel('upperwindow')
   const fanWinFbx = await loadModel('fan_window')
+  const acFbx = await loadModel('ac')
 
-  southWindowList.value.forEach(winState => {
+  activeDeviceList.forEach(deviceState => {
+    console.log('loading dev state obj', deviceState)
     let fbxObj = simplerUpperWinFbx
     console.log('fbxobj:', fbxObj)
-    let win3d = reactive({
-      id: winState.id,
-      status: winState.status,
+    let win3d = {
+      id: deviceState.id,
+      status: deviceState.status,
       currentAngle: 0,
       group: null,           // 存放 THREE.Group
       blowerBladeMesh: null,
@@ -111,20 +177,23 @@ const init3DWindows = async () => {
       openUpward: true,
       fan: null,
       blower: null
-    })
-    if (winState.fan) {
-      win3d.blowerState = winState.fan.status
-      win3d.fan = winState.fan
+    }
+    if (deviceState.fan) {
+      win3d.blowerState = deviceState.fan.status
+      win3d.fan = deviceState.fan
       fbxObj = fanWinFbx
       devType = 'fanWindow'
-    } else if (winState.blower) {
+    } else if (deviceState.blower) {
       fbxObj = blowerWinFbx
       devType = 'blowerWindow'
-      win3d.blowerState = winState.blower.status
+      win3d.blowerState = deviceState.blower.status
       win3d.openUpward = false
-      win3d.blower = winState.blower
+      win3d.blower = deviceState.blower
+    } else if (!('fan' in deviceState)) { // ac feature
+      console.log('loaded ac')
+      fbxObj = acFbx
     }
-    device3DList[winState.id] = win3d
+    device3DList[deviceState.id] = win3d
 
     const winMesh = fbxObj.clone();
     // winMesh.rotation.y += Math.PI
@@ -132,20 +201,27 @@ const init3DWindows = async () => {
     // winMesh.updateMatrixWorld(true)
 
     const [parts, bladeMesh] = loadMovingMeshes(devType, winMesh)
-    const movingParts = (parts)
-    const blowerBladeMesh = (bladeMesh)
+    const movingParts = parts
+    const blowerBladeMesh = bladeMesh
     // 将运动部件安全吸附到运动组
+    win3d.blowerBladeMesh = blowerBladeMesh
+
     const windowGroup = new THREE.Group()
-    winMesh.position.copy(windowPosObj[winState.id].pos3D);
+    winMesh.position.copy(windowPosObj[deviceState.id].pos3D);
     winMesh.add(windowGroup)
+    scene.add(winMesh)
+    activeWinMeshes.push(winMesh)
+    if (movingParts.length == 0) {
+      // AC has no window moving meshes except blade
+      return
+    }
     movingParts.forEach((part) => {
       windowGroup.attach(part)
     })
 
     // const boxHelper = new THREE.BoxHelper(windowGroup, 0xff0000);
     // scene.add(boxHelper);
-    win3d.group = markRaw(windowGroup)
-    win3d.blowerBladeMesh = blowerBladeMesh ? markRaw(blowerBladeMesh) : blowerBladeMesh
+    win3d.group = windowGroup
 
     const box = new THREE.Box3().setFromObject(windowGroup)
     //box3算出来的是世界坐标，如果此时winmesh不在原点，则需要转换成局部坐标再赋值
@@ -173,7 +249,7 @@ const init3DWindows = async () => {
     // scene.add(boxHelper);
     // console.log('winmesh pos:', winMesh.position)
     console.log('winmesh pos latest:', winMesh.position)
-    scene.add(winMesh)
+
 
     // store.acStateList.forEach(acState => {
     //   device3DList[acState.id] = reactive({
@@ -184,9 +260,14 @@ const init3DWindows = async () => {
     //   })
     // })
   })
+  console.log('in init3d device3dlist:', device3DList)
+
+}
+
+const testDevicesForDebug = () => {
   // writing for test
-  device3DList[2].status = 1
-  device3DList[2].blowerState = 1
+  // device3DList[2].status = 1
+  // device3DList[2].blowerState = 1
   // device3DList[3].status = 1
   // device3DList[3].blowerState = 1
   // device3DList[4].status = 1
@@ -203,9 +284,13 @@ const init3DWindows = async () => {
 
 const loadModel = (async devType => {
   const fbx = await loader.loadAsync(`/asset/${devType}.fbx`)
-  const size = 0.008
+  const size = 0.012
   fbx.scale.set(size, size, size)
   fbx.rotation.y = Math.PI / 2
+  if (devType == 'ac') {
+    fbx.rotation.y -= Math.PI
+    // fbx.rotation.y = Math.PI / 2
+  }
 
   const box = new THREE.Box3().setFromObject(fbx);
   //   console.log('box', box)
@@ -292,16 +377,7 @@ const animate = () => {
       }
     }
   })
-  // controls.update()
-  // 1. 渲染 3D 模型
-  // if (renderer && scene && camera)
-  //   renderer.render(scene, camera);
-
-  // // 2. 核心：必须加上这行来渲染 HTML 按钮
-  // if (labelRenderer && scene && camera)
-  //   labelRenderer.render(scene, camera);
-  // // renderer.render(scene, camera)
-
+  project3DToScreen()
 
   // 更新 3D 控制器与渲染
   if (controls) controls.update();
@@ -310,30 +386,30 @@ const animate = () => {
 
   // 遍历数据源，计算 2D 投影坐标
   // console.log('line 324', windows.value)
-  windowPosList.value.forEach((win, index) => {
-    // 1. 复制该窗户的固定的 3D 世界坐标
-    tempPosition.copy(win.pos3D);
+  // windowPosList.value.forEach((win, index) => {
+  //   // 1. 复制该窗户的固定的 3D 世界坐标
+  //   tempPosition.copy(win.pos3D);
 
-    // 2. 投影到相机的标准设备坐标系 (NDC)
-    tempPosition.project(camera);
+  //   // 2. 投影到相机的标准设备坐标系 (NDC)
+  //   tempPosition.project(camera);
 
-    // 3. 裁剪优化：如果 z > 1，说明窗户在相机背面，将其从视图中隐藏
-    if (tempPosition.z > 1) {
-      win.isPresented = false;
-      return;
-    }
+  //   // 3. 裁剪优化：如果 z > 1，说明窗户在相机背面，将其从视图中隐藏
+  //   if (tempPosition.z > 1) {
+  //     win.isPresented = false;
+  //     return;
+  //   }
 
-    // 4. 转换为屏幕的实际像素坐标 (X, Y)
-    win.screenX = (tempPosition.x * 0.5 + 0.5) * window.innerWidth;
-    win.screenY = (tempPosition.y * -0.5 + 0.5) * window.innerHeight;
+  //   // 4. 转换为屏幕的实际像素坐标 (X, Y)
+  //   win.screenX = (tempPosition.x * 0.5 + 0.5) * window.innerWidth;
+  //   win.screenY = (tempPosition.y * -0.5 + 0.5) * window.innerHeight;
 
-    // win.screenX = 200 * index
-    // win.screenY = 100 + index*10 
-    // 5. 在屏幕范围内则显示
-    win.isPresented = true;
+  //   // win.screenX = 200 * index
+  //   // win.screenY = 100 + index*10 
+  //   // 5. 在屏幕范围内则显示
+  //   win.isPresented = true;
 
 
-  });
+  // });
 };
 
 const partsCache = {}
@@ -375,41 +451,113 @@ const loadMovingMeshes = ((devType, fbx) => {
   return partsCache[devType]
 })
 
-// --- 6. 生命周期钩子 ---
-const southWindowCount = ref(0)
-onMounted(async () => {
-  await Promise.all([
-    store.initDeviceConfig('001')
-    // initWebSocket()
-  ])
-  let j = 0
-  windowPosList.value = southWindowList.value.map(window => {
-    let pos = baseVector.clone()
-    let i = window.id
-    if (i == 6 || i == 11) {
-      // pos.x = baseVector.x
-      j = 0
-    }
-    if (i >= 11) {
-      pos.y = -2 // y轴下移2个单位
-      console.log('id', i, 'pos.x: ', pos.x)
-      pos.x += j * 1
-    }
-    pos.x += j * 3 //x方向隔3个单位
-    const windowPos = { id: i, title: '窗户' + i, pos3D: pos, screenX: 0, screenY: 0, isPresented: false }
-    windowPosObj[i] = windowPos
-    j++
-    return windowPos
-  })
 
-  southWindowCount.value = southWindowList.value.length
+let socket = null
+let isExplicitlyClosed = false
+const initWebSocket = () => {
+  // todo: need granary switch control in ui, hardcode 001 for now
+
+  socket = new WebSocket(`ws-api/ws/dev-state/${selectedHouseCode.value}`);
+  // socket = new WebSocket(`ws://${backendAdd}/ws/dev-state`);`
+
+  // 连接成功事件
+  socket.onopen = () => {
+    console.log('成功连接到 Python 后端 WebSocket！');
+  };
+
+  // 接收到后端实时数据事件
+  socket.onmessage = (event) => {
+    // 解析后端传过来的 JSON 字符串
+    const statesResp = JSON.parse(event.data);
+    // console.log('devstate list', event.data)
+    // controlMode.value = devStatesObj.value?.['switch'][0]
+    store.updateStatus(statesResp)
+    activeDeviceList.value.forEach(devState => {
+
+      let dev3d = device3DList[devState.id]
+      dev3d.status = devState.status
+      if (devState.fan) {
+        dev3d.blowerState = devState.fan.status
+      }
+      else if (devState.blower) {
+        dev3d.blowerState = devState.blower.status
+      } else if (!('fan' in devState)) { // ac
+        dev3d.blowerState = devState.status
+      }
+    })
+
+    // store.acStateList.forEach((acState) => {
+    //   let ac = device3DList[acState.id]
+    //   ac.blowerState = acState.status
+    // })
+
+  };
+
+  // 连接关闭事件
+  socket.onclose = () => {
+    // console.log('【前端提示】连接已断开，3秒后尝试自动重连...');
+    if (!isExplicitlyClosed)
+      setTimeout(initWebSocket, 3000); // 掉线自动重连机制
+  };
+
+  // 发生错误事件
+  socket.onerror = (error) => {
+    console.error('【前端提示】WebSocket 发生错误:', error);
+  };
+};
+
+// --- 6. 生命周期钩子 ---
+// const southWindowCount = ref(0)
+onMounted(async () => {
+  // testDevicesForDebug()
+  // await Promise.all([
+  //   store.initDeviceConfig(selectedHouseCode.value),
+  //   initWebSocket()
+  // ])
+
+  // windowPosList.value = buildWindowPosList()
+  // initThree()
+  // await init3DWindows()
+  // animate()
+  // project3DToScreen()
+})
+
+
+
+const project3DToScreen = () => {
+  windowPosList.value.forEach((win, index) => {
+    // 1. 复制该窗户的固定的 3D 世界坐标
+    tempPosition.copy(win.pos3D);
+
+    // 2. 投影到相机的标准设备坐标系 (NDC)
+    tempPosition.project(camera);
+
+    // 3. 裁剪优化：如果 z > 1，说明窗户在相机背面，将其从视图中隐藏
+    if (tempPosition.z > 1) {
+      win.isPresented = false;
+      return;
+    }
+
+    // 4. 转换为屏幕的实际像素坐标 (X, Y)
+    win.screenX = (tempPosition.x * 0.5 + 0.5) * window.innerWidth;
+    win.screenY = (tempPosition.y * -0.5 + 0.5) * window.innerHeight;
+
+    // win.screenX = 200 * index
+    // win.screenY = 100 + index*10 
+    // 5. 在屏幕范围内则显示
+    win.isPresented = true;
+  })
+}
+
+
+const initThree = async () => {
 
   // 初始化 Three.js 场景
   scene = new THREE.Scene();
   scene.background = new THREE.Color('#f1f5f9');
 
   camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-  camera.position.set(0, 2, 8);
+  camera.position.set(0, 1, 16);
   camera.lookAt(0, 0, 0);
 
   renderer = new THREE.WebGLRenderer({ canvas: canvasRef.value, antialias: true });
@@ -427,32 +575,56 @@ onMounted(async () => {
   scene.add(directionalLight);
 
   // 创建 3D 墙体
-  const wallGeo = new THREE.BoxGeometry(15, 8, 0.2);
+  const wallGeo = new THREE.BoxGeometry(18, 12, 0.2);
   const wallMat = new THREE.MeshStandardMaterial({ color: 0x555555 });
   const wall = new THREE.Mesh(wallGeo, wallMat);
-  wall.position.set(-1, -0.2, 0);
+  wall.position.set(-1, 2, 0);
   scene.add(wall);
 
   // 创建 地面
-  const floorGeo = new THREE.PlaneGeometry(18, 18);
+  const floorGeo = new THREE.PlaneGeometry(23, 18);
   const floorMat = new THREE.MeshStandardMaterial({ color: 0xe0e0e0 });
   const floor = new THREE.Mesh(floorGeo, floorMat);
   floor.rotation.x = -Math.PI / 2;
-  floor.position.y = -(8 / 2);
+  floor.position.y = -3;
   floor.receiveShadow = true;
   scene.add(floor);
 
 
   // 创建 3D 窗户并加入场景
-  const windowGeo = new THREE.BoxGeometry(1.5, 2, 0.3);
-  const windowMat = new THREE.MeshStandardMaterial({ color: 0x00aaff, transparent: true, opacity: 0.7 });
-
-  await init3DWindows()
+  // const windowGeo = new THREE.BoxGeometry(1.5, 2, 0.3);
+  // const windowMat = new THREE.MeshStandardMaterial({ color: 0x00aaff, transparent: true, opacity: 0.7 });
 
   // 监听窗口大小变化并启动动画
   window.addEventListener('resize', handleResize);
-  animate();
-});
+  // animate();
+}
+
+const dev3DPosList = computed(() => {
+  let j = 0
+  return activeDeviceList.value.map(window => {
+    let pos = baseWinVector.clone()
+    let i = window.id
+    if (i == 6 || i == 11 || i == 15) {
+      // pos.x = baseVector.x
+      j = 0
+    }
+    if (i >= 11) {
+      pos.y = -2 // y轴下移2个单位
+      console.log('id', i, 'pos.x: ', pos.x)
+      pos.x += j * 1
+    }
+
+    pos.x += j * 3.7 //x方向隔3个单位
+    if (i > 32) { //ac
+      pos = baseACVectors[i - 33]
+    }
+    const windowPos = { id: i, title: '窗户' + i, pos3D: pos, screenX: 0, screenY: 0, isPresented: false }
+    windowPosObj[i] = windowPos
+    j++
+    return windowPos
+  })
+})
 
 onUnmounted(() => {
   // 组件销毁时清除定时器与监听，防止内存泄漏
@@ -460,16 +632,91 @@ onUnmounted(() => {
   window.removeEventListener('resize', handleResize);
   if (controls) controls.dispose();
   if (renderer) renderer.dispose();
+  destroyThreeInstance()
+  if (socket) {
+    isExplicitlyClosed = true
+    socket.close()
+  }
 });
-</script>
 
+
+function destroyThreeInstance() {
+  // 1. 停止渲染循环
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId)
+    animationFrameId = null
+  }
+
+  // 2. 销毁控制器（如 OrbitControls）
+  if (controls) {
+    controls.dispose()
+  }
+
+  // 3. 清空场景中的所有模型与贴图
+  if (scene) {
+    // clearAllModels(scene)
+    scene.clear()
+  }
+
+  // 4. 销毁渲染器并释放 WebGL 上下文
+  if (renderer) {
+    renderer.dispose()
+    renderer.forceContextLoss() // 强制释放显卡上下文
+    renderer.domElement = null
+    renderer = null
+  }
+}
+
+</script>
 <style scoped>
-.scene-container {
-  position: relative;
+/* 外层垂直 Flex 容器 */
+.page-wrapper {
+  display: flex;
+  flex-direction: column;
   width: 100vw;
   height: 100vh;
   overflow: hidden;
   background-color: #1a1a1a;
+}
+
+/* 顶部独立控制栏：不再使用 position: absolute */
+.houseselect-bar {
+  flex-shrink: 0;
+  /* 防止高度被压缩 */
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 10px 20px;
+  background-color: #252526;
+  border-bottom: 1px solid #333;
+  z-index: 10;
+}
+
+/* 去掉 el-tabs 默认的底部边距，保持顶栏紧凑 */
+.wall-tabs :deep(.el-tabs__header) {
+  margin: 0;
+}
+
+.wall-tabs :deep(.el-tabs__item) {
+  color: #ccc;
+}
+
+.wall-tabs :deep(.el-tabs__item.is-active) {
+  color: #409eff;
+}
+
+.wall-tabs :deep(.el-tabs__nav-wrap::after) {
+  background-color: transparent;
+}
+
+/* 下方 3D 容器：自动填满剩余所有空间 */
+.scene-container {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  /* 关键：防止 Flex 子项内容撑破高度 */
+  overflow: hidden;
 }
 
 .webgl-canvas {
@@ -479,6 +726,7 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   z-index: 1;
+  display: block;
 }
 
 .ui-container {
@@ -489,45 +737,17 @@ onUnmounted(() => {
   height: 100%;
   z-index: 10;
   pointer-events: none;
-  /* 允许鼠标事件穿透到 3D 场景 */
+  overflow: hidden;
 }
 
 .window-menu {
   position: absolute;
   top: 0;
   left: 0;
-  /* background: rgba(30, 30, 30, 0.85); */
   color: white;
-  /* padding: 10px 15px; */
   border-radius: 6px;
-  /* border: 1px solid #444; */
-  /* box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5); */
   pointer-events: auto;
-  /* 恢复菜单自身的点击事件 */
-  /* width: 120px; */
   will-change: transform;
-  /* 优化 GPU 渲染性能 */
-}
-
-.window-menu h4 {
-  margin: 0 0 8px 0;
-  font-size: 14px;
-  color: #00ffcc;
-}
-
-.window-menu button {
-  width: 100%;
-  background: #007bff;
-  color: white;
-  border: none;
-  padding: 5px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-}
-
-.window-menu button:hover {
-  background: #0056b3;
 }
 
 .instructions {
@@ -542,5 +762,6 @@ onUnmounted(() => {
   padding: 8px 16px;
   border-radius: 20px;
   font-size: 14px;
+  white-space: nowrap;
 }
 </style>
