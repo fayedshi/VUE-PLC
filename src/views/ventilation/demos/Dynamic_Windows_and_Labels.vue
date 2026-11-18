@@ -18,7 +18,7 @@
       <!-- HTML 菜单图层：由数据驱动自动渲染 -->
       <div class="ui-container">
         <div v-for="win in windowPosList" :key="win.id" v-show="win.isPresented" class="window-menu" :style="{
-          transform: `translate3d(${win.screenX}px, ${win.screenY}px, 0) translate(-50%, -120%)`
+          transform: `translate3d(${win.screenX}px, ${win.screenY}px, 0) translate(-0%, -130%)`
         }">
           <WindowWidget v-if="device3DList?.[win.id]" :data="device3DList[win.id]" :seqNo="win.id"
             @action="handleDeviceAction" />
@@ -30,7 +30,7 @@
   </div>
 </template>
 <script setup>
-import { ref, onMounted, onUnmounted, computed, reactive, markRaw } from 'vue';
+import { ref, onMounted, onUnmounted, computed, reactive, markRaw, devtools } from 'vue';
 import HouseSelect from '../../../components/HouseSelect.vue';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -46,8 +46,8 @@ const canvasRef = ref(null);
 //   { id: 3, title: '右侧窗户', pos3D: new THREE.Vector3(-2, 2.5, 0.05), screenX: 0, screenY: 0, isPresented: false }
 // ]);
 const windowPosObj = {}
-const baseWinVector = new THREE.Vector3(-8.5, 6.5, 0.05)
-const baseACVectors = [new THREE.Vector3(-6.5, 3.5, 0.05), new THREE.Vector3(4.0, 3.5, 0.05)]
+let wallMinx = 0, wallTopY = 0
+
 const windowPosList = ref([])
 const activeTab = ref(0)
 
@@ -146,15 +146,20 @@ const northWallGroup = new THREE.Group()
 const init3DWindows = async () => {
   // activeWinMeshes = []
   let devType = 'upperwindow'
-  const blowerWinFbx = await loadModel('damper_blower')
-  const simplerUpperWinFbx = await loadModel('upperwindow')
-  const fanWinFbx = await loadModel('fan_window')
-  const acFbx = await loadModel('ac')
+  // const blowerWinFbx = await loadModel('damper_blower')
+  // const simplerUpperWinFbx = await loadModel('upperwindow')
+  // const fanWinFbx = await loadModel('fan_window')
+  // const acFbx = await loadModel('ac')
+  const [blowerWinFbx, simplerUpperWinFbx, fanWinFbx, acFbx] = await Promise.all([
+    loadModel('damper_blower'),
+    loadModel('upperwindow'),
+    loadModel('fan_window'),
+    loadModel('ac')])
 
   fullDevList.value.forEach(deviceState => {
     console.log('loading dev state obj', deviceState)
     let fbxObj = simplerUpperWinFbx
-    console.log('fbxobj:', fbxObj)
+    // console.log('fbxobj:', fbxObj)
     let win3d = {
       id: deviceState.id,
       status: deviceState.status,
@@ -179,6 +184,7 @@ const init3DWindows = async () => {
       win3d.blower = deviceState.blower
     } else if (!('fan' in deviceState)) { // ac feature
       console.log('loaded ac')
+      devType = 'ac'
       fbxObj = acFbx
     }
     device3DList[deviceState.id] = win3d
@@ -188,9 +194,9 @@ const init3DWindows = async () => {
     // 注意：旋转后记得更新一下矩阵，再进行后续的包围盒和转轴计算
     // winMesh.updateMatrixWorld(true)
 
-    const [parts, bladeMesh] = loadMovingMeshes(devType, winMesh)
-    const movingParts = parts
-    const blowerBladeMesh = bladeMesh
+    const [movingParts, blowerBladeMesh] = loadMovingMeshes(devType, winMesh)
+    // const movingParts = parts
+    // const blowerBladeMesh = bladeMesh
     // 将运动部件安全吸附到运动组
     win3d.blowerBladeMesh = blowerBladeMesh
 
@@ -260,25 +266,29 @@ const init3DWindows = async () => {
 
 const testDevicesForDebug = () => {
   // writing for test
-  device3DList[2].status = 1
-  device3DList[2].blowerState = 1
-  device3DList[3].status = 1
-  device3DList[3].blowerState = 1
+  // device3DList[2].status = 1
+  // device3DList[2].blowerState = 1
+  // device3DList[3].status = 1
+  // device3DList[3].blowerState = 1
   // device3DList[4].status = 1
   // device3DList[4].blowerState = 1
-  device3DList[11].status = 1
-  device3DList[11].blowerState = 2
-  device3DList[16].status = 1
-  device3DList[16].blowerState = 2
+  // device3DList[11].status = 1
+  // device3DList[11].blowerState = 2
+  // device3DList[16].status = 1
+  // device3DList[16].blowerState = 2
 
-  device3DList[33].blowerState = 1
-  device3DList[34].blowerState = 1
+  // device3DList[33].blowerState = 1
+  // device3DList[34].blowerState = 1
   // writing for test
 }
 
+const modelCache = {}
 const loadModel = (async devType => {
+  // if (modelCache[devType]) {
+  //   return modelCache[devType]
+  // }
   const fbx = await loader.loadAsync(`/asset/${devType}.fbx`)
-  const size = 0.012
+  const size = 0.016
   fbx.scale.set(size, size, size)
   fbx.rotation.y = Math.PI / 2
   if (devType == 'ac') {
@@ -297,6 +307,7 @@ const loadModel = (async devType => {
   const wrapper = new THREE.Group();
   fbx.position.z += 0.25
   wrapper.add(fbx)
+  // modelCache[devType] = wrapper
 
   // return [fbx, wrapper]
   return wrapper
@@ -388,9 +399,9 @@ const loadMovingMeshes = ((devType, fbx) => {
   // const winMeshGroup = new THREE.Group()
   let blowerBladeMesh = null
   const movingParts = []
-  // if (partsCache[devType]) {
-  //   return partsCache[devType]
-  // }
+  if (partsCache[devType]) {
+    return partsCache[devType]
+  }
   fbx.traverse(child => {
     if (child && child.isMesh) {
       const parentName = child.parent ? child.parent.name : null
@@ -405,8 +416,6 @@ const loadMovingMeshes = ((devType, fbx) => {
         movingParts.push(child)
       }
       else if (child.name === 'fengshan') {
-        blowerBladeMesh = child
-        // blowerBladeMesh.geometry.center(); // 将几何体中心点移到自身本地坐标系的 (0,0,0)
         //  核心修复代码：开启双面渲染
         if (Array.isArray(child.material)) {
           child.material.forEach((mat) => {
@@ -415,11 +424,33 @@ const loadMovingMeshes = ((devType, fbx) => {
         } else {
           child.material.side = THREE.DoubleSide
         }
+        blowerBladeMesh = child
       }
     }
   })
-  partsCache[devType] = [movingParts, blowerBladeMesh]
-  return partsCache[devType]
+
+
+  // return partsCache[devType]
+  const partsClone = []
+  // movingParts.forEach(part => {
+  //   const partClone = part.clone()
+  //   partClone.position.set(0, 0, 0)
+  //   partClone.rotation.set(0, 0, 0)
+  //   partClone.scale.set(1, 1, 1)
+  //   // partClone.position.set(0, 0, 0)
+
+  //   const box = new THREE.Box3().setFromObject(partClone);
+  //   //   console.log('box', box)
+  //   const center = box.getCenter(new THREE.Vector3());
+  //   console.log('center', center)
+  //   // 将模型内部网格拉回原点（如果希望底部贴地，y 可以用 box.min.y）
+
+  //   partClone.position.sub(center);
+  //   partsClone.push(partClone)
+  // })
+  partsCache[devType] = [partsClone, blowerBladeMesh ? blowerBladeMesh.clone() : blowerBladeMesh]
+  // return partsCache[devType]
+  return [movingParts, blowerBladeMesh]
 })
 
 
@@ -489,9 +520,12 @@ onMounted(() => {
 })
 
 
-
 const project3DToScreen = () => {
   windowPosList.value.forEach((win, index) => {
+    if (!activeDevIdList.value.has(win.id)) {
+      win.isPresented = false
+      return
+    }
     // 1. 复制该窗户的固定的 3D 世界坐标
     tempPosition.copy(win.pos3D);
 
@@ -509,7 +543,7 @@ const project3DToScreen = () => {
     win.screenY = (tempPosition.y * -0.5 + 0.5) * window.innerHeight;
 
     // 5. 在屏幕范围内则显示
-    win.isPresented = activeDevIdList.value.has(win.id)
+    win.isPresented = true
   })
 }
 
@@ -539,9 +573,14 @@ const initThree = async () => {
   scene.add(directionalLight);
 
   // 创建 3D 墙体
-  const wallGeo = new THREE.BoxGeometry(18, 12, 0.2);
+  const wallGeo = new THREE.BoxGeometry(20, 12, 0.2);
   const wallMat = new THREE.MeshStandardMaterial({ color: 0x90a4ae, transparent: true, opacity: 0.7 });
   const wall = new THREE.Mesh(wallGeo, wallMat);
+  wallGeo.computeBoundingBox();
+  wallMinx = wallGeo.boundingBox.min.x
+  wallTopY = wallGeo.boundingBox.max.y
+
+  console.log('wallminx', wallMinx, 'walltopY', wallTopY)
   wall.position.set(-1, 2, 0);
   scene.add(wall);
 
@@ -565,6 +604,8 @@ const initThree = async () => {
 }
 
 const dev3DPosList = computed(() => {
+  const baseWinVector = new THREE.Vector3(wallMinx + 0.5, wallTopY + 0.5, 0.05)
+  const baseACVectors = [new THREE.Vector3(-6.5, 3.5, 0.05), new THREE.Vector3(4.0, 3.5, 0.05)]
   let j = 0
   return fullDevList.value.map(window => {
     let pos = baseWinVector.clone()
@@ -574,12 +615,12 @@ const dev3DPosList = computed(() => {
       j = 0
     }
     if (i >= 11) {
-      pos.y = -2 // y轴下移2个单位
+      pos.y = -1.5 // y轴下移2个单位
       console.log('id', i, 'pos.x: ', pos.x)
       pos.x += j * 1
     }
 
-    pos.x += j * 3.7 //x方向隔3个单位
+    pos.x += j * 4.2 //x方向隔3个单位
     if (i > 32) { //ac
       pos = baseACVectors[i - 33]
     }
