@@ -399,9 +399,9 @@ const loadMovingMeshes = ((devType, fbx) => {
   // const winMeshGroup = new THREE.Group()
   let blowerBladeMesh = null
   const movingParts = []
-  if (partsCache[devType]) {
-    return partsCache[devType]
-  }
+  // if (partsCache[devType]) {
+  //   return partsCache[devType]
+  // }
   fbx.traverse(child => {
     if (child && child.isMesh) {
       const parentName = child.parent ? child.parent.name : null
@@ -431,7 +431,7 @@ const loadMovingMeshes = ((devType, fbx) => {
 
 
   // return partsCache[devType]
-  const partsClone = []
+  // const partsClone = []
   // movingParts.forEach(part => {
   //   const partClone = part.clone()
   //   partClone.position.set(0, 0, 0)
@@ -448,7 +448,7 @@ const loadMovingMeshes = ((devType, fbx) => {
   //   partClone.position.sub(center);
   //   partsClone.push(partClone)
   // })
-  partsCache[devType] = [partsClone, blowerBladeMesh ? blowerBladeMesh.clone() : blowerBladeMesh]
+  // partsCache[devType] = [partsClone, blowerBladeMesh ? blowerBladeMesh.clone() : blowerBladeMesh]
   // return partsCache[devType]
   return [movingParts, blowerBladeMesh]
 })
