@@ -105,9 +105,9 @@ let animationId = null
 let cableGroup = null
 
 // 电缆立柱共享几何体与材质
-const sharedRodGeo = new THREE.CylinderGeometry(0.14, 0.14, 13.5, 8)
+const sharedRodGeo = new THREE.CylinderGeometry(0.14, 0.14, 10, 8)
 const sharedRodMat = new THREE.MeshBasicMaterial({ color: 0x475569 })
-
+const busLineMat = new THREE.MeshStandardMaterial({ color: 0x475569 });
 // 绘制圆角矩形辅助函数
 const drawRoundRect = (ctx, x, y, w, h, r) => {
   ctx.beginPath()
@@ -175,7 +175,7 @@ const createTempCardSprite = (tempVal, isHigh, isLow) => {
   ctx.strokeStyle = borderColor
   ctx.stroke()
 
-  ctx.font = 'bold 26px sans-serif'
+  ctx.font = '35px arial'
   ctx.fillStyle = textColor
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
@@ -200,6 +200,13 @@ const init25DScene = () => {
 
   scene = new THREE.Scene()
   scene.background = new THREE.Color(0x0b1120)
+
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.8); // 环境光
+  scene.add(ambientLight);
+
+  const dirLight = new THREE.DirectionalLight(0xffffff, 1); // 平行光
+  dirLight.position.set(10, 20, 10);
+  scene.add(dirLight);
 
   const aspect = width / height
   const frustumSize = 62
@@ -289,6 +296,8 @@ const renderCablesIn25D = (cache) => {
   // 4 个测温层高度（适当拉开垂直距离，让小卡片上下不遮挡）
   // const layerHeights = [12, 11, 10, 9]
 
+  let startCol = null, endCol = null
+  const offSetHeight = 5;
   for (let cableIdx = 0; cableIdx < 35; cableIdx++) {
     const col = cableIdx % cols
     const row = Math.floor(cableIdx / cols)
@@ -297,14 +306,24 @@ const renderCablesIn25D = (cache) => {
 
     // 1. 垂直电缆立柱
     const rodMesh = new THREE.Mesh(sharedRodGeo, sharedRodMat)
-    rodMesh.position.set(posX, 6.75, posZ)
+    const rodHeight = rodMesh.geometry.parameters.height
+    rodMesh.position.set(posX, rodHeight / 2, posZ)
+    rodMesh.position.y += offSetHeight // 离地悬空高度
     cableGroup.add(rodMesh)
+
+    if (col == 0) {
+      startCol = new THREE.Vector3(posX, rodHeight + offSetHeight, posZ);
+    } else if (col == cols - 1) {
+      endCol = new THREE.Vector3(posX, rodHeight + offSetHeight, posZ);
+      const cylinder = createCylinderBetweenPoints(startCol, endCol, 0.2, busLineMat)
+      cableGroup.add(cylinder)
+    }
 
     // 2. 顶部电缆编号卡片
     const idCard = createIdCardSprite(`#${cableIdx + 1}`)
-    idCard.position.set(posX, 14.2, posZ)
+    idCard.position.set(posX, rodHeight + 1.5, posZ)
     cableGroup.add(idCard)
-    let cardHeight = 13
+    let cardHeight = rodHeight + 1
     // 3. 直接在 4 个测温点位置挂载温度小卡片
     for (let layer = 0; layer < 4; layer++) {
       const rawVal = cache[`temp${cableIdx * 4 + layer}`]
@@ -320,6 +339,38 @@ const renderCablesIn25D = (cache) => {
     }
   }
 }
+/**
+ * 创建一个连接 pointA 和 pointB 的圆柱体（Rod）
+ * @param {THREE.Vector3} pointA 起点坐标
+ * @param {THREE.Vector3} pointB 终点坐标
+ * @param {number} radius 圆柱体半径
+ * @param {THREE.Material} material 材质
+ * @returns {THREE.Mesh} 圆柱体网格对象
+ */
+function createCylinderBetweenPoints(pointA, pointB, radius, material) {
+  // 1. 计算方向向量与两点间的距离（即圆柱体的高度）
+  const direction = new THREE.Vector3().subVectors(pointB, pointA);
+  const length = direction.length();
+
+  // 2. 创建圆柱体几何体与网格
+  // 注意：这里高度直接设为两点间的距离 length
+  const geometry = new THREE.CylinderGeometry(radius, radius, length, 16);
+  const cylinder = new THREE.Mesh(geometry, material);
+
+  // 3. 将圆柱体移动到两点的中点位置
+  const midPoint = new THREE.Vector3().addVectors(pointA, pointB).multiplyScalar(0.5);
+  cylinder.position.copy(midPoint);
+
+  // 4. 计算旋转：将圆柱体默认的 Y 轴朝向 (0, 1, 0) 对齐到目标方向向量
+  const upVector = new THREE.Vector3(0, 1, 0);
+  // quaternion.setFromUnitVectors 需要传入单位向量，所以 direction 要先 normalize()
+  cylinder.quaternion.setFromUnitVectors(upVector, direction.clone().normalize());
+
+  return cylinder;
+}
+
+
+
 
 const onWindowResize = () => {
   if (!canvasContainer.value || !renderer || !camera) return
@@ -397,6 +448,13 @@ const formatTemp = (val) => {
 onMounted(() => {
   init25DScene()
   fetchTemperatureData()
+  // // ================= 使用示例 =================
+  // const p1 = new THREE.Vector3(-10, 5, 0);
+  // const p2 = new THREE.Vector3(15, -5, 10);
+  // const mat = new THREE.MeshStandardMaterial({ color: 0xffff00 });
+
+  // const rod = createCylinderBetweenPoints(p1, p2, 1.5, mat);
+  // scene.add(rod);
 })
 onBeforeUnmount(() => {
   cancelAnimationFrame(animationId)
@@ -472,7 +530,7 @@ button:disabled {
 .loading-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(11, 17, 32, 0.8);
+  background: rgba(166, 170, 180, 0.8);
   display: flex;
   flex-direction: column;
   justify-content: center;
