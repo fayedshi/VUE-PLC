@@ -50,7 +50,7 @@ const chartRef = ref(null) // 图表 DOM 引用
 let myChart = null // ECharts 实例
 
 const stationList = ref([])
-const activePlant = ref()
+const activePlant = ref(null)
 // --- 计算属性：根据维度动态改变 ElementPlus 选择器属性 ---
 // const datePickerType = computed(() => {
 //   if (dimension.value === 'hour') return 'date'
@@ -211,7 +211,7 @@ const fetchStationList = async () => {
 };
 
 onMounted(async () => {
-  fetchStationList();
+  await fetchStationList();
   window.addEventListener('resize', handleResize)
   console.log('activePlant.value:',activePlant.value)
   if (activePlant.value) {

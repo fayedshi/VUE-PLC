@@ -18,7 +18,7 @@
       <!-- HTML 菜单图层：由数据驱动自动渲染 -->
       <div class="ui-container">
         <div v-for="win in windowPosList" :key="win.id" v-show="win.isPresented" class="window-menu" :style="{
-          transform: `translate3d(${win.screenX}px, ${win.screenY}px, 0) translate(-0%, -130%)`
+          transform: `translate3d(${win.screenX}px, ${win.screenY}px, 0) translate(15%, -120%)`
         }">
           <WindowWidget v-if="device3DList?.[win.id]" :data="device3DList[win.id]" :seqNo="win.id"
             @action="handleDeviceAction" />
@@ -46,7 +46,7 @@ const canvasRef = ref(null);
 //   { id: 3, title: '右侧窗户', pos3D: new THREE.Vector3(-2, 2.5, 0.05), screenX: 0, screenY: 0, isPresented: false }
 // ]);
 const windowPosObj = {}
-let wallMinx = 0, wallTopY = 0
+let wallMinx = 0, wallMaxX = 0, wallTopY = 0, floorBottom = 0
 
 const windowPosList = ref([])
 const activeTab = ref(0)
@@ -97,19 +97,82 @@ const handleDeviceAction = async ({ type, id, action }) => {
   await store.controlDevice(selectedHouseCode.value, type, id, action)
 }
 
+/**
+ * 彻底清除 scene 上的所有模型并释放 GPU 显存
+ * @param {THREE.Scene} scene - Three.js 场景对象
+ * @param {boolean} keepLightsAndCameras - 是否保留灯光和相机（默认 true）
+ */
+function clearScene(scene, keepLightsAndCameras = false) {
+  // 1. 递归释放单个物体及其子节点的显存资源
+  const disposeObject = (obj) => {
+    if (obj.geometry) {
+      obj.geometry.dispose()
+    }
+
+    if (obj.material) {
+      // 处理多材质数组或单材质
+      const materials = Array.isArray(obj.material) ? obj.material : [obj.material]
+      materials.forEach((mat) => {
+        if (!mat) return
+        // 遍历材质上的所有属性，销毁绑定的贴图 (map, normalMap, roughnessMap 等)
+        for (const key in mat) {
+          const value = mat[key]
+          if (value && typeof value === 'object' && value.isTexture) {
+            value.dispose()
+          }
+        }
+        mat.dispose()
+      })
+    }
+  }
+
+  // 2. 倒序遍历 scene.children（防止遍历过程中移除元素导致索引错乱）
+  for (let i = scene.children.length - 1; i >= 0; i--) {
+    const child = scene.children[i]
+
+    // 如果需要保留灯光、相机或辅助线，跳过它们
+    if (keepLightsAndCameras && (child.isLight || child.isCamera)) {
+      continue
+    }
+
+    // 递归释放该模型内部所有层级的显存
+    child.traverse((node) => {
+      disposeObject(node)
+    })
+
+    // 从场景树中移除
+    scene.remove(child)
+  }
+}
+
+let southIds = [] // house 001
+// const southIds = [1, 2, 3, 4, 5, 11, 12, 33, 34] // house 002
+
+const southIdArray = [[1, 2, 3, 4, 5, 11, 12, 13, 14, 33, 34], [1, 2, 3, 4, 5, 11, 12, 33, 34]]
+const southIdSet = ref([]);
+console.log('southidset:', southIdSet.value)
 const handleHouseChange = async () => {
+  device3DList.value = {}
+  if (scene)
+    clearScene(scene)
+  console.log('selected house', selectedHouseCode.value)
+  southWallGroup = new THREE.Group()
+  northWallGroup = new THREE.Group()
+  southIds = southIdArray[Number(selectedHouseCode.value) - 1]
+  southIdSet.value = new Set(southIds)
+  console.log('south ids', southIds)
   await Promise.all([
     store.initDeviceConfig(selectedHouseCode.value),
     initThree(),
     initWebSocket()
   ])
   console.log('activeDeviceList.value', activeDevIdList.value)
-  windowPosList.value = dev3DPosList.value
   await init3DWindows()
+
 
   southWallGroup.visible = activeTab.value == 0
   northWallGroup.visible = activeTab.value == 1
-  console.log('device3DList in handle house change: ', device3DList)
+  console.log('device3DList in handle house change: ', device3DList.value)
   testDevicesForDebug()
   animate()
 }
@@ -123,26 +186,28 @@ const handleResize = () => {
 };
 
 const fullDevList = computed(() => {
+  console.log('windowStateList: ',)
   return store.windowStateList.concat(store.acStateList)
 })
-const southIds = [1, 2, 3, 4, 5, 11, 12, 13, 14, 33, 34]
-const southIdSet = new Set(southIds);
+
 const activeDevIdList = computed(() => {
+
   console.log('fulldevs:', fullDevList.value, 'activtab: ', activeTab.value)
   if (!activeTab.value) {
-    return southIdSet
+    return southIdSet.value
   } else {
-    return new Set(fullDevList.value.filter(window => !southIdSet.has(window.id)).map(window => window.id))
+    return new Set(fullDevList.value.filter(window => !southIdSet.value.has(window.id)).map(window => window.id))
   }
 
   // return store.windowStateList.filter(window => [2].includes(window.id))
 })
 
 
+let windowWidth = 0
 const loader = new FBXLoader()
-let device3DList = reactive({})
-const southWallGroup = new THREE.Group()
-const northWallGroup = new THREE.Group()
+let device3DList = ref({})
+let southWallGroup = new THREE.Group()
+let northWallGroup = new THREE.Group()
 const init3DWindows = async () => {
   // activeWinMeshes = []
   let devType = 'upperwindow'
@@ -155,6 +220,17 @@ const init3DWindows = async () => {
     loadModel('upperwindow'),
     loadModel('fan_window'),
     loadModel('ac')])
+
+
+  const box = new THREE.Box3().setFromObject(simplerUpperWinFbx);
+  windowWidth = box.max.x - box.min.x
+  windowPosList.value = dev3DPosList.value
+
+  console.log('windowWidth in init3d', windowWidth)
+  console.log('fullDevList:', fullDevList.value)
+
+  // const center = box.getCenter(new THREE.Vector3());
+
 
   fullDevList.value.forEach(deviceState => {
     console.log('loading dev state obj', deviceState)
@@ -187,7 +263,7 @@ const init3DWindows = async () => {
       devType = 'ac'
       fbxObj = acFbx
     }
-    device3DList[deviceState.id] = win3d
+    device3DList.value[deviceState.id] = win3d
 
     const winMesh = fbxObj.clone();
     // winMesh.rotation.y += Math.PI
@@ -251,7 +327,7 @@ const init3DWindows = async () => {
 
 
     // store.acStateList.forEach(acState => {
-    //   device3DList[acState.id] = reactive({
+    //   device3DList.value[acState.id] = reactive({
     //     id: acState.id,
     //     group: null,
     //     blowerBladeMesh: null,
@@ -260,25 +336,20 @@ const init3DWindows = async () => {
     // })
   })
   scene.add(southWallGroup, northWallGroup)
-  console.log('in init3d device3dlist:', device3DList)
+  console.log('in init3d device3dlist:', device3DList.value)
 
 }
 
 const testDevicesForDebug = () => {
   // writing for test
-  // device3DList[2].status = 1
-  // device3DList[2].blowerState = 1
-  // device3DList[3].status = 1
-  // device3DList[3].blowerState = 1
-  // device3DList[4].status = 1
-  // device3DList[4].blowerState = 1
-  // device3DList[11].status = 1
-  // device3DList[11].blowerState = 2
-  // device3DList[16].status = 1
-  // device3DList[16].blowerState = 2
-
-  // device3DList[33].blowerState = 1
-  // device3DList[34].blowerState = 1
+  let testDevIds = new Set([2, 3, 4, 11, 16])
+  // device3DList.forEach((item, index) => {
+  for (const [key, item] of Object.entries(device3DList.value)) {
+    if (testDevIds.has(item.id)) {
+      // item.status = 1
+      // item.blowerState = 1
+    }
+  }
   // writing for test
 }
 
@@ -317,7 +388,7 @@ const animate = () => {
   animationFrameId = requestAnimationFrame(animate)
 
   // 1. 窗戶動畫：高速渲染迴圈直接讀寫普通變數的屬性，效率最高
-  Object.values(device3DList).forEach(windowItem => {
+  Object.values(device3DList.value).forEach(windowItem => {
     if (windowItem.group) {
       if (windowItem.status === 1) {
         // console.log('item', windowItem, ' opening')
@@ -395,6 +466,7 @@ const animate = () => {
 };
 
 const partsCache = {}
+const movingMeshesSet = new Set(['g1', 'g2', 'k', 'd1', 'd2', 'd3']);
 const loadMovingMeshes = ((devType, fbx) => {
   // const winMeshGroup = new THREE.Group()
   let blowerBladeMesh = null
@@ -407,21 +479,13 @@ const loadMovingMeshes = ((devType, fbx) => {
       const parentName = child.parent ? child.parent.name : null
       console.log('发现窗户部件:', child.name, 'parent:', parentName)
       // 收集需要动的部件
-      if (
-        ['v', 'v2', '0_2', '2', 'BT_DLSZD_03',
-          'BT_RJCHY_01_02', 'BT_RJCHY_01_02_instance', 'g1', 'g2', 'k'
-        ].includes(child.name)
-      ) {
+      if (movingMeshesSet.has(child.name)) {
         console.log('adding child', child)
         movingParts.push(child)
       }
       else if (child.name === 'fengshan') {
         //  核心修复代码：开启双面渲染
-        if (Array.isArray(child.material)) {
-          child.material.forEach((mat) => {
-            mat.side = THREE.DoubleSide
-          })
-        } else {
+        if (child.material) {
           child.material.side = THREE.DoubleSide
         }
         blowerBladeMesh = child
@@ -473,7 +537,7 @@ const initWebSocket = () => {
     store.updateStatus(statesResp)
     fullDevList.value.forEach(devState => {
 
-      let dev3d = device3DList[devState.id]
+      let dev3d = device3DList.value[devState.id]
       dev3d.status = devState.status
       if (devState.fan) {
         dev3d.blowerState = devState.fan.status
@@ -486,7 +550,7 @@ const initWebSocket = () => {
     })
 
     // store.acStateList.forEach((acState) => {
-    //   let ac = device3DList[acState.id]
+    //   let ac = device3DList.value[acState.id]
     //   ac.blowerState = acState.status
     // })
 
@@ -528,6 +592,7 @@ const project3DToScreen = () => {
     }
     // 1. 复制该窗户的固定的 3D 世界坐标
     tempPosition.copy(win.pos3D);
+    scene.localToWorld(tempPosition)
 
     // 2. 投影到相机的标准设备坐标系 (NDC)
     tempPosition.project(camera);
@@ -555,7 +620,7 @@ const initThree = async () => {
   scene.background = new THREE.Color('#f1f5f9');
 
   camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-  camera.position.set(0, 1, 16);
+  camera.position.set(0, 0.5, 16);
   camera.lookAt(0, 0, 0);
 
   renderer = new THREE.WebGLRenderer({ canvas: canvasRef.value, antialias: true });
@@ -573,26 +638,35 @@ const initThree = async () => {
   scene.add(directionalLight);
 
   // 创建 3D 墙体
-  const wallGeo = new THREE.BoxGeometry(20, 12, 0.2);
+  const wallGeo = new THREE.BoxGeometry(25, 12, 0.2);
   const wallMat = new THREE.MeshStandardMaterial({ color: 0x90a4ae, transparent: true, opacity: 0.7 });
   const wall = new THREE.Mesh(wallGeo, wallMat);
   wallGeo.computeBoundingBox();
   wallMinx = wallGeo.boundingBox.min.x
+  wallMaxX = wallGeo.boundingBox.max.x
   wallTopY = wallGeo.boundingBox.max.y
 
+
+  wall.position.y += 2
   console.log('wallminx', wallMinx, 'walltopY', wallTopY)
-  wall.position.set(-1, 2, 0);
   scene.add(wall);
 
   // 创建 地面
-  const floorGeo = new THREE.PlaneGeometry(23, 18);
+  const floorGeo = new THREE.PlaneGeometry(30, 15);
   const floorMat = new THREE.MeshStandardMaterial({ color: 0xe0e0e0 });
   const floor = new THREE.Mesh(floorGeo, floorMat);
+  console.log('floor pos:', floor.position)
+
   floor.rotation.x = -Math.PI / 2;
-  floor.position.y = -3;
+  floor.position.y = -4;
+  floorGeo.computeBoundingBox();
+  // floorBottom= floorGeo.boundingBox.min.y
+  floorBottom = floor.position.y
+  console.log('floorbottom:', floorBottom)
   floor.receiveShadow = true;
   scene.add(floor);
-
+  //整体左移3个单位
+  scene.position.x -= 3
 
   // 创建 3D 窗户并加入场景
   // const windowGeo = new THREE.BoxGeometry(1.5, 2, 0.3);
@@ -602,10 +676,15 @@ const initThree = async () => {
   window.addEventListener('resize', handleResize);
   // animate();
 }
+const windowCount = 5
+
 
 const dev3DPosList = computed(() => {
-  const baseWinVector = new THREE.Vector3(wallMinx + 0.5, wallTopY + 0.5, 0.05)
-  const baseACVectors = [new THREE.Vector3(-6.5, 3.5, 0.05), new THREE.Vector3(4.0, 3.5, 0.05)]
+
+  const windowSpaceX = (wallMaxX - wallMinx - 5 * windowWidth) / windowCount + 0.3
+  console.log('windowWidth', windowWidth, ' wall width', wallMaxX - wallMinx, 'spacex: ', windowSpaceX)
+  const baseWinVector = new THREE.Vector3(wallMinx + 1.5, wallTopY + 0.5, 0.05)
+  const baseACVectors = [new THREE.Vector3(-8.5, 3.5, 0.05), new THREE.Vector3(6.9, 3.5, 0.05)]
   let j = 0
   return fullDevList.value.map(window => {
     let pos = baseWinVector.clone()
@@ -615,12 +694,13 @@ const dev3DPosList = computed(() => {
       j = 0
     }
     if (i >= 11) {
-      pos.y = -1.5 // y轴下移2个单位
+      // pos.y = -1.5 // y轴下移2个单位
+      pos.y = floorBottom + 1.5
       console.log('id', i, 'pos.x: ', pos.x)
-      pos.x += j * 1
+      pos.x += j * 1 + 0.5
     }
 
-    pos.x += j * 4.2 //x方向隔3个单位
+    pos.x += j * (windowSpaceX + windowWidth) //x方向隔3个单位
     if (i > 32) { //ac
       pos = baseACVectors[i - 33]
     }
@@ -723,6 +803,7 @@ onUnmounted(() => {
   border-radius: 6px;
   pointer-events: auto;
   will-change: transform;
+  box-shadow: 0 4px 16px rgba(146, 33, 33, 0.04);
 }
 
 .instructions {
