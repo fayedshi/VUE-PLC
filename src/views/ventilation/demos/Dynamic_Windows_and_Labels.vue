@@ -17,7 +17,7 @@
 
       <!-- HTML 菜单图层：由数据驱动自动渲染 -->
       <div class="ui-container">
-        <div v-for="win in windowPosList" :key="win.id" v-show="win.isPresented" class="window-menu" :style="{
+        <div v-for="win in dev3DPosList" :key="win.id" v-show="win.isPresented" class="window-menu" :style="{
           transform: `translate3d(${win.screenX}px, ${win.screenY}px, 0) translate(15%, -120%)`
         }">
           <WindowWidget v-if="device3DList?.[win.id]" :data="device3DList[win.id]" :seqNo="win.id"
@@ -30,7 +30,7 @@
   </div>
 </template>
 <script setup>
-import { ref, onMounted, onUnmounted, computed, reactive, markRaw, devtools } from 'vue';
+import { ref, onMounted, onUnmounted, computed, reactive, markRaw, devtools, onBeforeUnmount } from 'vue';
 import HouseSelect from '../../../components/HouseSelect.vue';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -148,24 +148,39 @@ function clearScene(scene, keepLightsAndCameras = false) {
 let southIds = [] // house 001
 // const southIds = [1, 2, 3, 4, 5, 11, 12, 33, 34] // house 002
 
-const southIdArray = [[1, 2, 3, 4, 5, 11, 12, 13, 14, 33, 34], [1, 2, 3, 4, 5, 11, 12, 33, 34]]
+const southIdArray = [[1, 2, 3, 4, 5, 11, 12, 13, 14, 33, 34], [1, 2, 3, 4, 5, 11, 12, 33]]
 const southIdSet = ref([]);
 console.log('southidset:', southIdSet.value)
+let [blowerWinFbx, simplerUpperWinFbx, fanWinFbx, acFbx] = [null, null, null, null]
+
 const handleHouseChange = async () => {
   device3DList.value = {}
   if (scene)
     clearScene(scene)
   console.log('selected house', selectedHouseCode.value)
+  if (socket) {
+    isExplicitlyClosed = true;
+    console.log('closed socket in house change')
+    socket.close();
+  }
   southWallGroup = new THREE.Group()
   northWallGroup = new THREE.Group()
   southIds = southIdArray[Number(selectedHouseCode.value) - 1]
   southIdSet.value = new Set(southIds)
   console.log('south ids', southIds)
+
+
   await Promise.all([
     store.initDeviceConfig(selectedHouseCode.value),
     initThree(),
+    [blowerWinFbx, simplerUpperWinFbx, fanWinFbx, acFbx] = await Promise.all([
+      loadModel('damper_blower'),
+      loadModel('upperwindow'),
+      loadModel('fan_window'),
+      loadModel('ac')]),
     initWebSocket()
   ])
+  // windowPosList.value = dev3DPosList.value
   console.log('activeDeviceList.value', activeDevIdList.value)
   await init3DWindows()
 
@@ -215,16 +230,11 @@ const init3DWindows = async () => {
   // const simplerUpperWinFbx = await loadModel('upperwindow')
   // const fanWinFbx = await loadModel('fan_window')
   // const acFbx = await loadModel('ac')
-  const [blowerWinFbx, simplerUpperWinFbx, fanWinFbx, acFbx] = await Promise.all([
-    loadModel('damper_blower'),
-    loadModel('upperwindow'),
-    loadModel('fan_window'),
-    loadModel('ac')])
 
 
   const box = new THREE.Box3().setFromObject(simplerUpperWinFbx);
   windowWidth = box.max.x - box.min.x
-  windowPosList.value = dev3DPosList.value
+
 
   console.log('windowWidth in init3d', windowWidth)
   console.log('fullDevList:', fullDevList.value)
@@ -342,12 +352,12 @@ const init3DWindows = async () => {
 
 const testDevicesForDebug = () => {
   // writing for test
-  let testDevIds = new Set([2, 3, 4, 11, 16])
+  let testDevIds = new Set([2, 3, 4, 11])
   // device3DList.forEach((item, index) => {
   for (const [key, item] of Object.entries(device3DList.value)) {
     if (testDevIds.has(item.id)) {
-      // item.status = 1
-      // item.blowerState = 1
+      item.status = 1
+      item.blowerState = 1
     }
   }
   // writing for test
@@ -425,7 +435,7 @@ const animate = () => {
         if (currentSpeed < maxSpeed) {
           currentSpeed += acceleration
         }
-        console.log('windowItem.blowerBladeMesh.rotation.x: ', windowItem.blowerBladeMesh.rotation.x, ' winItem:', windowItem)
+        // console.log('windowItem.blowerBladeMesh.rotation.x: ', windowItem.blowerBladeMesh.rotation.x, ' winItem:', windowItem)
       } else if (windowItem.blowerState == 3) {
         if (currentSpeed > 0) {
           currentSpeed -= acceleration
@@ -585,7 +595,8 @@ onMounted(() => {
 
 
 const project3DToScreen = () => {
-  windowPosList.value.forEach((win, index) => {
+  dev3DPosList.value.forEach((win, index) => {
+    // console.log('dev3dpos: ',win)
     if (!activeDevIdList.value.has(win.id)) {
       win.isPresented = false
       return
@@ -704,14 +715,14 @@ const dev3DPosList = computed(() => {
     if (i > 32) { //ac
       pos = baseACVectors[i - 33]
     }
-    const windowPos = { id: i, title: '窗户' + i, pos3D: pos, screenX: 0, screenY: 0, isPresented: false }
+    const windowPos = reactive({ id: i, title: '窗户' + i, pos3D: pos, screenX: 0, screenY: 0, isPresented: false })
     windowPosObj[i] = windowPos
     j++
     return windowPos
   })
 })
 
-onUnmounted(() => {
+onBeforeUnmount(() => {
   // 组件销毁时清除定时器与监听，防止内存泄漏
   cancelAnimationFrame(animationFrameId);
   window.removeEventListener('resize', handleResize);
