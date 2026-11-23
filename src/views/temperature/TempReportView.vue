@@ -456,11 +456,66 @@ onMounted(() => {
   // const rod = createCylinderBetweenPoints(p1, p2, 1.5, mat);
   // scene.add(rod);
 })
+
+
+const clearScene = () => {
+  // 1. 停止动画循环
+  if (animationId) {
+    cancelAnimationFrame(animationId);
+  }
+
+  // 2. 销毁控制器与事件监听
+  if (controls) {
+    controls.dispose();
+  }
+  window.removeEventListener('resize', onWindowResize);
+
+  // 3. 遍历释放场景内的几何体、材质和纹理
+  if (scene) {
+    scene.traverse((object) => {
+      if (object.geometry) {
+        object.geometry.dispose();
+      }
+      if (object.material) {
+        if (Array.isArray(object.material)) {
+          object.material.forEach((material) => cleanMaterial(material));
+        } else {
+          cleanMaterial(object.material);
+        }
+      }
+    });
+    scene.clear();
+  }
+
+  // 4. 释放渲染器与 WebGL 上下文
+  if (renderer) {
+    renderer.dispose();
+    renderer.forceContextLoss();
+    renderer.domElement = null;
+  }
+
+  // 5. 置空引用，协助垃圾回收 (GC)
+  scene = null;
+  camera = null;
+  renderer = null;
+  controls = null;
+};
+
+// 辅助函数：清理材质及其包含的纹理贴图
+const cleanMaterial = (material) => {
+  material.dispose();
+  for (const key of Object.keys(material)) {
+    const value = material[key];
+    if (value && typeof value === 'object' && 'minFilter' in value) {
+      value.dispose(); // 释放 Texture
+    }
+  }
+};
+
 onBeforeUnmount(() => {
-  cancelAnimationFrame(animationId)
-  window.removeEventListener('resize', onWindowResize)
-  if (renderer) renderer.dispose()
-})
+  clearScene();
+});
+
 </script>
 
 <style scoped>

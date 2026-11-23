@@ -127,7 +127,7 @@ function clearScene(scene, keepLightsAndCameras = false) {
   }
 
   // 2. 倒序遍历 scene.children（防止遍历过程中移除元素导致索引错乱）
-  for (let i = scene.children.length - 1; i >= 0; i--) {
+  for (let i = scene?.children?.length - 1; i >= 0; i--) {
     const child = scene.children[i]
 
     // 如果需要保留灯光、相机或辅助线，跳过它们
@@ -284,7 +284,7 @@ const init3DWindows = async () => {
     // const movingParts = parts
     // const blowerBladeMesh = bladeMesh
     // 将运动部件安全吸附到运动组
-    win3d.blowerBladeMesh = blowerBladeMesh
+    win3d.blowerBladeMesh = blowerBladeMesh ? markRaw(blowerBladeMesh) : null
 
     const windowGroup = new THREE.Group()
     winMesh.position.copy(windowPosObj[deviceState.id].pos3D);
@@ -306,7 +306,7 @@ const init3DWindows = async () => {
 
     // const boxHelper = new THREE.BoxHelper(windowGroup, 0xff0000);
     // scene.add(boxHelper);
-    win3d.group = windowGroup
+    win3d.group = markRaw(windowGroup)
 
     const box = new THREE.Box3().setFromObject(windowGroup)
     //box3算出来的是世界坐标，如果此时winmesh不在原点，则需要转换成局部坐标再赋值
@@ -352,12 +352,12 @@ const init3DWindows = async () => {
 
 const testDevicesForDebug = () => {
   // writing for test
-  let testDevIds = new Set([2, 3, 4, 11])
+  let testDevIds = new Set([2, 3, 5, 11])
   // device3DList.forEach((item, index) => {
   for (const [key, item] of Object.entries(device3DList.value)) {
     if (testDevIds.has(item.id)) {
-      item.status = 1
-      item.blowerState = 1
+      // item.status = 1
+      // item.blowerState = 2
     }
   }
   // writing for test
@@ -399,6 +399,9 @@ const animate = () => {
 
   // 1. 窗戶動畫：高速渲染迴圈直接讀寫普通變數的屬性，效率最高
   Object.values(device3DList.value).forEach(windowItem => {
+    if (!activeDevIdList.value.has(windowItem.id)) {
+      return
+    }
     if (windowItem.group) {
       if (windowItem.status === 1) {
         // console.log('item', windowItem, ' opening')
@@ -725,6 +728,8 @@ const dev3DPosList = computed(() => {
 onBeforeUnmount(() => {
   // 组件销毁时清除定时器与监听，防止内存泄漏
   cancelAnimationFrame(animationFrameId);
+  if (scene)
+    clearScene(false)
   window.removeEventListener('resize', handleResize);
   if (controls) controls.dispose();
   if (renderer) renderer.dispose();
