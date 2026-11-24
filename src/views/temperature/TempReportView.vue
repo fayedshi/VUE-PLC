@@ -193,6 +193,7 @@ const createTempCardSprite = (tempVal, isHigh, isLow) => {
 // ==================== 1. 初始化 2.5D 场景 ====================
 const init25DScene = () => {
   const container = canvasContainer.value
+  console.log('canvasContainer', container)
   if (!container) return
 
   const width = container.clientWidth || window.innerWidth
@@ -397,9 +398,9 @@ const fetchTemperatureData = async (formattedTime = '') => {
       }
     })
     const data = response.data || {}
-    if (data['time']) {
-      localTime.value = (new Date(data['time'].replace(/\.\d+/, '') + 'Z')).toLocaleString()
-      console.log('date time,', data['time'], 'local time', localTime.value)
+    if (data['timestamp']) {
+      localTime.value = (new Date(data['timestamp'].replace(' ', 'T'))).toLocaleString("zh-CN", { hour12: false })
+      console.log('date time,', data['timestamp'], 'local time', localTime.value)
     }
     const currentStats = createInitialStats()
     for (let i = 0; i < 140; i++) {
@@ -429,6 +430,8 @@ const fetchTemperatureData = async (formattedTime = '') => {
   }
 }
 watch(selectedHouseCode, () => {
+  // clearScene()
+  // init25DScene()
   fetchTemperatureData(searchQuery.value.dateTime)
 })
 const handleSearch = () => {
@@ -462,6 +465,7 @@ const clearScene = () => {
   // 1. 停止动画循环
   if (animationId) {
     cancelAnimationFrame(animationId);
+    animationId = null
   }
 
   // 2. 销毁控制器与事件监听
@@ -489,16 +493,18 @@ const clearScene = () => {
 
   // 4. 释放渲染器与 WebGL 上下文
   if (renderer) {
-    renderer.dispose();
-    renderer.forceContextLoss();
-    renderer.domElement = null;
+    if (renderer.domElement && renderer.domElement.parentNode) {
+      renderer.domElement.parentNode.removeChild(renderer.domElement)
+    }
+    renderer.dispose()
+    renderer = null
   }
 
   // 5. 置空引用，协助垃圾回收 (GC)
   scene = null;
   camera = null;
-  renderer = null;
   controls = null;
+  cableGroup = null
 };
 
 // 辅助函数：清理材质及其包含的纹理贴图

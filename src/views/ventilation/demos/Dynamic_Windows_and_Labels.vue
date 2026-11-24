@@ -83,9 +83,9 @@ const store = useWindowControlStore()
 // --- 3. 核心计算与渲染循环 ---
 let currentSpeed = 0
 const maxAngle = Math.PI / 2
-const speed = 0.00058
-const maxSpeed = 0.12
-const acceleration = 0.003
+const speed = 0.037
+const maxSpeed = 0.16
+const acceleration = 0.08
 
 
 // --- 4. 按钮点击事件 ---
@@ -154,9 +154,14 @@ console.log('southidset:', southIdSet.value)
 let [blowerWinFbx, simplerUpperWinFbx, fanWinFbx, acFbx] = [null, null, null, null]
 
 const handleHouseChange = async () => {
-  device3DList.value = {}
-  if (scene)
-    clearScene(scene)
+  if (!scene) {
+    await initThree()
+  } else {
+    scene.remove(southWallGroup);
+    scene.remove(northWallGroup);
+    cancelAnimationFrame(animationFrameId);
+  }
+  console.log('显存资源统计:', renderer.info.memory);
   console.log('selected house', selectedHouseCode.value)
   if (socket) {
     isExplicitlyClosed = true;
@@ -169,27 +174,36 @@ const handleHouseChange = async () => {
   southIdSet.value = new Set(southIds)
   console.log('south ids', southIds)
 
-
-  await Promise.all([
-    store.initDeviceConfig(selectedHouseCode.value),
-    initThree(),
-    [blowerWinFbx, simplerUpperWinFbx, fanWinFbx, acFbx] = await Promise.all([
+  if (!blowerWinFbx) {
+    console.log('load base models again');
+    const models = await Promise.all([
       loadModel('damper_blower'),
       loadModel('upperwindow'),
       loadModel('fan_window'),
-      loadModel('ac')]),
+      loadModel('ac')]);
+    [blowerWinFbx, simplerUpperWinFbx, fanWinFbx, acFbx] = models
+    // blowerWinFbx.traverse((node) => {
+    //   if (node.material && node.material.map) {
+    //     console.log(node.name, node.material.map.image.width, node.material.map.image.height);
+    //   }
+    // });
+  }
+
+  await Promise.all([
+    store.initDeviceConfig(selectedHouseCode.value),
     initWebSocket()
   ])
+
   // windowPosList.value = dev3DPosList.value
   console.log('activeDeviceList.value', activeDevIdList.value)
+  device3DList.value = {}
   await init3DWindows()
-
 
   southWallGroup.visible = activeTab.value == 0
   northWallGroup.visible = activeTab.value == 1
   console.log('device3DList in handle house change: ', device3DList.value)
-  testDevicesForDebug()
   animate()
+  testDevicesForDebug()
 }
 
 // --- 5. 处理窗口缩放 ---
@@ -352,12 +366,12 @@ const init3DWindows = async () => {
 
 const testDevicesForDebug = () => {
   // writing for test
-  let testDevIds = new Set([2, 3, 5, 11])
+  let testDevIds = new Set([2, 3, 12, 11])
   // device3DList.forEach((item, index) => {
   for (const [key, item] of Object.entries(device3DList.value)) {
     if (testDevIds.has(item.id)) {
-      // item.status = 1
-      // item.blowerState = 2
+      // item.status = 4
+      // item.blowerState = 1
     }
   }
   // writing for test
@@ -394,8 +408,12 @@ const loadModel = (async devType => {
   return wrapper
 })
 
+const clock = new THREE.Clock();
+
 const animate = () => {
   animationFrameId = requestAnimationFrame(animate)
+  const delta = clock.getDelta();
+  // console.log('delta:', delta)
 
   // 1. 窗戶動畫：高速渲染迴圈直接讀寫普通變數的屬性，效率最高
   Object.values(device3DList.value).forEach(windowItem => {
@@ -405,12 +423,12 @@ const animate = () => {
     if (windowItem.group) {
       if (windowItem.status === 1) {
         // console.log('item', windowItem, ' opening')
-        windowItem.currentAngle += speed
+        windowItem.currentAngle += speed * delta;
         if (windowItem.currentAngle >= maxAngle) {
           windowItem.currentAngle = maxAngle
         }
       } else if (windowItem.status === 2) {
-        windowItem.currentAngle -= speed
+        windowItem.currentAngle -= speed * delta;
         if (windowItem.currentAngle <= 0) {
           windowItem.currentAngle = 0
           // windowItem.status = 'closed'
@@ -434,7 +452,7 @@ const animate = () => {
     if (windowItem.blowerBladeMesh) {
       // windowItem.blowerBladeMesh.geometry.center(); // 将几何体中心点移到自身本地坐标系的 (0,0,0)
       if (windowItem.blowerState == 1 || windowItem.blowerState == 2) {
-        // console.log('running blades')
+        // console.log('running blades', currentSpeed)
         if (currentSpeed < maxSpeed) {
           currentSpeed += acceleration
         }
@@ -582,7 +600,8 @@ const initWebSocket = () => {
   };
 };
 
-onMounted(() => {
+onMounted(async () => {
+  // await initThree()
   // testDevicesForDebug()
   // await Promise.all([
   //   store.initDeviceConfig(selectedHouseCode.value),

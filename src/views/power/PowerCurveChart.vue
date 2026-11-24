@@ -18,9 +18,9 @@
         <button class="btn-reset" @click="resetTimeRange">重置7天</button>
         <label>显示粒度：</label>
         <select v-model="timeRange.timeUnit" class="select-unit" @change="handleSearch">
-          <option value="1 hour">按小时</option>
-          <option value="1 day">按天</option>
-          <option value="1 month">按月</option>
+          <option value="1h">按小时</option>
+          <option value="1d">按天</option>
+          <option value="1M">按月</option>
         </select>
       </div>
       <button class="btn-search" :disabled="isLoading" @click="handleSearch">
@@ -59,7 +59,7 @@ const selectedHouseCode = ref('001');
 const timeRange = ref({
   startTime: '',
   endTime: '',
-  timeUnit: '1 day'
+  timeUnit: '1d'
 })
 
 const initDefaultTime = () => {
@@ -139,7 +139,7 @@ const fetchTrendData = async () => {
     let result = response.data || []
 
     // 解析出 4 个一维数组对应 ECharts
-    const timelines = result.map(item => item.time)
+    const timelines = result.map(item => item.timestamp)
     const avgPower = result.map(item => item.avg_power)
     const engeryConsumption = result.map(item => item.engery_consumption)
 
