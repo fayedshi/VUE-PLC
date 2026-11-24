@@ -48,7 +48,6 @@ const canvasRef = ref(null);
 const windowPosObj = {}
 let wallMinx = 0, wallMaxX = 0, wallTopY = 0, floorBottom = 0
 
-const windowPosList = ref([])
 const activeTab = ref(0)
 
 // name 参数即为 el-tab-pane 上绑定的 name（'params' 或 'valves'）
@@ -182,6 +181,9 @@ const handleHouseChange = async () => {
       loadModel('fan_window'),
       loadModel('ac')]);
     [blowerWinFbx, simplerUpperWinFbx, fanWinFbx, acFbx] = models
+    const box = new THREE.Box3().setFromObject(simplerUpperWinFbx);
+    windowWidth = box.max.x - box.min.x
+    console.log('windowWidth in init3d', windowWidth)
     // blowerWinFbx.traverse((node) => {
     //   if (node.material && node.material.map) {
     //     console.log(node.name, node.material.map.image.width, node.material.map.image.height);
@@ -197,13 +199,14 @@ const handleHouseChange = async () => {
   // windowPosList.value = dev3DPosList.value
   console.log('activeDeviceList.value', activeDevIdList.value)
   device3DList.value = {}
+  testDevicesForDebug()
   await init3DWindows()
 
   southWallGroup.visible = activeTab.value == 0
   northWallGroup.visible = activeTab.value == 1
   console.log('device3DList in handle house change: ', device3DList.value)
   animate()
-  testDevicesForDebug()
+
 }
 
 // --- 5. 处理窗口缩放 ---
@@ -246,24 +249,24 @@ const init3DWindows = async () => {
   // const acFbx = await loadModel('ac')
 
 
-  const box = new THREE.Box3().setFromObject(simplerUpperWinFbx);
-  windowWidth = box.max.x - box.min.x
+  // const box = new THREE.Box3().setFromObject(simplerUpperWinFbx);
+  // windowWidth = box.max.x - box.min.x
 
 
-  console.log('windowWidth in init3d', windowWidth)
+  // console.log('windowWidth in init3d', windowWidth)
   console.log('fullDevList:', fullDevList.value)
 
   // const center = box.getCenter(new THREE.Vector3());
 
 
   fullDevList.value.forEach(deviceState => {
-    console.log('loading dev state obj', deviceState)
+    console.log('loading dev state obj', deviceState.id, ' status:', deviceState)
     let fbxObj = simplerUpperWinFbx
     // console.log('fbxobj:', fbxObj)
     let win3d = {
       id: deviceState.id,
       status: deviceState.status,
-      currentAngle: 0,
+      currentAngle: deviceState.status == 2 ? maxAngle : 0,
       group: null,           // 存放 THREE.Group
       blowerBladeMesh: null,
       blowerState: -1,
@@ -368,14 +371,18 @@ const testDevicesForDebug = () => {
   // writing for test
   let testDevIds = new Set([2, 3, 12, 11])
   // device3DList.forEach((item, index) => {
-  for (const [key, item] of Object.entries(device3DList.value)) {
+  store.windowStateList.forEach((item) => {
     if (testDevIds.has(item.id)) {
-      // item.status = 4
-      // item.blowerState = 1
+      item.status = 1
+      // item?.['blower']?.['status'] = 1
+    } else if (item.id == 4) {
+      item.status = 2
+      // item?.fan?.status = 1
     }
-  }
-  // writing for test
+  })
 }
+// writing for test
+
 
 const modelCache = {}
 const loadModel = (async devType => {
@@ -417,12 +424,12 @@ const animate = () => {
 
   // 1. 窗戶動畫：高速渲染迴圈直接讀寫普通變數的屬性，效率最高
   Object.values(device3DList.value).forEach(windowItem => {
+    // tab切换后，invisible那面的墙的动画被停止了
     if (!activeDevIdList.value.has(windowItem.id)) {
       return
     }
     if (windowItem.group) {
       if (windowItem.status === 1) {
-        // console.log('item', windowItem, ' opening')
         windowItem.currentAngle += speed * delta;
         if (windowItem.currentAngle >= maxAngle) {
           windowItem.currentAngle = maxAngle
