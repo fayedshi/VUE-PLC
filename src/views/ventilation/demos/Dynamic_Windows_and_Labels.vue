@@ -20,17 +20,17 @@
         <div v-for="win in dev3DPosList" :key="win.id" v-show="win.isPresented" class="window-menu" :style="{
           transform: `translate3d(${win.screenX}px, ${win.screenY}px, 0) translate(15%, -120%)`
         }">
-          <WindowWidget v-if="device3DList?.[win.id]" :data="device3DList[win.id]" :seqNo="win.id"
+          <WindowWidget v-if="rawDevMap?.[win.id]" :data="rawDevMap[win.id]" :seqNo="win.id"
             @action="handleDeviceAction" />
         </div>
-      </div>
 
-      <div class="instructions">Vue 3 数据驱动：按住鼠标拖拽旋转视角</div>
+        <div class="instructions">Vue 3 数据驱动：按住鼠标拖拽旋转视角</div>
+      </div>
     </div>
   </div>
 </template>
 <script setup>
-import { ref, onMounted, onUnmounted, computed, reactive, markRaw, devtools, onBeforeUnmount } from 'vue';
+import { ref, onMounted, onUnmounted, computed, reactive, markRaw, onBeforeUnmount } from 'vue';
 import HouseSelect from '../../../components/HouseSelect.vue';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -59,17 +59,6 @@ const handleTabChange = async (name) => {
 
   console.log('after switch tab active devs:', activeDevIdList.value)
   console.log('after switch tab north dev3DPosList.value:', dev3DPosList.value)
-  // device3DList = {}
-  // activeWinMeshes.forEach(mesh => {
-  //   scene.remove(mesh)
-  //   // 2. 彻底释放旧mesh占用的显卡内存（如果以后不再复用这个 mesh）
-  //   mesh.geometry?.dispose()
-  //   mesh.material?.dispose()
-  // })
-  // cancelAnimationFrame(animationFrameId);
-  // await init3DWindows(activeDeviceList.value)
-  // animate()
-  // project3DToScreen()
 }
 
 
@@ -146,27 +135,40 @@ function clearScene(scene, keepLightsAndCameras = false) {
 
 let southIds = [] // house 001
 // const southIds = [1, 2, 3, 4, 5, 11, 12, 33, 34] // house 002
-
+// for house 1 and house 2
 const southIdArray = [[1, 2, 3, 4, 5, 11, 12, 13, 14, 33, 34], [1, 2, 3, 4, 5, 11, 12, 33]]
 const southIdSet = ref([]);
 console.log('southidset:', southIdSet.value)
 let [blowerWinFbx, simplerUpperWinFbx, fanWinFbx, acFbx] = [null, null, null, null]
 
 const handleHouseChange = async () => {
-  if (!scene) {
-    await initThree()
-  } else {
-    scene.remove(southWallGroup);
-    scene.remove(northWallGroup);
-    cancelAnimationFrame(animationFrameId);
-  }
-  console.log('显存资源统计:', renderer.info.memory);
-  console.log('selected house', selectedHouseCode.value)
   if (socket) {
     isExplicitlyClosed = true;
     console.log('closed socket in house change')
     socket.close();
   }
+
+  if (!scene) {
+    await initThree()
+  } else {
+    console.log('to remove wallgroup')
+    scene.remove(southWallGroup);
+    scene.remove(northWallGroup);
+    cancelAnimationFrame(animationFrameId);
+  }
+  // 手动触发一次渲染或等一帧让浏览器先把隐藏画面画出来：
+  renderer.render(scene, camera);
+
+  await Promise.all([
+    store.initDeviceConfig(selectedHouseCode.value),
+    initWebSocket(),
+    new Promise((resolve) => setTimeout(resolve, 200))
+  ])
+
+  // await new Promise((resolve) => setTimeout(resolve, 1000));
+
+  // console.log('显存资源统计:', renderer.info.memory);
+  console.log('selected house', selectedHouseCode.value)
   southWallGroup = new THREE.Group()
   northWallGroup = new THREE.Group()
   southIds = southIdArray[Number(selectedHouseCode.value) - 1]
@@ -191,22 +193,14 @@ const handleHouseChange = async () => {
     // });
   }
 
-  await Promise.all([
-    store.initDeviceConfig(selectedHouseCode.value),
-    initWebSocket()
-  ])
-
-  // windowPosList.value = dev3DPosList.value
   console.log('activeDeviceList.value', activeDevIdList.value)
   device3DList.value = {}
   testDevicesForDebug()
-  await init3DWindows()
-
   southWallGroup.visible = activeTab.value == 0
   northWallGroup.visible = activeTab.value == 1
-  console.log('device3DList in handle house change: ', device3DList.value)
-  animate()
 
+  init3DWindows()
+  animate()
 }
 
 // --- 5. 处理窗口缩放 ---
@@ -222,9 +216,15 @@ const fullDevList = computed(() => {
   return store.windowStateList.concat(store.acStateList)
 })
 
+const rawDevMap = computed(() =>
+  Object.fromEntries((fullDevList.value || []).map(item => [item.id, item]))
+);
+
+
+
 const activeDevIdList = computed(() => {
 
-  console.log('fulldevs:', fullDevList.value, 'activtab: ', activeTab.value)
+
   if (!activeTab.value) {
     return southIdSet.value
   } else {
@@ -240,58 +240,36 @@ const loader = new FBXLoader()
 let device3DList = ref({})
 let southWallGroup = new THREE.Group()
 let northWallGroup = new THREE.Group()
-const init3DWindows = async () => {
+const init3DWindows = () => {
   // activeWinMeshes = []
   let devType = 'upperwindow'
-  // const blowerWinFbx = await loadModel('damper_blower')
-  // const simplerUpperWinFbx = await loadModel('upperwindow')
-  // const fanWinFbx = await loadModel('fan_window')
-  // const acFbx = await loadModel('ac')
-
-
-  // const box = new THREE.Box3().setFromObject(simplerUpperWinFbx);
-  // windowWidth = box.max.x - box.min.x
-
 
   // console.log('windowWidth in init3d', windowWidth)
   console.log('fullDevList:', fullDevList.value)
-
-  // const center = box.getCenter(new THREE.Vector3());
-
-
   fullDevList.value.forEach(deviceState => {
     console.log('loading dev state obj', deviceState.id, ' status:', deviceState)
     let fbxObj = simplerUpperWinFbx
     // console.log('fbxobj:', fbxObj)
     let win3d = {
       id: deviceState.id,
-      status: deviceState.status,
       currentAngle: deviceState.status == 2 ? maxAngle : 0,
       group: null,           // 存放 THREE.Group
       blowerBladeMesh: null,
-      blowerState: -1,
       openUpward: true,
-      fan: null,
-      blower: null
     }
     if (deviceState.fan) {
-      win3d.blowerState = deviceState.fan.status
-      win3d.fan = deviceState.fan
       fbxObj = fanWinFbx
       devType = 'fanWindow'
     } else if (deviceState.blower) {
       fbxObj = blowerWinFbx
       devType = 'blowerWindow'
-      win3d.blowerState = deviceState.blower.status
       win3d.openUpward = false
-      win3d.blower = deviceState.blower
     } else if (!('fan' in deviceState)) { // ac feature
       console.log('loaded ac')
       devType = 'ac'
       fbxObj = acFbx
     }
     device3DList.value[deviceState.id] = win3d
-
     const winMesh = fbxObj.clone();
     // winMesh.rotation.y += Math.PI
     // 注意：旋转后记得更新一下矩阵，再进行后续的包围盒和转轴计算
@@ -351,20 +329,9 @@ const init3DWindows = async () => {
     // scene.add(boxHelper);
     // console.log('winmesh pos:', winMesh.position)
     console.log('winmesh pos latest:', winMesh.position)
-
-
-    // store.acStateList.forEach(acState => {
-    //   device3DList.value[acState.id] = reactive({
-    //     id: acState.id,
-    //     group: null,
-    //     blowerBladeMesh: null,
-    //     blowerState: -1,
-    //   })
-    // })
   })
   scene.add(southWallGroup, northWallGroup)
   console.log('in init3d device3dlist:', device3DList.value)
-
 }
 
 const testDevicesForDebug = () => {
@@ -373,10 +340,10 @@ const testDevicesForDebug = () => {
   // device3DList.forEach((item, index) => {
   store.windowStateList.forEach((item) => {
     if (testDevIds.has(item.id)) {
-      item.status = 1
+      // item.status = 1
       // item?.['blower']?.['status'] = 1
     } else if (item.id == 4) {
-      item.status = 2
+      // item.status = 2
       // item?.fan?.status = 1
     }
   })
@@ -395,7 +362,6 @@ const loadModel = (async devType => {
   fbx.rotation.y = Math.PI / 2
   if (devType == 'ac') {
     fbx.rotation.y -= Math.PI
-    // fbx.rotation.y = Math.PI / 2
   }
 
   const box = new THREE.Box3().setFromObject(fbx);
@@ -417,54 +383,64 @@ const loadModel = (async devType => {
 
 const clock = new THREE.Clock();
 
+
 const animate = () => {
   animationFrameId = requestAnimationFrame(animate)
   const delta = clock.getDelta();
-  // console.log('delta:', delta)
-
+  // console.log('rawDevList:', rawDevList)
+  // console.log('fulldevs:', fullDevList.value, 'activtab: ', activeTab.value)
   // 1. 窗戶動畫：高速渲染迴圈直接讀寫普通變數的屬性，效率最高
-  Object.values(device3DList.value).forEach(windowItem => {
+  // console.log('active list:', activeDevIdList.value)
+  // return
+  fullDevList.value.forEach(winStateItem => {
     // tab切换后，invisible那面的墙的动画被停止了
-    if (!activeDevIdList.value.has(windowItem.id)) {
+    if (!activeDevIdList.value.has(winStateItem.id)) {
       return
     }
-    if (windowItem.group) {
-      if (windowItem.status === 1) {
-        windowItem.currentAngle += speed * delta;
-        if (windowItem.currentAngle >= maxAngle) {
-          windowItem.currentAngle = maxAngle
+    const win3DItem = device3DList.value[winStateItem.id]
+    // console.log('win3DItem:',  win3DItem, " winStateItem ", winStateItem)
+    if (win3DItem.group) {
+      if (winStateItem.status === 1) {
+        win3DItem.currentAngle += speed * delta;
+        if (win3DItem.currentAngle >= maxAngle) {
+          win3DItem.currentAngle = maxAngle
         }
-      } else if (windowItem.status === 2) {
-        windowItem.currentAngle -= speed * delta;
-        if (windowItem.currentAngle <= 0) {
-          windowItem.currentAngle = 0
-          // windowItem.status = 'closed'
+      } else if (winStateItem.status === 2) {
+        // hard code for now, fix later
+        // if (windowItem.currentAngle == 0) {
+        //   windowItem.currentAngle = maxAngle
+        // }
+        // hard code for now, fix later
+        win3DItem.currentAngle -= speed * delta;
+        if (win3DItem.currentAngle <= 0) {
+          win3DItem.currentAngle = 0
         }
       }
-      else if (windowItem.status === 4) {
-        windowItem.currentAngle = maxAngle
-      } else if (windowItem.status === 5) {
-        windowItem.currentAngle = 0
+      else if (winStateItem.status === 4) {
+        win3DItem.currentAngle = maxAngle
+      } else if (winStateItem.status === 5) {
+        win3DItem.currentAngle = 0
       }
       // 驅動 3D 群組旋轉
-      if (windowItem.openUpward) {
-        windowItem.group.rotation.x = -windowItem.currentAngle //往上开,本应是rotation.x，这里是局部x轴
+      if (win3DItem.openUpward) {
+        win3DItem.group.rotation.x = -win3DItem.currentAngle //往上开,本应是rotation.x，这里是局部x轴
       } else {
-        windowItem.group.rotation.y = -windowItem.currentAngle //往侧边开
+        win3DItem.group.rotation.y = -win3DItem.currentAngle //往侧边开
       }
     }
 
     // 2. 風扇動畫
     // if (windowItem.blowerBladeMeshList.length > 0) {
-    if (windowItem.blowerBladeMesh) {
+    if (win3DItem.blowerBladeMesh) {
+      const blowerStatus = winStateItem?.blower?.status ?? winStateItem?.fan?.status;
       // windowItem.blowerBladeMesh.geometry.center(); // 将几何体中心点移到自身本地坐标系的 (0,0,0)
-      if (windowItem.blowerState == 1 || windowItem.blowerState == 2) {
+      if (blowerStatus == 1 || blowerStatus == 2) {
         // console.log('running blades', currentSpeed)
         if (currentSpeed < maxSpeed) {
           currentSpeed += acceleration
         }
         // console.log('windowItem.blowerBladeMesh.rotation.x: ', windowItem.blowerBladeMesh.rotation.x, ' winItem:', windowItem)
-      } else if (windowItem.blowerState == 3) {
+      } else if (blowerStatus == 3) {
         if (currentSpeed > 0) {
           currentSpeed -= acceleration
         }
@@ -475,17 +451,17 @@ const animate = () => {
 
       if (currentSpeed > 0) {
         // 直接改變 X 軸角度
-        if (windowItem.blowerState == 1) {//正转
-          windowItem.blowerBladeMesh.rotation.x -= currentSpeed
+        if (blowerStatus == 1) {//正转
+          win3DItem.blowerBladeMesh.rotation.x -= currentSpeed
           // 防止數值無限增大卡死，滿一圈重置
-          if (windowItem.blowerBladeMesh.rotation.x < -Math.PI * 2) {
-            windowItem.blowerBladeMesh.rotation.x += Math.PI * 2
+          if (win3DItem.blowerBladeMesh.rotation.x < -Math.PI * 2) {
+            win3DItem.blowerBladeMesh.rotation.x += Math.PI * 2
           }
-        } else if (windowItem.blowerState == 2) {//反转
-          windowItem.blowerBladeMesh.rotation.x += currentSpeed
+        } else if (blowerStatus == 2) {//反转
+          win3DItem.blowerBladeMesh.rotation.x += currentSpeed
           // 防止數值無限增大卡死，滿一圈重置
-          if (windowItem.blowerBladeMesh.rotation.x > Math.PI * 2) {
-            windowItem.blowerBladeMesh.rotation.x -= Math.PI * 2
+          if (win3DItem.blowerBladeMesh.rotation.x > Math.PI * 2) {
+            win3DItem.blowerBladeMesh.rotation.x -= Math.PI * 2
           }
         }
       }
@@ -573,25 +549,6 @@ const initWebSocket = () => {
     // console.log('devstate list', event.data)
     // controlMode.value = devStatesObj.value?.['switch'][0]
     store.updateStatus(statesResp)
-    fullDevList.value.forEach(devState => {
-
-      let dev3d = device3DList.value[devState.id]
-      dev3d.status = devState.status
-      if (devState.fan) {
-        dev3d.blowerState = devState.fan.status
-      }
-      else if (devState.blower) {
-        dev3d.blowerState = devState.blower.status
-      } else if (!('fan' in devState)) { // ac
-        dev3d.blowerState = devState.status
-      }
-    })
-
-    // store.acStateList.forEach((acState) => {
-    //   let ac = device3DList.value[acState.id]
-    //   ac.blowerState = acState.status
-    // })
-
   };
 
   // 连接关闭事件
@@ -608,18 +565,7 @@ const initWebSocket = () => {
 };
 
 onMounted(async () => {
-  // await initThree()
-  // testDevicesForDebug()
-  // await Promise.all([
-  //   store.initDeviceConfig(selectedHouseCode.value),
-  //   initWebSocket()
-  // ])
 
-  // windowPosList.value = buildWindowPosList()
-  // initThree()
-  // await init3DWindows()
-  // animate()
-  // project3DToScreen()
 })
 
 
