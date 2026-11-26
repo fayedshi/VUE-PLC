@@ -37,12 +37,12 @@
             <div class=" sub-header">
                 <span class="sub-title">❄️ 空调 #{{ seqNo }}</span>
                 <el-tag :type="data.status == 1 ? 'success' : 'info'" size="small">
-                    {{ formatStatus('ac', data.blowerState) }}
+                    {{ formatStatus('ac', data.status) }}
                 </el-tag>
             </div>
 
             <el-button-group size="small">
-                <el-button type="warning" :disabled="data.blowerState == 1" plain
+                <el-button type="warning" :disabled="data.status == 1" plain
                     @click="onControl('ac', data.id, AcActionEnum.START)">开启</el-button>
                 <el-button type="info" plain @click="onControl('ac', data.id, AcActionEnum.STOP)">停止</el-button>
             </el-button-group>

@@ -338,12 +338,12 @@ const testDevicesForDebug = () => {
   // writing for test
   let testDevIds = new Set([2, 3, 12, 11])
   // device3DList.forEach((item, index) => {
-  store.windowStateList.forEach((item) => {
+  fullDevList.value.forEach((item) => {
     if (testDevIds.has(item.id)) {
       // item.status = 1
       // item?.['blower']?.['status'] = 1
-    } else if (item.id == 4) {
-      // item.status = 2
+    } else if (item.id == 34) {
+      // item.status = 1
       // item?.fan?.status = 1
     }
   })
@@ -392,20 +392,20 @@ const animate = () => {
   // 1. 窗戶動畫：高速渲染迴圈直接讀寫普通變數的屬性，效率最高
   // console.log('active list:', activeDevIdList.value)
   // return
-  fullDevList.value.forEach(winStateItem => {
+  fullDevList.value.forEach(devStateItem => {
     // tab切换后，invisible那面的墙的动画被停止了
-    if (!activeDevIdList.value.has(winStateItem.id)) {
+    if (!activeDevIdList.value.has(devStateItem.id)) {
       return
     }
-    const win3DItem = device3DList.value[winStateItem.id]
+    const win3DItem = device3DList.value[devStateItem.id]
     // console.log('win3DItem:',  win3DItem, " winStateItem ", winStateItem)
     if (win3DItem.group) {
-      if (winStateItem.status === 1) {
+      if (devStateItem.status === 1) {
         win3DItem.currentAngle += speed * delta;
         if (win3DItem.currentAngle >= maxAngle) {
           win3DItem.currentAngle = maxAngle
         }
-      } else if (winStateItem.status === 2) {
+      } else if (devStateItem.status === 2) {
         // hard code for now, fix later
         // if (windowItem.currentAngle == 0) {
         //   windowItem.currentAngle = maxAngle
@@ -416,9 +416,9 @@ const animate = () => {
           win3DItem.currentAngle = 0
         }
       }
-      else if (winStateItem.status === 4) {
+      else if (devStateItem.status === 4) {
         win3DItem.currentAngle = maxAngle
-      } else if (winStateItem.status === 5) {
+      } else if (devStateItem.status === 5) {
         win3DItem.currentAngle = 0
       }
       // 驅動 3D 群組旋轉
@@ -430,9 +430,9 @@ const animate = () => {
     }
 
     // 2. 風扇動畫
-    // if (windowItem.blowerBladeMeshList.length > 0) {
+    // blade status of blower or fan or ac
     if (win3DItem.blowerBladeMesh) {
-      const blowerStatus = winStateItem?.blower?.status ?? winStateItem?.fan?.status;
+      const blowerStatus = devStateItem?.blower?.status ?? devStateItem?.fan?.status ?? devStateItem?.status;
       // windowItem.blowerBladeMesh.geometry.center(); // 将几何体中心点移到自身本地坐标系的 (0,0,0)
       if (blowerStatus == 1 || blowerStatus == 2) {
         // console.log('running blades', currentSpeed)
