@@ -11,7 +11,7 @@
             class="cabinet-tabs">
             <!-- 循环生成控制柜 Tab -->
             <el-tab-pane v-for="(windowList, index) in store.cabinList" :key="index" :label="`控制柜 ${index + 1}`"
-                :name="String(index)">
+                :name="index">
                 <!-- 每个控制柜内部的独立控制面板 -->
                 <div class="panel-box">
 

@@ -153,6 +153,38 @@ export const useWindowControlStore = defineStore('windowControl', () => {
     //     return idMap
     // }
 
+    let socket = null
+    let isExplicitlyClosed = false
+    const initWebSocket = (houseCode) => {
+        socket = new WebSocket(`ws-api/ws/dev-state/${houseCode}`);
+
+        // 连接成功事件
+        socket.onopen = () => {
+            console.log('成功连接到 Python 后端 WebSocket！');
+        };
+
+        // 接收到后端实时数据事件
+        socket.onmessage = (event) => {
+            // 解析后端传过来的 JSON 字符串
+            const statesResp = JSON.parse(event.data);
+            // console.log('devstate list', event.data)
+            // controlMode.value = devStatesObj.value?.['switch'][0]
+            updateStatus(statesResp, Number(houseCode) - 1)
+        };
+
+        // 连接关闭事件
+        socket.onclose = () => {
+            // console.log('【前端提示】连接已断开，3秒后尝试自动重连...');
+            if (!isExplicitlyClosed)
+                setTimeout(initWebSocket, 3000); // 掉线自动重连机制
+        };
+
+        // 发生错误事件
+        socket.onerror = (error) => {
+            console.error('【前端提示】WebSocket 发生错误:', error);
+        };
+    };
+
     const buildWindowList = ((config) => {
         let subConfig = config['mapping']
         let winSrcIds = subConfig?.['window_src'] || []
@@ -171,6 +203,7 @@ export const useWindowControlStore = defineStore('windowControl', () => {
                     deviceId = subConfig[key] + index
                 } else if (key.endsWith('_list')) {
                     let deviceList = subConfig[key]
+                    //todo: 这里 没有阀门的deviceId为-1，需要做处理
                     deviceId = deviceList[index]
                     //winState.fan ={id: deviceList[index], status: -1 }
                 }
@@ -234,7 +267,7 @@ export const useWindowControlStore = defineStore('windowControl', () => {
                 // if (winState.child instanceof FanState) {
                 winState.fan.status = devStatesObj.fans[winState.fan.index - 1]
             } else if (winState.valve) {
-                winState.blower.status = devStatesObj.blowers[winState.blower.index - 1]
+                winState.valve.status = devStatesObj.valve[winState.valve.index - 1]
             }
         })
 
