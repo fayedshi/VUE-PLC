@@ -62,12 +62,13 @@ const blowerWindowList = computed(() => {
     return store.windowStateList.filter(window => window.blower)
 })
 
-const devStatesObj = ref({
-})
-
 const handleHouseChange = async () => {
     await store.initDeviceConfig(selectedHouseCode.value)
     console.log('after house change: ', store.windowStateList)
+    if (socket) {
+        isExplicitlyClosed = true;
+        socket.close();
+    }
     initWebSocket()
 }
 
@@ -87,10 +88,7 @@ const switchMode = async (type, id, action) => {
 let isExplicitlyClosed = false
 let socket = null
 const initWebSocket = () => {
-    // todo: need granary switch control in ui, hardcode 001 for now
-
     socket = new WebSocket(`ws-api/ws/dev-state/${selectedHouseCode.value}`);
-    // socket = new WebSocket(`ws://${backendAdd}/ws/dev-state`);`
 
     // 连接成功事件
     socket.onopen = () => {
@@ -100,12 +98,12 @@ const initWebSocket = () => {
     // 接收到后端实时数据事件
     socket.onmessage = (event) => {
         // 解析后端传过来的 JSON 字符串
-        devStatesObj.value = JSON.parse(event.data);
+        const devStateList = JSON.parse(event.data);
 
-        // console.log('devstate', event.data)
+        console.log('devstate:', devStateList)
         // devStatesObj.value= {"switch":[1],"windows":[6,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5],"blowers":[0,0,0,0,0,0,0,0],"fans":[0,0,0,0],"ac":[0,0]}
-        controlMode.value = devStatesObj.value?.['switch'][0]
-        store.updateStatus(devStatesObj.value)
+        controlMode.value = devStateList?.['switch'][0]
+        store.updateStatus(devStateList)
     };
 
     // 连接关闭事件
