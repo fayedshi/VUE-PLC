@@ -3,7 +3,7 @@
 
         <!-- 顶部全局配置栏（仓房选择） -->
         <div class="global-header">
-            <HouseSelect v-model="selectedHouseCode" @change="handleHouseChange" />
+            <HouseSelect v-model="selectedHouseIndex" @change="handleHouseChange" />
         </div>
 
         <!-- 当有控制柜数据时，显示多标签页 -->
@@ -61,18 +61,19 @@ import { onMounted, ref, computed, onBeforeUnmount } from 'vue'
 
 const store = useWindowControlStore()
 const controlMode = ref('')
-const selectedHouseCode = ref('')
+const selectedHouseIndex = ref()
 const activeCabinetTab = ref(0) // 当前选中的控制柜 Tab ID
 
 // 监听仓房切换
-const handleHouseChange = async (val: string) => {
+const handleHouseChange = async () => {
     // 1. 调用 store 里的方法获取该仓房下的所有控制柜及设备拓扑
-    await store.initDeviceConfig(selectedHouseCode.value)
-    console.log('len ', store.cabinList.length)
+    await store.initDeviceConfig(selectedHouseIndex.value)
+    console.log('len ', store.cabinList.length, 'current house ', selectedHouseIndex.value)
     // // 2. 数据加载完成后，默认选中第一个控制柜的 Tab
-    if (store.cabinList.length > 0) {
-        activeCabinetTab.value = 0
-    }
+    // if (store.cabinList.length > 0) {
+    //     activeCabinetTab.value = 0
+    // }
+    store.initWebSocket(selectedHouseIndex.value, activeCabinetTab.value)
 }
 
 // 修改模式切换方法，传入 cabinetId 明确是要修改哪个柜子
@@ -84,7 +85,7 @@ const switchMode = (type: string, address: string, mode: number, cabinetId: stri
 
 // 拦截子组件动作并调用 Store
 const handleDeviceAction = async ({ type, id, action }) => {
-    await store.controlDevice(selectedHouseCode.value, type, id, action)
+    await store.controlDevice(selectedHouseIndex.value, type, id, action)
 }
 
 </script>

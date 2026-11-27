@@ -88,7 +88,7 @@ export const useWindowControlStore = defineStore('windowControl', () => {
     const loading = ref(false)
     const switchAddress = ref()
     // 初始化/获取后端配置与数据的核心方法
-    const initDeviceConfig = async (houseIndex: string) => {
+    const initDeviceConfig = async (houseIndex: number) => {
         resetData()
         loading.value = true
         try {
@@ -155,9 +155,13 @@ export const useWindowControlStore = defineStore('windowControl', () => {
 
     let socket = null
     let isExplicitlyClosed = false
-    const initWebSocket = (houseCode) => {
-        socket = new WebSocket(`ws-api/ws/dev-state/${houseCode}`);
-
+    const initWebSocket = (houseIndex: number, ccIndex: number) => {
+        if (socket) {
+            isExplicitlyClosed = true
+            socket.close()
+        }
+        console.log('houseindex: ', houseIndex, ' ccindex: ', ccIndex)
+        socket = new WebSocket(`ws-api/ws/dev-state/${houseIndex}/${ccIndex}`);
         // 连接成功事件
         socket.onopen = () => {
             console.log('成功连接到 Python 后端 WebSocket！');
@@ -167,9 +171,9 @@ export const useWindowControlStore = defineStore('windowControl', () => {
         socket.onmessage = (event) => {
             // 解析后端传过来的 JSON 字符串
             const statesResp = JSON.parse(event.data);
-            // console.log('devstate list', event.data)
+            console.log('devstate list: ', statesResp)
             // controlMode.value = devStatesObj.value?.['switch'][0]
-            updateStatus(statesResp, Number(houseCode) - 1)
+            updateStatus(statesResp, ccIndex)
         };
 
         // 连接关闭事件
@@ -213,12 +217,13 @@ export const useWindowControlStore = defineStore('windowControl', () => {
         })
 
         // add nature windows
-        let range = config['window'] || []
-        for (let winId = range[0]; winId <= range[1]; winId++) {
+        let windowIds = config['window'] || []
+        // for (let winId = windowIds[0]; winId <= windowIds[1]; winId++) {
+        windowIds.forEach((winId) => {
             if (!windowStateList[winId]) {
                 windowStateList[winId] = { id: winId, status: -1, fan: null, valve: null }
             }
-        }
+        })
         cabinList.value.push(Object.values(windowStateList))
     })
 
@@ -245,27 +250,11 @@ export const useWindowControlStore = defineStore('windowControl', () => {
     }
 
     const updateStatus = (devStatesObj, ccIndex) => {
-        // console.log('in updatestatus: ', devStatesObj)
-        // Object.keys(windows.value).map(Number).map(winId => {
-        //     const fanId = fanMap.value.get(winId) as number
-        //     const blowerId = blowerMap.value.get(winId) as number
-        //     if (Object.keys(devStatesObj).length > 0) {
-        //         // 必须注意，这个winId一定要从1开始，否则跟index对不上
-        //         windows.value[winId].status = devStatesObj.windows[winId - 1]
-        //         // console.log('insde windowlist', windows[winId].status, 'fan ', fans[fanId])
-        //         if (fans[fanId]) {
-        //             fans[fanId].status = devStatesObj.fans[fans[fanId].index - 1]
-        //         }
-        //         if (blowers[blowerId]) {
-        //             blowers[blowerId].status = devStatesObj.blowers[blowers[blowerId].index - 1]
-        //         }
-        //     }
-        // })
-        cabinList[ccIndex].value.forEach((winState) => {
-            winState.status = devStatesObj.windows[winState.id - 1]
+        cabinList.value[ccIndex].forEach((winState) => {
+            winState.status = devStatesObj.window[winState.id - 1]
             if (winState.fan) {
                 // if (winState.child instanceof FanState) {
-                winState.fan.status = devStatesObj.fans[winState.fan.index - 1]
+                winState.fan.status = devStatesObj.fan[winState.fan.index - 1]
             } else if (winState.valve) {
                 winState.valve.status = devStatesObj.valve[winState.valve.index - 1]
             }
@@ -342,7 +331,7 @@ export const useWindowControlStore = defineStore('windowControl', () => {
         // windowStateList, acStateList,
         // windowTaskList, acTaskList,
         // selectedAcList, selectedWindowTaskList,
-        cabinList,
+        cabinList, initWebSocket,
         initDeviceConfig, updateStatus, controlDevice
     }
 })

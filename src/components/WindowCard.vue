@@ -12,24 +12,9 @@
                 <el-tag :class="['status-badge', `status-${data.status}`]" size="small">
                     {{ formatStatus('window', data.status) }}
                 </el-tag>
-
-                <!-- <el-tag :type="data.status === 1 ? 'success' : 'info'" size="small" effect="dark">
-                    {{ formatStatus('window', data.status) }}
-                </el-tag> -->
-                <!-- <span :class="['status-badge', `status-${data.status}`]">
-                    {{ formatStatus('window', data.status) }}
-                </span> -->
-
             </div>
         </template>
-        <!-- <template v-else #header>
-            <div class="card-header">
-                <span class="title">❄️ 空调 #{{ data.index }}</span>
-                <el-tag :type="data.status == 1 ? 'success' : 'info'" size="small">
-                    {{ formatStatus('ac', data.status) }}
-                </el-tag>
-            </div>
-        </template> -->
+
 
         <!-- 1. 窗体控制 -->
         <div class="control-row" v-if="'fan' in data">
@@ -61,19 +46,38 @@
         <!-- 2. 排风扇控制 (条件渲染) -->
         <div v-if="data.fan" class="sub-device-section fan-section">
             <div class="sub-header">
-                <span class="sub-title">💨 排风扇 #{{ data.fan.index }}</span>
-                <!-- <el-tag :type="data.fan.status === 1 ? 'success' : 'info'" size="small"> -->
-                <el-tag :class="['status-badge', `status-${data.fan.status}`]" size="small">
-                    {{ formatStatus('fan', data.fan.status) }}
-                </el-tag>
-            </div>
-            <el-button-group size="small" class="w-full">
-                <el-button type="success" :disabled="data.fan.status == 1 || data.status != 4" plain
-                    @click="onControl('fan', data.fan.id, FanActionEnum.START)">开启</el-button>
-                <!-- <el-button type="warning" plain
+                <div class="sub-header">
+                    <span class="sub-title">💨 排风扇 #{{ data.fan.index }}</span>
+                    <!-- <el-tag :type="data.fan.status === 1 ? 'success' : 'info'" size="small"> -->
+                    <el-tag :class="['status-badge', `status-${data.fan.status}`]" size="small">
+                        {{ formatStatus('fan', data.fan.status) }}
+                    </el-tag>
+                </div>
+                <el-button-group size="small" class="w-full">
+                    <el-button type="success" :disabled="data.fan.status == 1 || data.status != 4" plain
+                        @click="onControl('fan', data.fan.id, FanActionEnum.START)">开启</el-button>
+                    <!-- <el-button type="warning" plain
                     @click="onControl('fan', data.fan.id, FanActionEnum.CLOSE)">关闭</el-button> -->
-                <el-button type="info" plain @click="onControl('fan', data.fan.id, FanActionEnum.STOP)">停止</el-button>
-            </el-button-group>
+                    <el-button type="info" plain
+                        @click="onControl('fan', data.fan.id, FanActionEnum.STOP)">停止</el-button>
+                </el-button-group>
+
+                <div class="sub-header">
+                    <span class="sub-title">⚙️ 阀门 #{{ data.fan.index }}</span>
+                    <!-- <el-tag :type="data.fan.status === 1 ? 'success' : 'info'" size="small"> -->
+                    <el-tag :class="['status-badge', `status-${data.fan.status}`]" size="small">
+                        {{ formatStatus('fan', data.fan.status) }}
+                    </el-tag>
+                </div>
+                <el-button-group size="small" class="w-full">
+                    <el-button type="success" :disabled="data.fan.status == 1 || data.status != 4" plain
+                        @click="onControl('fan', data.fan.id, FanActionEnum.START)">开启</el-button>
+                    <!-- <el-button type="warning" plain
+                    @click="onControl('fan', data.fan.id, FanActionEnum.CLOSE)">关闭</el-button> -->
+                    <el-button type="info" plain
+                        @click="onControl('fan', data.fan.id, FanActionEnum.STOP)">停止</el-button>
+                </el-button-group>
+            </div>
         </div>
 
         <!-- 3. 风机控制 (条件渲染) -->
@@ -209,7 +213,7 @@ const getBlowerTagType = (status) => {
 
 .sub-header {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: center;
     margin-bottom: 8px;
 }
